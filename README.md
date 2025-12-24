@@ -98,4 +98,5 @@ go.mod
 - [ ] Language server
 - [ ] Treesitter
 - [ ] Print token (color)
+- [ ] Print tokens (serial number)
 
