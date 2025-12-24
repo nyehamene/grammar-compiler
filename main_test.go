@@ -2,8 +2,24 @@ package main
 
 import (
 	"bytes"
+	"grammar/cmd"
+	checkcmd "grammar/cmd/check"
+	diffcmd "grammar/cmd/diff"
+	fmtcmd "grammar/cmd/fmt"
+	lspcmd "grammar/cmd/lsp"
+	printcmd "grammar/cmd/print"
 	"strings"
 	"testing"
+)
+
+// These variables now refer to the exported Usage constants in the cmd package.
+var (
+	grammarTxt = cmd.GrammarUsage
+	checkTxt   = checkcmd.CheckUsage
+	diffTxt    = diffcmd.DiffUsage
+	fmtTxt     = fmtcmd.FmtUsage
+	printTxt   = printcmd.PrintUsage
+	lspTxt     = lspcmd.LspUsage
 )
 
 func TestRun(t *testing.T) {
@@ -90,7 +106,7 @@ func TestRun(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			gotExitCode := run(tt.args, &stdout, &stderr)
+			gotExitCode := cmd.Run(tt.args, &stdout, &stderr) // Call cmd.Run
 
 			if gotExitCode != tt.exitCode {
 				t.Errorf("expected exit code %d, got %d", tt.exitCode, gotExitCode)

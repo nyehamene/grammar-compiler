@@ -73,6 +73,8 @@ The implementation should following the following project structure.
 cmd/fmt/fmt.go
 cmd/check/check.go
 cmd/lsp/lsp.go
+cmd/diff/diff.go
+cmd/print/print.go
 cmd/cmd.go
 token/token.go
 token/tokenizer.go
