@@ -50,9 +50,9 @@ The project follows standard Go conventions. The implementation is guided by the
 - Print token
 - Diff token
 - Parser
+- Print ast
 
 ### Pending Stages
-- Print ast
 - Diff ast
 - Formatter
 - Language server
