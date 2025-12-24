@@ -105,7 +105,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case "help":
 		fmt.Fprint(stdout, grammarTxt)
 	case "version":
-		fmt.Fprintln(stdout, "TBD")
+		fmt.Fprintln(stdout, "0.1.0")
 	default:
 		fmt.Fprint(stdout, grammarTxt)
 		return 1

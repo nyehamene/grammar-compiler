@@ -78,7 +78,7 @@ func TestRun(t *testing.T) {
 		{
 			name: "version command",
 			args: []string{"version"},
-			stdout: "TBD\n",
+			stdout: "0.1.0\n",
 		},
 	}
 
