@@ -3,18 +3,9 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"grammar/command"
 	"io"
 )
-
-const DiffUsage = `Usage: grammar diff ARGUMENT PATH1 PATH2
-
-Compare input files and print their differences.
-Both paths most be files (not directories).
-
-Arguemnt:
--t, --tokens   Print differences in tokens.
--a, --ast      Print differences in ast nodes.
-`
 
 func DiffCommand(args []string, stdout, stderr io.Writer) int {
 	diffCmd := flag.NewFlagSet("diff", flag.ExitOnError)
@@ -30,7 +21,7 @@ func DiffCommand(args []string, stdout, stderr io.Writer) int {
 	diffCmd.BoolVar(&help, "help", false, "Print this message.")
 	diffCmd.Parse(args)
 	if help || diffCmd.NArg() != 2 {
-		fmt.Fprint(stdout, DiffUsage)
+		fmt.Fprint(stdout, command.DiffUsage)
 		return 0
 	}
 	fmt.Fprintf(stdout, "Diffing %s %s\n", diffCmd.Arg(0), diffCmd.Arg(1))

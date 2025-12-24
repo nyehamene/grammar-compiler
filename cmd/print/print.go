@@ -3,20 +3,9 @@ package printcmd
 import (
 	"flag"
 	"fmt"
+	"grammar/command"
 	"io"
 )
-
-const PrintUsage = `Usage: grammar print ARGUMENT PATH
-
-Pretty print AST nodes or token information to the console.
-Argument:
--t, --token   Print the tokens produce by the tokenizer.
--a, --ast     Print the nodes produced by the parser.
-PATH          Path to a file or directory.
-
-If PATH is a directory, print every file inside it. If an error
-is found, print the tokens/ast and highlight the errors.
-`
 
 func PrintCommand(args []string, stdout, stderr io.Writer) int {
 	printCmd := flag.NewFlagSet("print", flag.ExitOnError)
@@ -32,7 +21,7 @@ func PrintCommand(args []string, stdout, stderr io.Writer) int {
 	printCmd.BoolVar(&help, "help", false, "Print this message.")
 	printCmd.Parse(args)
 	if help || printCmd.NArg() == 0 {
-		fmt.Fprint(stdout, PrintUsage)
+		fmt.Fprint(stdout, command.PrintUsage)
 		return 0
 	}
 	kind := "AST"

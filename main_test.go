@@ -3,23 +3,19 @@ package main
 import (
 	"bytes"
 	"grammar/cmd"
-	checkcmd "grammar/cmd/check"
-	diffcmd "grammar/cmd/diff"
-	fmtcmd "grammar/cmd/fmt"
-	lspcmd "grammar/cmd/lsp"
-	printcmd "grammar/cmd/print"
+	"grammar/command"
 	"strings"
 	"testing"
 )
 
-// These variables now refer to the exported Usage constants in the cmd package.
+// These variables now refer to the exported Usage constants in the command package.
 var (
-	grammarTxt = cmd.GrammarUsage
-	checkTxt   = checkcmd.CheckUsage
-	diffTxt    = diffcmd.DiffUsage
-	fmtTxt     = fmtcmd.FmtUsage
-	printTxt   = printcmd.PrintUsage
-	lspTxt     = lspcmd.LspUsage
+	grammarTxt = command.GrammarUsage
+	checkTxt   = command.CheckUsage
+	diffTxt    = command.DiffUsage
+	fmtTxt     = command.FmtUsage
+	printTxt   = command.PrintUsage
+	lspTxt     = command.LspUsage
 )
 
 func TestRun(t *testing.T) {

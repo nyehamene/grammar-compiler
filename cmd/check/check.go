@@ -3,20 +3,9 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"grammar/command"
 	"io"
 )
-
-const CheckUsage = `Usage: grammar check ARGUMENT
-
-Checks for syntax or validation errors in input files.
-
-Argument:
-PATH          Path to a file or directory to check.
--h, --help    Print this message.
-
-If PATH is a directory, every grammar files inside it is checked.
-If any error is found, the program exits with a non-zero exit code.
-`
 
 func CheckCommand(args []string, stdout, stderr io.Writer) int {
 	checkCmd := flag.NewFlagSet("check", flag.ExitOnError)
@@ -26,7 +15,7 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 	checkCmd.BoolVar(&help, "help", false, "Print this message.")
 	checkCmd.Parse(args)
 	if help || checkCmd.NArg() == 0 {
-		fmt.Fprint(stdout, CheckUsage)
+		fmt.Fprint(stdout, command.CheckUsage)
 		return 0
 	}
 	for _, path := range checkCmd.Args() {

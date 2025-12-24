@@ -3,16 +3,9 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"grammar/command"
 	"io"
 )
-
-const LspUsage = `Usage: grammar lsp
-
-Starts a language server for the grammar language.
-
-Argument:
--h, --help    Print this message.
-`
 
 func LspCommand(args []string, stdout, stderr io.Writer) int {
 	lspCmd := flag.NewFlagSet("lsp", flag.ExitOnError)
@@ -22,7 +15,7 @@ func LspCommand(args []string, stdout, stderr io.Writer) int {
 	lspCmd.BoolVar(&help, "help", false, "Print this message.")
 	lspCmd.Parse(args)
 	if help {
-		fmt.Fprint(stdout, LspUsage)
+		fmt.Fprint(stdout, command.LspUsage)
 		return 0
 	}
 	fmt.Fprintln(stdout, "TBD")
