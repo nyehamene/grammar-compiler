@@ -3,6 +3,8 @@
 Scan input grammar files. If any error is found exit
 with a non-zero exit code.
 
+See ../grammar.txt for the valid tokens in the grammar.
+
 - Implement `grammar check <PATH>`.
 - Add tests that scans each file in ../example directory.
 

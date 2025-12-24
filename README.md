@@ -91,7 +91,7 @@ go.mod
 - [x] Tokenizer
 - [x] Print token
 - [x] Diff token
-- [ ] Parser
+- [x] Parser
 - [ ] Print ast
 - [ ] Diff ast
 - [ ] Formatter

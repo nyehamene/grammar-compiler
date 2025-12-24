@@ -5,6 +5,11 @@ import (
 	"strconv"
 )
 
+// Pos specifies the zero-based character offset of a token or node in a source file.
+type Pos int
+
+const NoPos Pos = 0
+
 // TokenKind is the type of a token.
 type Kind int
 
@@ -26,12 +31,12 @@ const (
 	RParen
 	LBrace
 	RBrace
+	LBrack
+	RBrack
+	Pipe
 	Dot
-	At
 	Assign // New token kind for '='
-
-	// Keywords
-	Import
+	AtDirective
 )
 
 // String returns the string representation of a TokenKind.
@@ -61,14 +66,18 @@ func (k Kind) String() string {
 		return "LBRACE"
 	case RBrace:
 		return "RBRACE"
+	case LBrack:
+		return "LBRACK"
+	case RBrack:
+		return "RBRACK"
+	case Pipe:
+		return "PIPE"
 	case Dot:
 		return "DOT"
-	case At:
-		return "AT"
 	case Assign:
 		return "ASSIGN"
-	case Import:
-		return "IMPORT"
+	case AtDirective:
+		return "AT_Directive"
 	default:
 		return fmt.Sprintf("UNKNOWN(%d)", k)
 	}

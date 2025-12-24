@@ -3,6 +3,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"grammar/ast"
 	"grammar/command"
 	"grammar/token"
 	"io"
@@ -32,18 +33,17 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 		tokenizer := token.NewTokenizer(srcRunes)
 		tokens := tokenizer.Scan()
 
-		hasError := false
-		for _, t := range tokens {
-			if t.State == token.Invalid {
-				// Get the token value from the tokenizer using its start and end offsets
-				tokenValue := token.Literal(t, srcRunes)
-				fmt.Fprintf(stderr, "Error: Invalid token '%s' in file %s\n", tokenValue, path)
-				hasError = true
-				break
+		parser := ast.NewParser(tokens, srcRunes)
+		_, err = parser.ParseFile()
+		if err != nil {
+			if errs, ok := err.(ast.ErrorList); ok {
+				for _, e := range errs {
+					line, col := token.FindLineAndCol(int(e.Pos), srcRunes)
+					fmt.Fprintf(stderr, "%s:%d:%d: %s\n", path, line, col, e.Message)
+				}
+			} else {
+				fmt.Fprintf(stderr, "Error parsing file %s: %s\n", path, err)
 			}
-		}
-
-		if hasError {
 			return 1
 		}
 

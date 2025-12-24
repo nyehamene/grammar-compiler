@@ -7,8 +7,8 @@ import (
 // Tokenizer scans an input source and produces a slice of Tokens.
 type Tokenizer struct {
 	src        []rune
-	offset     int // current offset in src
-	readOffset int // next char to read
+	offset     int  // current offset in src
+	readOffset int  // next char to read
 	ch         rune // current char
 }
 
@@ -22,18 +22,23 @@ func NewTokenizer(src []rune) *Tokenizer {
 // Scan scans the input source and returns a slice of Tokens.
 func (t *Tokenizer) Scan() []Token {
 	var tokens []Token
+loop:
 	for t.ch != 0 {
 		t.skipWhitespace()
 		start := t.offset
 
 		var token Token
 		switch {
+		case t.ch == 0:
+			break loop
 		case isLetter(t.ch):
 			token = t.scanIdent()
 		case isDigit(t.ch):
 			token = t.scanNumber()
 		case t.ch == '"':
 			token = t.scanString()
+		case t.ch == '@':
+			token = t.scanDirective()
 		case t.ch == '/':
 			// Check if it's a regex or a comment
 			if t.peek() == '/' { // Comment, skip
@@ -49,7 +54,7 @@ func (t *Tokenizer) Scan() []Token {
 			case ':':
 				token = t.newToken(Colon, start, t.offset+1)
 				t.nextChar()
-			case '(': 
+			case '(':
 				token = t.newToken(LParen, start, t.offset+1)
 				t.nextChar()
 			case ')':
@@ -61,11 +66,17 @@ func (t *Tokenizer) Scan() []Token {
 			case '}':
 				token = t.newToken(RBrace, start, t.offset+1)
 				t.nextChar()
+			case '[':
+				token = t.newToken(LBrack, start, t.offset+1)
+				t.nextChar()
+			case ']':
+				token = t.newToken(RBrack, start, t.offset+1)
+				t.nextChar()
+			case '|':
+				token = t.newToken(Pipe, start, t.offset+1)
+				t.nextChar()
 			case '.':
 				token = t.newToken(Dot, start, t.offset+1)
-				t.nextChar()
-			case '@':
-				token = t.newToken(At, start, t.offset+1)
 				t.nextChar()
 			case '=': // Handle assignment token
 				token = t.newToken(Assign, start, t.offset+1)
@@ -124,9 +135,27 @@ func (t *Tokenizer) scanIdent() Token {
 	for isLetter(t.ch) || isDigit(t.ch) {
 		t.nextChar()
 	}
-	lit := string(t.src[start:t.offset])
-	kind := lookupKeyword(lit)
-	return t.newToken(kind, start, t.offset)
+	return t.newToken(Ident, start, t.offset)
+}
+
+func (t *Tokenizer) scanDirective() Token {
+	start := t.offset
+	t.nextChar()
+
+	if !isLetter(t.ch) {
+		return Token{
+			Kind:  AtDirective,
+			State: Invalid,
+			Start: start,
+			End:   t.offset,
+		}
+	}
+
+	for isLetter(t.ch) || isDigit(t.ch) {
+		t.nextChar()
+	}
+
+	return t.newToken(Ident, start, t.offset)
 }
 
 func (t *Tokenizer) scanNumber() Token {
@@ -165,8 +194,6 @@ func (t *Tokenizer) scanRegex() Token {
 	return t.newToken(Regex, start, t.offset)
 }
 
-
-
 func isLetter(ch rune) bool {
 	return unicode.IsLetter(ch) || ch == '_'
 }
@@ -178,8 +205,6 @@ func isDigit(ch rune) bool {
 // lookupKeyword checks if an identifier is a keyword.
 func lookupKeyword(ident string) Kind {
 	switch ident {
-	case "import":
-		return Import
 	default:
 		return Ident
 	}

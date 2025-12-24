@@ -10,7 +10,7 @@ import (
 
 func TestTokenizer(t *testing.T) {
 	// Create a dummy file for testing various token types
-	testSrc := `document = "document"; param = "param"; num = 123; ident = /[a-zA-Z_][a-zA-Z0-9_]*/; import "some/path";`
+	testSrc := `document = "document"; param = "param"; num = 123; ident = /[a-zA-Z_][a-zA-Z0-9_]*/; import = @import("some/path");`
 	srcRunes := []rune(testSrc)
 	tokenizer := NewTokenizer(srcRunes)
 	tokens := tokenizer.Scan()
@@ -35,8 +35,10 @@ func TestTokenizer(t *testing.T) {
 		{Assign, "="},
 		{Regex, `/[a-zA-Z_][a-zA-Z0-9_]*/`},
 		{Semicolon, ";"},
-		{Import, "import"},
+		{Ident, "import"},
+		{RParen, "("},
 		{String, `"some/path"`},
+		{LParen, ")"},
 		{Semicolon, ";"},
 		{EOF, ""},
 	}

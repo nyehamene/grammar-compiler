@@ -30,7 +30,7 @@ Attribute = AttributeQualified | AttributeList;
 
 AttributeQualified = "@" identq "/" ident AttributeList ;
 AttributeList      = "{" Attributes "}" ;
-Attributes         = key value ";"
+Attributes         = key value ";" ;
 
 value     = expr;
 key       = str
