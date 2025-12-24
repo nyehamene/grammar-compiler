@@ -83,6 +83,6 @@ const (
 type Token struct {
 	Kind  Kind
 	State State
-	start int // Start offset in the input source
-	end   int // End offset in the input source
+	Start int // Start offset in the input source
+	End   int // End offset in the input source
 }

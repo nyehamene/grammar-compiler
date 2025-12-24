@@ -11,12 +11,12 @@ import (
 func TestTokenizer(t *testing.T) {
 	// Create a dummy file for testing various token types
 	testSrc := `document = "document"; param = "param"; num = 123; ident = /[a-zA-Z_][a-zA-Z0-9_]*/; import "some/path";`
-	r := strings.NewReader(testSrc)
-	tokenizer := NewTokenizer(r)
+	srcRunes := []rune(testSrc)
+	tokenizer := NewTokenizer(srcRunes)
 	tokens := tokenizer.Scan()
 
 	expectedTokens := []struct {
-		kind Kind
+		kind  Kind
 		value string
 	}{
 		{Ident, "document"},
@@ -48,9 +48,9 @@ func TestTokenizer(t *testing.T) {
 	for i, exp := range expectedTokens {
 		tok := tokens[i]
 		if tok.Kind != exp.kind {
-			t.Errorf("Token %d: Expected kind %s, got %s (value: %q)", i, exp.kind, tok.Kind, tokenizer.Literal(tok))
+			t.Errorf("Token %d: Expected kind %s, got %s (value: %q)", i, exp.kind, tok.Kind, tokenizer.Literal(tok, srcRunes))
 		}
-		val := tokenizer.Literal(tok)
+		val := tokenizer.Literal(tok, srcRunes)
 		if val != exp.value {
 			t.Errorf("Token %d: Expected value %q, got %q", i, exp.value, val)
 		}
@@ -71,18 +71,18 @@ func TestTokenizerExampleFiles(t *testing.T) {
 		if strings.HasSuffix(file.Name(), ".grammar") {
 			t.Run(file.Name(), func(t *testing.T) {
 				filePath := filepath.Join(exampleDir, file.Name())
-				f, err := os.Open(filePath)
+				fileContent, err := os.ReadFile(filePath)
 				if err != nil {
-					t.Fatalf("Failed to open example file %s: %v", filePath, err)
+					t.Fatalf("Failed to read example file %s: %v", filePath, err)
 				}
-				defer f.Close()
+				srcRunes := []rune(string(fileContent))
 
-				tokenizer := NewTokenizer(f)
+				tokenizer := NewTokenizer(srcRunes)
 				tokens := tokenizer.Scan()
 
 				for _, tok := range tokens {
 					if tok.State == Invalid {
-						t.Errorf("File %s: Found invalid token %q", file.Name(), tokenizer.Literal(tok))
+						t.Errorf("File %s: Found invalid token %q", file.Name(), tokenizer.Literal(tok, srcRunes))
 					}
 				}
 			})

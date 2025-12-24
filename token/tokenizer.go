@@ -1,8 +1,6 @@
 package token
 
 import (
-	"bytes"
-	"io"
 	"unicode"
 )
 
@@ -14,11 +12,9 @@ type Tokenizer struct {
 	ch         rune // current char
 }
 
-// NewTokenizer creates a new Tokenizer for the given input source.
-func NewTokenizer(src io.Reader) *Tokenizer {
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(src)
-	t := &Tokenizer{src: []rune(buf.String())}
+// NewTokenizer creates a new Tokenizer for the given input source (rune slice).
+func NewTokenizer(src []rune) *Tokenizer {
+	t := &Tokenizer{src: src}
 	t.nextChar()
 	return t
 }
@@ -87,7 +83,7 @@ func (t *Tokenizer) Scan() []Token {
 }
 
 func (t *Tokenizer) newToken(kind Kind, start, end int) Token {
-	return Token{Kind: kind, State: Valid, start: start, end: end}
+	return Token{Kind: kind, State: Valid, Start: start, End: end}
 }
 
 func (t *Tokenizer) nextChar() {
@@ -150,7 +146,7 @@ func (t *Tokenizer) scanString() Token {
 		t.nextChar()
 	}
 	if t.ch == 0 { // Unterminated string
-		return Token{Kind: String, State: Invalid, start: start, end: t.offset}
+		return Token{Kind: String, State: Invalid, Start: start, End: t.offset}
 	}
 	t.nextChar() // Consume the closing '"'
 	return t.newToken(String, start, t.offset)
@@ -163,18 +159,18 @@ func (t *Tokenizer) scanRegex() Token {
 		t.nextChar()
 	}
 	if t.ch == 0 { // Unterminated regex
-		return Token{Kind: Regex, State: Invalid, start: start, end: t.offset}
+		return Token{Kind: Regex, State: Invalid, Start: start, End: t.offset}
 	}
 	t.nextChar() // Consume the closing '/'
 	return t.newToken(Regex, start, t.offset)
 }
 
 // Literal returns the string value of a token.
-func (t *Tokenizer) Literal(tok Token) string {
-	if tok.start < 0 || tok.end > len(t.src) || tok.start > tok.end {
+func (t *Tokenizer) Literal(tok Token, src []rune) string {
+	if tok.Start < 0 || tok.End > len(src) || tok.Start > tok.End {
 		return "" // Invalid token range
 	}
-	return string(t.src[tok.start:tok.end])
+	return string(src[tok.Start:tok.End])
 }
 
 func isLetter(ch rune) bool {

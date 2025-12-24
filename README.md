@@ -93,7 +93,7 @@ go.mod
 - [x] Tokenizer
 
 ### pending stages
-- [ ] Print token
+- [x] Print token
 - [ ] Diff token
 - [ ] Parser
 - [ ] Print ast

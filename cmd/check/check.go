@@ -22,21 +22,21 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 	}
 
 	for _, path := range checkCmd.Args() {
-		file, err := os.Open(path)
+		fileContent, err := os.ReadFile(path)
 		if err != nil {
 			fmt.Fprintf(stderr, "Error opening file %s: %s\n", path, err)
 			return 1
 		}
-		defer file.Close()
+		srcRunes := []rune(string(fileContent))
 
-		tokenizer := token.NewTokenizer(file)
+		tokenizer := token.NewTokenizer(srcRunes)
 		tokens := tokenizer.Scan()
 
 		hasError := false
 		for _, t := range tokens {
 			if t.State == token.Invalid {
 				// Get the token value from the tokenizer using its start and end offsets
-				tokenValue := tokenizer.Literal(t)
+				tokenValue := tokenizer.Literal(t, srcRunes)
 				fmt.Fprintf(stderr, "Error: Invalid token '%s' in file %s\n", tokenValue, path)
 				hasError = true
 				break

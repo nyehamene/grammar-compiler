@@ -70,7 +70,7 @@ func TestRun(t *testing.T) {
 		{
 			name: "print token path",
 			args: []string{"print", "-t", "testdata/file.grammar"},
-			stdout: "Printing token testdata/file.grammar...\n",
+			stdout: "Line:Col   KIND            LEXEME\n--------------------------------------------------\n1:1        IDENT           document\n1:10       ASSIGN          =\n1:12       STRING          \"doc\"\n1:17       SEMICOLON       ;\n1:18       EOF             \n",
 		},
 		{
 			name: "print ast path",
