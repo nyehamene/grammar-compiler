@@ -5,7 +5,7 @@ This project is a Go-based tool for a custom grammar language. The language is u
 The project is structured into several packages:
 - `cmd`: Contains the implementation of the command-line tool and its subcommands.
 - `token`: Contains the tokenizer for the grammar language.
-- `ast`: Will contain the abstract syntax tree representation and the parser.
+- `ast`: Contains the abstract syntax tree representation, the parser, and the AST printer.
 - `example`: Contains example grammar files.
 
 ## Building and Running
@@ -51,9 +51,9 @@ The project follows standard Go conventions. The implementation is guided by the
 - Diff token
 - Parser
 - Print ast
+- Diff ast
 
 ### Pending Stages
-- Diff ast
 - Formatter
 - Language server
 - Treesitter
