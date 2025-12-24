@@ -26,95 +26,96 @@ func NewPrinter(output io.Writer, srcRunes []rune) *Printer {
 
 // PrintFile prints the entire File AST.
 func (p *Printer) PrintFile(file *File) {
-	p.printf("File\n")
+	p.Printf("File\n")
 	p.indent++
 	for _, decl := range file.Decls {
-		p.printDecl(decl)
+		p.PrintDecl(decl)
 	}
 	p.indent--
 }
 
-
-func (p *Printer) printDecl(decl Decl) {
+// PrintDecl prints a declaration node.
+func (p *Printer) PrintDecl(decl Decl) {
 	line, col := token.FindLineAndCol(int(decl.Pos()), p.srcRunes)
 	fmt.Fprintf(p.output, "%d:%-4d", line, col) // Print line/col with padding
-	p.printf("")  // This will print the indentation
+	p.Printf("")  // This will print the indentation
 
 	switch n := decl.(type) {
 	case *RuleDecl:
-		p.printf("RuleDecl: %s\n", n.Name.Name)
+		p.Printf("RuleDecl: %s\n", n.Name.Name)
 		p.indent++
 		for _, expr := range n.Body {
-			p.printExpr(expr)
+			p.PrintExpr(expr)
 		}
 		p.indent--
 	case *BindingDecl:
 		pathValue := strings.Trim(n.Path.Value, "\"")
-		p.printf("BindingDecl: %s = @import(\"%s\")\n", n.Name.Name, pathValue)
+		p.Printf("BindingDecl: %s = @import(\"%s\")\n", n.Name.Name, pathValue)
 	default:
-		p.printf("Unknown Decl Type: %T\n", n)
+		p.Printf("Unknown Decl Type: %T\n", n)
 	}
 }
 
-func (p *Printer) printExpr(expr Expr) {
+// PrintExpr prints an expression node.
+func (p *Printer) PrintExpr(expr Expr) {
 	line, col := token.FindLineAndCol(int(expr.Pos()), p.srcRunes)
 	fmt.Fprintf(p.output, "%d:%-4d", line, col) // Print line/col with padding
-	p.printf("")  // This will print the indentation
+	p.Printf("")  // This will print the indentation
 
 	switch n := expr.(type) {
 	case *Ident:
-		p.printf("Ident: %s\n", n.Name)
+		p.Printf("Ident: %s\n", n.Name)
 	case *StringLit:
-		p.printf("StringLit: %s\n", n.Value)
+		p.Printf("StringLit: %s\n", n.Value)
 	case *RegexLit:
-		p.printf("RegexLit: %s\n", n.Value)
+		p.Printf("RegexLit: %s\n", n.Value)
 	case *AlternativeExpr:
-		p.printf("AlternativeExpr\n")
+		p.Printf("AlternativeExpr\n")
 		p.indent++
 		for _, altExpr := range n.Exprs {
-			p.printExpr(altExpr)
+			p.PrintExpr(altExpr)
 		}
 		p.indent--
 	case *OptionalExpr:
-		p.printf("OptionalExpr\n")
+		p.Printf("OptionalExpr\n")
 		p.indent++
-		p.printExpr(n.Expr)
+		p.PrintExpr(n.Expr)
 		p.indent--
 	case *RepetitionExpr:
-		p.printf("RepetitionExpr\n")
+		p.Printf("RepetitionExpr\n")
 		p.indent++
-		p.printExpr(n.Expr)
+		p.PrintExpr(n.Expr)
 		p.indent--
 	case *GroupExpr:
-		p.printf("GroupExpr\n")
+		p.Printf("GroupExpr\n")
 		p.indent++
-		p.printExpr(n.Expr)
+		p.PrintExpr(n.Expr)
 		p.indent--
 	case *TermExpr:
-		p.printf("TermExpr\n")
+		p.Printf("TermExpr\n")
 		p.indent++
-		p.printExpr(n.X)
+		p.PrintExpr(n.X)
 		p.indent--
 	case *DirectiveExpr:
-		p.printf("DirectiveExpr: @%s\n", n.Name.Name)
+		p.Printf("DirectiveExpr: @%s\n", n.Name.Name)
 		p.indent++
 		for _, arg := range n.Args {
-			p.printExpr(arg)
+			p.PrintExpr(arg)
 		}
 		p.indent--
 	case *MemberExpr:
-		p.printf("MemberExpr\n")
+		p.Printf("MemberExpr\n")
 		p.indent++
-		p.printExpr(n.Object)
-		p.printf("Member: %s\n", n.Member.Name)
+		p.PrintExpr(n.Object)
+		p.Printf("Member: %s\n", n.Member.Name)
 		p.indent--
 	default:
-		p.printf("Unknown Expr Type: %T\n", n)
+		p.Printf("Unknown Expr Type: %T\n", n)
 	}
 }
 
-// printf is a helper to print with current indentation.
-func (p *Printer) printf(format string, args ...interface{}) {
+// Printf is a helper to print with current indentation.
+func (p *Printer) Printf(format string, args ...interface{}) {
 	for i := 0; i < p.indent; i++ {
 		fmt.Fprint(p.output, p.indentStr)
 	}

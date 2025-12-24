@@ -93,7 +93,7 @@ go.mod
 - [x] Diff token
 - [x] Parser
 - [x] Print ast
-- [ ] Diff ast
+- [x] Diff ast
 - [ ] Formatter
 - [ ] Language server
 - [ ] Treesitter
