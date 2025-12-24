@@ -1,41 +1,41 @@
-# Project Overview
+## Project Overview
 
-This project is a Go-based command-line tool for working with a custom grammar definition language. The language is designed to describe the syntax of programming languages in a modular and reusable way. The tool provides functionalities for checking, formatting, and inspecting grammar files, as well as a Language Server Protocol (LSP) implementation for editor support.
+This project is a Go-based tool for a custom grammar language. The language is used to describe the syntax of other programming languages. The tool provides a checker, a formatter, and a language server for this grammar language.
 
-The grammar language itself is composed of three main declaration types:
-*   **Comments**: Standard single-line comments.
-*   **Bindings**: A mechanism to import and use other grammar files.
-*   **Rules**: The core of the grammar, defining terminals (string literals and regular expressions) and non-terminals (references to other rules).
+The project is structured into several packages:
+- `cmd`: Contains the implementation of the command-line tool and its subcommands.
+- `token`: Contains the tokenizer for the grammar language.
+- `ast`: Will contain the abstract syntax tree representation and the parser.
+- `example`: Contains example grammar files.
 
-The project is structured with a clear separation of concerns, including directories for command-line interface definitions, example grammars, and a phased implementation guide.
+## Building and Running
 
-# Building and Running
+The project uses a `Makefile` for common tasks.
 
-While there are no explicit build scripts like `Makefile` or `go.mod` in the current directory, the `README.md` file indicates that this is a Go project. The intended project structure suggests that the main entry point will be `main.go`.
+- **Build:** To build the `grammar` binary, run:
+  ```sh
+  make build
+  ```
 
-**TODO:** Add explicit build, run, and test commands once the Go source files are created. A typical Go project would use the following commands:
+- **Test:** To run the tests, run:
+  ```sh
+  make test
+  ```
 
-*   **Build:** `go build`
-*   **Run:** `go run main.go`
-*   **Test:** `go test ./...`
+- **Run:** To run the `grammar` tool, run:
+  ```sh
+  make run ARGS="<arguments>"
+  ```
+  For example, to print the help message:
+  ```sh
+  make run ARGS="--help"
+  ```
 
-# Development Conventions
+- **Clean:** To clean the build artifacts, run:
+  ```sh
+  make clean
+  ```
 
-The project follows a phased development approach, as outlined in the `implementation` directory. Each markdown file in this directory corresponds to a specific stage of development, starting from the basic command-line skeleton to the full implementation of the language server.
+## Development Conventions
 
-The code is intended to be written in Go, following the project structure described in `README.md`:
-
-```sh
-cmd/fmt/fmt.go
-cmd/check/check.go
-cmd/lsp/lsp.go
-cmd/cmd.go
-token/token.go
-token/tokenizer.go
-ast/ast.go
-ast/parser.go
-main.go
-go.mod
-```
-
-The example grammar files in the `example` directory demonstrate a modular approach to language design, where complex grammars are composed from smaller, more focused grammar files.
+The project follows standard Go conventions. The implementation is guided by the markdown files in the `implementation` directory. Each file in the `implementation` directory describes a stage of the implementation.
