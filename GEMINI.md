@@ -39,3 +39,22 @@ The project uses a `Makefile` for common tasks.
 ## Development Conventions
 
 The project follows standard Go conventions. The implementation is guided by the markdown files in the `implementation` directory. Each file in the `implementation` directory describes a stage of the implementation.
+
+## Project Status
+
+### Completed Stages
+- Skeleton
+- Version
+- Help
+- Tokenizer
+- Print token
+
+### Pending Stages
+- Diff token
+- Parser
+- Print ast
+- Diff ast
+- Formatter
+- Language server
+- Treesitter
+- Print token (color)
