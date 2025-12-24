@@ -58,3 +58,4 @@ The project follows standard Go conventions. The implementation is guided by the
 - Language server
 - Treesitter
 - Print token (color)
+- Print tokens (serial number)
