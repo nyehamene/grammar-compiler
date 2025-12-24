@@ -26,13 +26,18 @@ func TestRun(t *testing.T) {
 		},
 		{
 			name:   "print help",
-			args:   []string{"print"},
+			args:   []string{"print", "--help"},
 			stdout: printTxt,
 		},
 		{
 			name:   "diff help",
-			args:   []string{"diff"},
+			args:   []string{"diff", "-h"},
 			stdout: diffTxt,
+		},
+		{
+			name:   "lsp help",
+			args:   []string{"lsp", "--help"},
+			stdout: lspTxt,
 		},
 		{
 			name:   "no command",
@@ -76,8 +81,8 @@ func TestRun(t *testing.T) {
 			stdout: grammarTxt,
 		},
 		{
-			name: "version command",
-			args: []string{"version"},
+			name:   "version command",
+			args:   []string{"version"},
 			stdout: "0.1.0\n",
 		},
 	}
