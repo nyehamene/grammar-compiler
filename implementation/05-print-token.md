@@ -13,6 +13,4 @@ The lexeme should be properly escaped. For example,
 The newline character `\n` should be printed as `"\n"`.
 A string literal should be printed `"foo"`.
 
-Use colored output to highlight invalid tokens.
-
 - Implement `grammar print --tokens <PATH>`.
