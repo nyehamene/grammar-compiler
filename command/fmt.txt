@@ -1,0 +1,12 @@
+Usage: grammar fmt ARGUMENT
+
+Formats input files inplace. Any syntax error is printed to
+the console and the input file is left unchanged.
+
+Argument:
+PATH         Path to a file or directory.
+-h, --help   Print this message.
+
+If PATH is a directory, every grammar file inside it is formatted
+inplace. If an error is found the file containing the error is left unchanged.
+

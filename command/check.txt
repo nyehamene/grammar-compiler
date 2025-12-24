@@ -1,0 +1,10 @@
+Usage: grammar check ARGUMENT
+
+Checks for syntax or validation errors in input files.
+
+Argument:
+PATH          Path to a file or directory to check.
+-h, --help    Print this message.
+
+If PATH is a directory, every grammar files inside it is checked.
+If any error is found, the program exits with a non-zero exit code.

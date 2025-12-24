@@ -1,0 +1,28 @@
+/// @var
+
+tokens    = @import("token.grammar");
+element   = @import("element.grammar");
+component = @import("component.grammar");
+stmt      = @import("stmt.grammar");
+
+/// @token
+
+document = "document";
+param    = "param";
+
+ident          = tokens.ident;
+str            = tokens.str;
+str_or_keyword = str | element.keyword;
+
+/// @ast
+
+Namespace   = DeclPackage [DeclParam] [DeclImport] {Decl} {Element};
+DeclPackage = ( Document | ident ":" ":" Document ) ";" ;
+DeclParam   = ident ":" identq ":" Param ";" ;
+DeclImport  = component.DeclImport;
+
+Document = document "(" str [str] ")";
+Param    = param    "(" str_or_keyword ")";
+Decl     = component.Decl;
+Stmt     = stmt.Stmt;
+Element  = element.Element;

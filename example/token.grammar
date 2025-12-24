@@ -1,0 +1,27 @@
+// KEYWORD
+package = "package";
+component = "component";
+enum = "enum";
+css = "css";
+true = "true";
+false = "false";
+if = "if";
+cond = "cond";
+
+// LITERAL
+str = /"[^"\n]"/;
+strl = "\" "\" /[^\n]/*;
+num = "0" | /(\+ | \-)?[1-9][0-9_]*(\.[0-9]+);
+
+// IDENT
+ident = /[a-zA-Z_][a-zA-Z0-9_]*/;
+identq = ident {"." ident}
+       | "." ident
+	   | ident
+	   ;
+
+// UTIL
+bool = true | false ;
+
+// COMMENT
+comment = "/" "/" /[^\n]+/;

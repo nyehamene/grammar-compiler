@@ -1,0 +1,21 @@
+/// @var
+
+token = @import("token.grammar");
+stmt  = @import("stmt.grammar");
+
+/// @token
+
+package = token.package;
+import  = token.import;
+ident   = token.ident;
+identq  = token.identq;
+
+/// @ast
+
+Namespace   = [DeclPackage] {Declimport} {Decl}  ;
+DeclPackage = ( Package | ident ":" ":" Package ) ";" ;
+DeclImport  = ident ":" ":" import "(" str ")";
+
+Package = package "(" str ")";
+Decl    = ident ":" [identq] ":" Stmt ;
+Stmt    = stmt.Stmt ;

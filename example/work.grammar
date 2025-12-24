@@ -1,0 +1,13 @@
+/// @var
+
+token = @import("token.grammar");
+
+/// @token
+
+dir = "dir";
+str = token.str;
+
+/// @ast
+
+Source = {expr};
+expr   = dir "(" str ")" [";"];
