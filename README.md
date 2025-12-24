@@ -84,15 +84,11 @@ main.go
 go.mod
 ```
 
-### Implementation - Stage
-
-### completed stages
+### Stages
 - [x] Skeleton
 - [x] Version
 - [x] Help
 - [x] Tokenizer
-
-### pending stages
 - [x] Print token
 - [ ] Diff token
 - [ ] Parser
