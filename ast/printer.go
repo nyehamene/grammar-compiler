@@ -34,17 +34,11 @@ func (p *Printer) PrintFile(file *File) {
 	p.indent--
 }
 
-const prefixWidth = 10
 
 func (p *Printer) printDecl(decl Decl) {
 	line, col := token.FindLineAndCol(int(decl.Pos()), p.srcRunes)
-	lineColStr := fmt.Sprintf("%d:%d", line, col)
-	padding := prefixWidth - len(lineColStr)
-	if padding < 0 {
-		padding = 0
-	}
-	fmt.Fprintf(p.output, "%s%s - ", lineColStr, strings.Repeat(" ", padding))
-	p.printf("") // This will print the indentation
+	fmt.Fprintf(p.output, "%d:%-4d", line, col) // Print line/col with padding
+	p.printf("")  // This will print the indentation
 
 	switch n := decl.(type) {
 	case *RuleDecl:
@@ -64,13 +58,8 @@ func (p *Printer) printDecl(decl Decl) {
 
 func (p *Printer) printExpr(expr Expr) {
 	line, col := token.FindLineAndCol(int(expr.Pos()), p.srcRunes)
-	lineColStr := fmt.Sprintf("%d:%d", line, col)
-	padding := prefixWidth - len(lineColStr)
-	if padding < 0 {
-		padding = 0
-	}
-	fmt.Fprintf(p.output, "%s%s - ", lineColStr, strings.Repeat(" ", padding))
-	p.printf("") // This will print the indentation
+	fmt.Fprintf(p.output, "%d:%-4d", line, col) // Print line/col with padding
+	p.printf("")  // This will print the indentation
 
 	switch n := expr.(type) {
 	case *Ident:
