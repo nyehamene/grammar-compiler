@@ -83,3 +83,23 @@ ast/parser.go
 main.go
 go.mod
 ```
+
+### Implementation - Stage
+
+### completed stages
+- [x] Skeleton
+- [x] Version
+- [x] Help
+- [x] Tokenizer
+
+### pending stages
+- [ ] Print token
+- [ ] Diff token
+- [ ] Parser
+- [ ] Print ast
+- [ ] Diff ast
+- [ ] Formatter
+- [ ] Language server
+- [ ] Treesitter
+- [ ] Print token (color)
+
