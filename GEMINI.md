@@ -49,9 +49,9 @@ The project follows standard Go conventions. The implementation is guided by the
 - Tokenizer
 - Print token
 - Diff token
+- Parser
 
 ### Pending Stages
-- Parser
 - Print ast
 - Diff ast
 - Formatter
