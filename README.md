@@ -90,7 +90,7 @@ go.mod
 - [x] Help
 - [x] Tokenizer
 - [x] Print token
-- [ ] Diff token
+- [x] Diff token
 - [ ] Parser
 - [ ] Print ast
 - [ ] Diff ast

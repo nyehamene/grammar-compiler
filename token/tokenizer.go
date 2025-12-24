@@ -165,13 +165,7 @@ func (t *Tokenizer) scanRegex() Token {
 	return t.newToken(Regex, start, t.offset)
 }
 
-// Literal returns the string value of a token.
-func (t *Tokenizer) Literal(tok Token, src []rune) string {
-	if tok.Start < 0 || tok.End > len(src) || tok.Start > tok.End {
-		return "" // Invalid token range
-	}
-	return string(src[tok.Start:tok.End])
-}
+
 
 func isLetter(ch rune) bool {
 	return unicode.IsLetter(ch) || ch == '_'

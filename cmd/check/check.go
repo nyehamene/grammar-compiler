@@ -36,7 +36,7 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 		for _, t := range tokens {
 			if t.State == token.Invalid {
 				// Get the token value from the tokenizer using its start and end offsets
-				tokenValue := tokenizer.Literal(t, srcRunes)
+				tokenValue := token.Literal(t, srcRunes)
 				fmt.Fprintf(stderr, "Error: Invalid token '%s' in file %s\n", tokenValue, path)
 				hasError = true
 				break

@@ -5,34 +5,9 @@ import (
 	"fmt"
 	"grammar/command"
 	"grammar/token"
-	"io" // Added this import back
+	"io"
 	"os"
-	"strconv"
 )
-
-// escapeLexeme escapes a string for display, handling special characters.
-func escapeLexeme(s string) string {
-	buf := make([]rune, 0, len(s))
-	for _, r := range s {
-		switch r {
-		case '\\':
-			buf = append(buf, '\\', '\\')
-		case '\n':
-			buf = append(buf, '\\', 'n')
-		case '\t':
-			buf = append(buf, '\\', 't')
-		case '\r':
-			buf = append(buf, '\\', 'r')
-		default:
-			if strconv.IsPrint(r) {
-				buf = append(buf, r)
-			} else {
-				buf = append(buf, []rune(fmt.Sprintf("\\u%04x", r))...)
-			}
-		}
-	}
-	return string(buf)
-}
 
 func PrintCommand(args []string, stdout, stderr io.Writer) int {
 	printCmd := flag.NewFlagSet("print", flag.ExitOnError)
@@ -92,34 +67,19 @@ func printTokens(path string, stdout io.Writer) error {
 	fmt.Fprintln(stdout, "--------------------------------------------------") // Adjust separator to match total width
 
 	for _, tok := range tokens {
-		line, col := findLineAndCol(tok.Start, srcRunes)
+		line, col := token.FindLineAndCol(tok.Start, srcRunes)
 		lineCol := fmt.Sprintf("%d:%d", line, col)
 
-		lexeme := tokenizer.Literal(tok, srcRunes)
+		lexeme := token.Literal(tok, srcRunes)
 		var formattedLexeme string
 		if tok.Kind == token.String {
 			formattedLexeme = lexeme
 		} else {
-			formattedLexeme = escapeLexeme(lexeme)
+			formattedLexeme = token.EscapeLexeme(lexeme)
 		}
 
 		fmt.Fprintf(stdout, "%-*s %-*s %s\n", lineColWidth, lineCol, kindWidth, tok.Kind, formattedLexeme)
 	}
 
 	return nil
-}
-
-func findLineAndCol(offset int, srcRunes []rune) (int, int) {
-	lineNum := 1
-	lineStartOffset := 0
-	for i, r := range srcRunes {
-		if i == offset {
-			break
-		}
-		if r == '\n' {
-			lineNum++
-			lineStartOffset = i + 1
-		}
-	}
-	return lineNum, offset - lineStartOffset + 1
 }

@@ -48,9 +48,9 @@ func TestTokenizer(t *testing.T) {
 	for i, exp := range expectedTokens {
 		tok := tokens[i]
 		if tok.Kind != exp.kind {
-			t.Errorf("Token %d: Expected kind %s, got %s (value: %q)", i, exp.kind, tok.Kind, tokenizer.Literal(tok, srcRunes))
+			t.Errorf("Token %d: Expected kind %s, got %s (value: %q)", i, exp.kind, tok.Kind, Literal(tok, srcRunes))
 		}
-		val := tokenizer.Literal(tok, srcRunes)
+		val := Literal(tok, srcRunes)
 		if val != exp.value {
 			t.Errorf("Token %d: Expected value %q, got %q", i, exp.value, val)
 		}
@@ -82,7 +82,7 @@ func TestTokenizerExampleFiles(t *testing.T) {
 
 				for _, tok := range tokens {
 					if tok.State == Invalid {
-						t.Errorf("File %s: Found invalid token %q", file.Name(), tokenizer.Literal(tok, srcRunes))
+						t.Errorf("File %s: Found invalid token %q", file.Name(), Literal(tok, srcRunes))
 					}
 				}
 			})

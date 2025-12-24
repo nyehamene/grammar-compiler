@@ -1,6 +1,9 @@
 package token
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 // TokenKind is the type of a token.
 type Kind int
@@ -85,4 +88,52 @@ type Token struct {
 	State State
 	Start int // Start offset in the input source
 	End   int // End offset in the input source
+}
+
+// Literal returns the string value of a token.
+func Literal(tok Token, src []rune) string {
+	if tok.Start < 0 || tok.End > len(src) || tok.Start > tok.End {
+		return "" // Invalid token range
+	}
+	return string(src[tok.Start:tok.End])
+}
+
+// FindLineAndCol finds the line and column number for a given offset in the source.
+func FindLineAndCol(offset int, srcRunes []rune) (int, int) {
+	lineNum := 1
+	lineStartOffset := 0
+	for i, r := range srcRunes {
+		if i == offset {
+			break
+		}
+		if r == '\n' {
+			lineNum++
+			lineStartOffset = i + 1
+		}
+	}
+	return lineNum, offset - lineStartOffset + 1
+}
+
+// EscapeLexeme escapes a string for display, handling special characters.
+func EscapeLexeme(s string) string {
+	buf := make([]rune, 0, len(s))
+	for _, r := range s {
+		switch r {
+		case '\\':
+			buf = append(buf, '\\', '\\')
+		case '\n':
+			buf = append(buf, '\\', 'n')
+		case '\t':
+			buf = append(buf, '\\', 't')
+		case '\r':
+			buf = append(buf, '\\', 'r')
+		default:
+			if strconv.IsPrint(r) {
+				buf = append(buf, r)
+			} else {
+				buf = append(buf, []rune(fmt.Sprintf("\\u%04x", r))...)
+			}
+		}
+	}
+	return string(buf)
 }
