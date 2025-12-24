@@ -3,6 +3,7 @@ package printcmd
 import (
 	"flag"
 	"fmt"
+	"grammar/ast" // Import the ast package
 	"grammar/command"
 	"grammar/token"
 	"io"
@@ -34,12 +35,14 @@ func PrintCommand(args []string, stdout, stderr io.Writer) int {
 				fmt.Fprintf(stderr, "Error printing tokens for %s: %v\n", path, err)
 				return 1
 			}
-		} else {
-			kind := "AST"
-			if tokenFlag {
-				kind = "token"
+		} else if astFlag {
+			if err := printAST(path, stdout); err != nil {
+				fmt.Fprintf(stderr, "Error printing AST for %s: %v\n", path, err)
+				return 1
 			}
-			fmt.Fprintf(stdout, "Printing %s %s...\n", kind, path)
+		} else {
+			// Default behavior if neither --tokens nor --ast is specified
+			fmt.Fprintf(stdout, "Printing AST %s...\n", path)
 		}
 	}
 
@@ -80,6 +83,28 @@ func printTokens(path string, stdout io.Writer) error {
 
 		fmt.Fprintf(stdout, "%-*s %-*s %s\n", lineColWidth, lineCol, kindWidth, tok.Kind, formattedLexeme)
 	}
+
+	return nil
+}
+
+func printAST(path string, stdout io.Writer) error {
+	fileContent, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	srcRunes := []rune(string(fileContent))
+
+	tokenizer := token.NewTokenizer(srcRunes)
+	tokens := tokenizer.Scan()
+
+	parser := ast.NewParser(tokens, srcRunes)
+	astFile, err := parser.ParseFile()
+	if err != nil {
+		return fmt.Errorf("parsing error: %w", err)
+	}
+
+	printer := ast.NewPrinter(stdout, srcRunes)
+	printer.PrintFile(astFile)
 
 	return nil
 }

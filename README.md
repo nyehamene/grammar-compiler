@@ -92,7 +92,7 @@ go.mod
 - [x] Print token
 - [x] Diff token
 - [x] Parser
-- [ ] Print ast
+- [x] Print ast
 - [ ] Diff ast
 - [ ] Formatter
 - [ ] Language server
