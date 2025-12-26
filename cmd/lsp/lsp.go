@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"grammar/command"
+	"grammar/server" // Import the new server package
 	"io"
+	"os" // Needed for os.Stdin and os.Stdout
 )
 
 func LspCommand(args []string, stdout, stderr io.Writer) int {
@@ -18,6 +20,10 @@ func LspCommand(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprint(stdout, command.LspUsage)
 		return 0
 	}
-	fmt.Fprintln(stdout, "TBD")
+
+	// Create and start the LSP server
+	s := server.NewServer(os.Stdin, os.Stdout)
+	s.Start()
+
 	return 0
 }
