@@ -23,6 +23,8 @@ const (
 	String
 	Number // New token kind for numbers
 	Regex
+	Comment
+	Newline
 
 	// Punctuation
 	Semicolon
@@ -54,6 +56,10 @@ func (k Kind) String() string {
 		return "NUMBER"
 	case Regex:
 		return "REGEX"
+	case Comment:
+		return "COMMENT"
+	case Newline:
+		return "NEWLINE"
 	case Semicolon:
 		return "SEMICOLON"
 	case Colon:

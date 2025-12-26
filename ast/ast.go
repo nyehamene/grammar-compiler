@@ -93,30 +93,48 @@ type DirectiveExpr struct {
 	Args  []Expr
 }
 
+// Comment represents a single comment.
+type Comment struct {
+	Slash token.Pos
+	Text  string
+}
+
+// CommentGroup represents a sequence of comments.
+type CommentGroup struct {
+	List []*Comment
+}
+
+// SequenceExpr represents a sequence of expressions.
+type SequenceExpr struct {
+	Exprs []Expr
+}
+
 // MemberExpr represents a member access expression.
 type MemberExpr struct {
 	Object Expr
 	Member *Ident
 }
 
-func (f *File) Pos() token.Pos            { return token.NoPos }
-func (f *File) End() token.Pos            { return token.NoPos }
-func (r *RuleDecl) Pos() token.Pos        { return r.Name.Pos() }
-func (r *RuleDecl) End() token.Pos        { return r.Body[len(r.Body)-1].End() }
-func (b *BindingDecl) Pos() token.Pos     { return b.Name.Pos() }
-func (b *BindingDecl) End() token.Pos     { return b.Path.End() }
-func (i *Ident) Pos() token.Pos           { return i.NamePos }
-func (i *Ident) End() token.Pos           { return token.Pos(int(i.NamePos) + len(i.Name)) }
+func (f *File) Pos() token.Pos             { return token.NoPos }
+func (f *File) End() token.Pos             { return token.NoPos }
+func (r *RuleDecl) Pos() token.Pos         { return r.Name.Pos() }
+func (r *RuleDecl) End() token.Pos         { return r.Body[len(r.Body)-1].End() }
+func (b *BindingDecl) Pos() token.Pos      { return b.Name.Pos() }
+func (b *BindingDecl) End() token.Pos      { return b.Path.End() }
+func (i *Ident) Pos() token.Pos            { return i.NamePos }
+func (i *Ident) End() token.Pos            { return token.Pos(int(i.NamePos) + len(i.Name)) }
 func (s *StringLit) Pos() token.Pos       { return s.ValuePos }
 func (s *StringLit) End() token.Pos       { return token.Pos(int(s.ValuePos) + len(s.Value)) }
 func (r *RegexLit) Pos() token.Pos        { return r.ValuePos }
 func (r *RegexLit) End() token.Pos        { return token.Pos(int(r.ValuePos) + len(r.Value)) }
 func (a *AlternativeExpr) Pos() token.Pos { return a.Exprs[0].Pos() }
 func (a *AlternativeExpr) End() token.Pos { return a.Exprs[len(a.Exprs)-1].End() }
+func (s *SequenceExpr) Pos() token.Pos    { return s.Exprs[0].Pos() }
+func (s *SequenceExpr) End() token.Pos    { return s.Exprs[len(s.Exprs)-1].End() }
 func (o *OptionalExpr) Pos() token.Pos    { return o.Lbrack }
 func (o *OptionalExpr) End() token.Pos    { return o.Rbrack + 1 }
-func (r *RepetitionExpr) Pos() token.Pos  { return r.Lbrace }
-func (r *RepetitionExpr) End() token.Pos  { return r.Rbrace + 1 }
+func (r *RepetitionExpr) Pos() token.Pos { return r.Lbrace }
+func (r *RepetitionExpr) End() token.Pos { return r.Rbrace + 1 }
 func (g *GroupExpr) Pos() token.Pos       { return g.Lparen }
 func (g *GroupExpr) End() token.Pos       { return g.Rparen + 1 }
 func (t *TermExpr) Pos() token.Pos        { return t.X.Pos() }
@@ -132,9 +150,16 @@ func (*Ident) exprNode()           {}
 func (*StringLit) exprNode()       {}
 func (*RegexLit) exprNode()        {}
 func (*AlternativeExpr) exprNode() {}
+func (*SequenceExpr) exprNode()    {}
 func (*OptionalExpr) exprNode()    {}
 func (*RepetitionExpr) exprNode()  {}
 func (*GroupExpr) exprNode()       {}
 func (*TermExpr) exprNode()        {}
 func (*DirectiveExpr) exprNode()   {}
 func (*MemberExpr) exprNode()      {}
+
+func (c *Comment) Pos() token.Pos      { return c.Slash }
+func (c *Comment) End() token.Pos      { return token.Pos(int(c.Slash) + len(c.Text)) }
+func (cg *CommentGroup) Pos() token.Pos { return cg.List[0].Pos() }
+func (cg *CommentGroup) End() token.Pos { return cg.List[len(cg.List)-1].End() }
+func (*CommentGroup) declNode()      {}

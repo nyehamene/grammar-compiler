@@ -6,16 +6,17 @@ the program reports the errors and exit with a non-zero
 exit code after formatting all the input files.
 
 - Implement `grammar fmt PATH`
-
+- Add tests using the rules described below.
 
 ## Formating rules
 
-1. Rules not separated by a blank line should be aligned
+1. Rule Grouping: alignment of consecutive rules.
+  Rules not separated by a blank line should be aligned
   so that the value separator `=` are on the same column.
 
   For example,
 
-  Before formatting:
+  Before:
   ```grammar
   a = "a";
   bar = "bar";
@@ -24,7 +25,7 @@ exit code after formatting all the input files.
   name = "name";
   ```
 
-  After formatting:
+  After:
   ```grammar
   a   = "a";
   bar = "bar";
@@ -36,49 +37,120 @@ exit code after formatting all the input files.
 2. Add a space around values inside grouping symbols
   like `(` and `)`, `[` and `]`, `{` and `}`, etc.
 
-For example,
+  For example,
 
-Before formatting:
-```grammmar
-one = (foo);
-two = [bar];
-xxx = {baz};
-```
+  Before:
+  ```grammmar
+  one = (foo);
+  two = [bar];
+  xxx = {baz};
+  ```
 
-After formatting:
-```grammar
-one = ( foo );
-two = [ bar ];
-xxx = { baz }
-```
+  After:
+  ```grammar
+  one = ( foo );
+  two = [ bar ];
+  xxx = { baz };
+  ```
 
 3. Add a space around the alternative separator `|`.
 
-  Before formatting:
+  Before:
   ```grammar
   foo = a|b;
   ```
 
-  After formatting:
+  After:
   ```grammar
   foo = a | b;
   ```
 
-4. When arranging alternative vertically, align the
+4. Production (or expression) Group: alignment of expression.
+  When arranging alternative vertically, align the
   value separator `=`, alternative separator `|`
   and rule separator `;` on the same column.
 
-  Before formatting:
+  Before:
   ```grammar
   choice = one
      | two
      | three ;
   ```
 
-  After formatting:
+  After:
   ```grammar
   choice = one
          | two
          | three
          ;
   ```
+
+5. Trim consecutive blank lines.
+
+  Before:
+  ```grammar
+  foo = "one";
+
+
+  bar = "bar";
+  ```
+
+  After:
+  ```grammar
+  foo = "one";
+
+  bar = "bar";
+  ```
+
+Combing rule 1 and 4, given the following text:
+
+Before:
+```grammar
+x = "one";
+xxx = "one"
+  | "two"
+  | "three";
+xx = "two";
+```
+After formatting should produce the following:
+
+After:
+```grammar
+x    = "one";
+xxxx = "one"
+     | "two"
+     | "three"
+     ;
+xx   = "two";
+```
+
+The rules are grouped together before there is blank line separating.
+The productions in the second rule is also aligned to match the group
+alignment before it spans multiple lines.
+
+## Example
+
+Formatting the following text:
+
+```grammar
+/// @var
+document = @import("document.grammar");
+component = @import("component.grammar");
+
+/// @ast
+Source = DocumentNamespace | ComponentNamespace;
+DocumentNamespace = document;
+ComponentNamespace = component;
+```
+
+Should output the following:
+```grammar
+/// @var
+document  = @import("document.grammar");
+component = @import("component.grammar");
+
+/// @ast
+Source             = DocumentNamespace | ComponentNamespace;
+DocumentNamespace  = document;
+ComponentNamespace = component;
+```

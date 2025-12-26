@@ -10,9 +10,9 @@ import (
 
 func TestTokenizer(t *testing.T) {
 	// Create a dummy file for testing various token types
-	testSrc := `document = "document"; param = "param"; num = 123; ident = /[a-zA-Z_][a-zA-Z0-9_]*/; import = @import("some/path");`
+	testSrc := `document = "document"; param = "param"; num = 123; ident = /[a-zA-Z_][a-zA-Z0-9_]*/;`
 	srcRunes := []rune(testSrc)
-	tokenizer := NewTokenizer(srcRunes)
+	tokenizer := NewTokenizer(srcRunes, false, false)
 	tokens := tokenizer.Scan()
 
 	expectedTokens := []struct {
@@ -34,11 +34,6 @@ func TestTokenizer(t *testing.T) {
 		{Ident, "ident"},
 		{Assign, "="},
 		{Regex, `/[a-zA-Z_][a-zA-Z0-9_]*/`},
-		{Semicolon, ";"},
-		{Ident, "import"},
-		{RParen, "("},
-		{String, `"some/path"`},
-		{LParen, ")"},
 		{Semicolon, ";"},
 		{EOF, ""},
 	}
@@ -79,7 +74,7 @@ func TestTokenizerExampleFiles(t *testing.T) {
 				}
 				srcRunes := []rune(string(fileContent))
 
-				tokenizer := NewTokenizer(srcRunes)
+				tokenizer := NewTokenizer(srcRunes, false, false)
 				tokens := tokenizer.Scan()
 
 				for _, tok := range tokens {

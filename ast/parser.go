@@ -7,10 +7,11 @@ import (
 
 // Parser holds the parser's state.
 type Parser struct {
-	tokens   []token.Token
-	srcRunes []rune
-	pos      int // current position in the token slice
-	errors   ErrorList
+	tokens       []token.Token
+	srcRunes     []rune
+	pos          int // current position in the token slice
+	errors       ErrorList
+	hadBlankLine bool // Add hadBlankLine field
 }
 
 // NewParser creates a new Parser.
@@ -22,7 +23,9 @@ func NewParser(tokens []token.Token, srcRunes []rune) *Parser {
 func (p *Parser) ParseFile() (*File, error) {
 	var decls []Decl
 	for p.peek().Kind != token.EOF {
-		decls = append(decls, p.parseDecl())
+		if decl, _ := p.parseDecl(); decl != nil {
+			decls = append(decls, decl)
+		}
 	}
 
 	if len(p.errors) > 0 {
@@ -32,25 +35,51 @@ func (p *Parser) ParseFile() (*File, error) {
 	return &File{Decls: decls}, nil
 }
 
-func (p *Parser) parseDecl() Decl {
+func (p *Parser) parseDecl() (Decl, bool) {
+	hadBlankLine := p.hadBlankLine
+	p.hadBlankLine = false
+
+	if p.peek().Kind == token.Comment {
+		return p.parseCommentGroup(), hadBlankLine
+	}
+
+	if p.peek().Kind != token.Ident {
+		tok := p.next()
+		p.errorf(token.Pos(tok.Start), "expected IDENT, got %s", tok.Kind)
+		return nil, hadBlankLine
+	}
+
 	ident := p.expect(token.Ident)
 	p.expect(token.Assign)
 	if p.peek().Kind == token.AtDirective {
-		return p.parseBinding(ident)
+		return p.parseBinding(ident), hadBlankLine
 	}
-	return p.parseRule(ident)
+	return p.parseRule(ident), hadBlankLine
+}
+
+func (p *Parser) parseCommentGroup() *CommentGroup {
+	var list []*Comment
+	for p.peek().Kind == token.Comment {
+		tok := p.next()
+		list = append(list, &Comment{Slash: token.Pos(tok.Start), Text: token.Literal(tok, p.srcRunes)})
+	}
+	return &CommentGroup{List: list}
 }
 
 func (p *Parser) parseBinding(name token.Token) Decl {
-	p.expect(token.AtDirective)
-	p.expect(token.LParen)
-	path := p.expect(token.String)
-	p.expect(token.RParen)
+	directive := p.parseImportDirective()
 	p.expect(token.Semicolon)
+
+	var path *StringLit
+	if len(directive.Args) > 0 {
+		if strLit, ok := directive.Args[0].(*StringLit); ok {
+			path = strLit
+		}
+	}
 
 	return &BindingDecl{
 		Name: &Ident{NamePos: token.Pos(name.Start), Name: token.Literal(name, p.srcRunes)},
-		Path: &StringLit{ValuePos: token.Pos(path.Start), Value: token.Literal(path, p.srcRunes)},
+		Path: path,
 	}
 }
 
@@ -82,10 +111,7 @@ func (p *Parser) parseProduction() Expr {
 }
 
 func (p *Parser) parseTerm() Expr {
-	expr := p.parseBasic()
-	// The grammar says `term = basic | basic production`, which is left-recursive.
-	// We can parse this iteratively.
-	terms := []Expr{expr}
+	terms := []Expr{p.parseBasic()}
 	for p.peek().Kind != token.Pipe && p.peek().Kind != token.Semicolon && p.peek().Kind != token.EOF && p.peek().Kind != token.RParen && p.peek().Kind != token.RBrack && p.peek().Kind != token.RBrace {
 		terms = append(terms, p.parseBasic())
 	}
@@ -93,10 +119,7 @@ func (p *Parser) parseTerm() Expr {
 	if len(terms) == 1 {
 		return terms[0]
 	}
-
-	// This part of the grammar is tricky. Let's just create a sequence for now.
-	// `basic production` is not well defined. I will treat it as a sequence of basics.
-	return &TermExpr{X: &AlternativeExpr{Exprs: terms}} // This is probably wrong
+	return &SequenceExpr{Exprs: terms}
 }
 
 func (p *Parser) parseBasic() Expr {
@@ -105,6 +128,8 @@ func (p *Parser) parseBasic() Expr {
 		return p.parseNonTerminal()
 	case token.String, token.Regex:
 		return p.parseTerminal()
+	case token.AtDirective:
+		return p.parseImportDirective()
 	case token.LBrack:
 		return p.parseOptional()
 	case token.LBrace:
@@ -118,6 +143,19 @@ func (p *Parser) parseBasic() Expr {
 	}
 }
 
+func (p *Parser) parseImportDirective() *DirectiveExpr {
+	at := p.expect(token.AtDirective)
+	p.expect(token.LParen)
+	arg := p.expect(token.String)
+	p.expect(token.RParen)
+
+	return &DirectiveExpr{
+		AtPos: token.Pos(at.Start),
+		Name:  &Ident{NamePos: token.Pos(at.Start) + 1, Name: "import"},
+		Args:  []Expr{&StringLit{ValuePos: token.Pos(arg.Start), Value: token.Literal(arg, p.srcRunes)}},
+	}
+}
+
 func (p *Parser) parseTerminal() Expr {
 	tok := p.next()
 	if tok.Kind == token.String {
@@ -127,18 +165,14 @@ func (p *Parser) parseTerminal() Expr {
 }
 
 func (p *Parser) parseNonTerminal() Expr {
-	// A non_terminal always starts with an ident.
-	// Parse the first ident.
 	identToken := p.expect(token.Ident)
 	var expr Expr = &Ident{NamePos: token.Pos(identToken.Start), Name: token.Literal(identToken, p.srcRunes)}
 
-	// Now, check if it's a member_access (ident { "." ident })
-	// Loop as long as we see a dot.
 	for p.peek().Kind == token.Dot {
-		p.next()                          // Consume the dot
-		selToken := p.expect(token.Ident) // Expect the next ident for the member
-		expr = &MemberExpr{               // Build the MemberExpr left-associatively
-			Object: expr, // The left-hand side is the expression parsed so far
+		p.next()
+		selToken := p.expect(token.Ident)
+		expr = &MemberExpr{
+			Object: expr,
 			Member: &Ident{NamePos: token.Pos(selToken.Start), Name: token.Literal(selToken, p.srcRunes)},
 		}
 	}
@@ -167,26 +201,32 @@ func (p *Parser) parseGroup() Expr {
 	return &GroupExpr{Lparen: token.Pos(lparen.Start), Expr: expr, Rparen: token.Pos(rparen.Start)}
 }
 
-// peek returns the next token without consuming it.
 func (p *Parser) peek() token.Token {
+	newlineCount := 0
+	for p.pos < len(p.tokens) && p.tokens[p.pos].Kind == token.Newline {
+		p.pos++
+		newlineCount++
+	}
+	if newlineCount > 1 {
+		p.hadBlankLine = true
+	}
+
 	if p.pos >= len(p.tokens) {
-		return p.tokens[len(p.tokens)-1] // Return EOF
+		return p.tokens[len(p.tokens)-1]
 	}
 	return p.tokens[p.pos]
 }
 
-// next consumes and returns the next token.
 func (p *Parser) next() token.Token {
+	p.peek() // Skips newlines
 	if p.pos >= len(p.tokens) {
-		return p.tokens[len(p.tokens)-1] // Return EOF
+		return p.tokens[len(p.tokens)-1]
 	}
 	tok := p.tokens[p.pos]
 	p.pos++
 	return tok
 }
 
-// expect consumes the next token and checks its kind.
-// If the kind doesn't match, it records an error.
 func (p *Parser) expect(kind token.Kind) token.Token {
 	tok := p.next()
 	if tok.Kind != kind {
@@ -195,7 +235,6 @@ func (p *Parser) expect(kind token.Kind) token.Token {
 	return tok
 }
 
-// errorf records an error.
 func (p *Parser) errorf(pos token.Pos, format string, args ...interface{}) {
 	p.errors.Add(pos, fmt.Sprintf(format, args...))
 }

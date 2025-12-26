@@ -30,7 +30,7 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 		}
 		srcRunes := []rune(string(fileContent))
 
-		tokenizer := token.NewTokenizer(srcRunes)
+		tokenizer := token.NewTokenizer(srcRunes, true, true) // Skip comments and newlines for checking
 		tokens := tokenizer.Scan()
 
 		parser := ast.NewParser(tokens, srcRunes)

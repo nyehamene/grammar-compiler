@@ -1,11 +1,11 @@
 Source      = { declaration };
 
 declaration = binding | Rule | comment ;
-binding     = ident "=" directive ";" ;
+binding     = ident "=" import_directive ";" ;
 Rule        = ident "=" { production } ";" ;
 production  = alternative
             | optional
-			| repeatition
+			| repetition
 			| group
 			| term
 			;
@@ -18,30 +18,15 @@ optional    = "[" production { production } "]" ;
 repetition  = "{" production { production } "}" ;
 group       = "(" production { production } ")" ;
 
-term  = basic
-      | basic production
-	  ;
-
-basic = terminal
-      | non_teminal
-	  ;
-
-terminal = str
-         | regexp
-		 ;
-
-non_terminal = ident
-             | member_access
-             ;
+term  = basic { basic } ;
+basic = terminal | non_teminal ;
+terminal = str | regexp ;
+non_terminal = ident | member_access ;
 
 // member_access is left-associative
 member_access = ident "." ident { "." ident } ;
 
-directive         = import_directive
-                  | include_directive
-                  ;
 import_directive  = "@import" "(" str ")";
-include_directive = "@include" "(" str ")";
 
 str         = /"[^"\n]*"/;
 ident       = /[a-zA-Z_][a-zA-Z0-9_]*/ ;

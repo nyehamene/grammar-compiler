@@ -3,8 +3,11 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"grammar/ast"
 	"grammar/command"
+	"grammar/token"
 	"io"
+	"os"
 )
 
 func FmtCommand(args []string, stdout, stderr io.Writer) int {
@@ -20,6 +23,7 @@ func FmtCommand(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprint(stdout, command.FmtUsage)
 		return 0
 	}
+
 	for _, path := range fmtCmd.Args() {
 		var err error
 		if stdoutFlag {

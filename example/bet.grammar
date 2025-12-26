@@ -1,9 +1,9 @@
 /// @var
-document = @import("document.grammar");
+document  = @import("document.grammar");
 component = @import("component.grammar");
 
 /// @ast
-
 Source             = DocumentNamespace | ComponentNamespace;
 DocumentNamespace  = document;
 ComponentNamespace = component;
+

@@ -6,15 +6,17 @@ import (
 
 // Tokenizer scans an input source and produces a slice of Tokens.
 type Tokenizer struct {
-	src        []rune
-	offset     int  // current offset in src
-	readOffset int  // next char to read
-	ch         rune // current char
+	src          []rune
+	offset       int  // current offset in src
+	readOffset   int  // next char to read
+	ch           rune // current char
+	SkipComments bool // Add SkipComments field
+	SkipNewlines bool // Add SkipNewlines field
 }
 
 // NewTokenizer creates a new Tokenizer for the given input source (rune slice).
-func NewTokenizer(src []rune) *Tokenizer {
-	t := &Tokenizer{src: src}
+func NewTokenizer(src []rune, skipComments bool, skipNewlines bool) *Tokenizer {
+	t := &Tokenizer{src: src, SkipComments: skipComments, SkipNewlines: skipNewlines}
 	t.nextChar()
 	return t
 }
@@ -31,6 +33,13 @@ loop:
 		switch {
 		case t.ch == 0:
 			break loop
+		case t.ch == '\n':
+			if t.SkipNewlines {
+				t.nextChar()
+				continue
+			}
+			token = t.newToken(Newline, start, start+1)
+			t.nextChar()
 		case isLetter(t.ch):
 			token = t.scanIdent()
 		case isDigit(t.ch):
@@ -41,11 +50,15 @@ loop:
 			token = t.scanDirective()
 		case t.ch == '/':
 			// Check if it's a regex or a comment
-			if t.peek() == '/' { // Comment, skip
-				t.skipComment()
-				continue
+			if t.peek() == '/' { // Comment
+				if t.SkipComments {
+					t.skipComment()
+					continue
+				}
+				token = t.scanComment()
+			} else {
+				token = t.scanRegex()
 			}
-			token = t.scanRegex()
 		default:
 			switch t.ch {
 			case ';':
@@ -115,7 +128,7 @@ func (t *Tokenizer) peek() rune {
 }
 
 func (t *Tokenizer) skipWhitespace() {
-	for unicode.IsSpace(t.ch) {
+	for t.ch == ' ' || t.ch == '\t' || t.ch == '\r' {
 		t.nextChar()
 	}
 }
@@ -129,6 +142,12 @@ func (t *Tokenizer) skipComment() {
 	}
 }
 
+func (t *Tokenizer) scanComment() Token {
+	start := t.offset
+	t.skipComment()
+	return t.newToken(Comment, start, t.offset)
+}
+
 func (t *Tokenizer) scanIdent() Token {
 	start := t.offset
 	// Identifiers can contain letters, digits, and underscores
@@ -140,23 +159,15 @@ func (t *Tokenizer) scanIdent() Token {
 
 func (t *Tokenizer) scanDirective() Token {
 	start := t.offset
-	t.nextChar()
-
-	if !isLetter(t.ch) {
-		return Token{
-			Kind:  AtDirective,
-			State: Invalid,
-			Start: start,
-			End:   t.offset,
-		}
-	}
+	t.nextChar() // Consume '@'
 
 	for isLetter(t.ch) || isDigit(t.ch) {
 		t.nextChar()
 	}
 
-	return t.newToken(Ident, start, t.offset)
+	return t.newToken(AtDirective, start, t.offset)
 }
+
 
 func (t *Tokenizer) scanNumber() Token {
 	start := t.offset
@@ -200,12 +211,4 @@ func isLetter(ch rune) bool {
 
 func isDigit(ch rune) bool {
 	return unicode.IsDigit(ch)
-}
-
-// lookupKeyword checks if an identifier is a keyword.
-func lookupKeyword(ident string) Kind {
-	switch ident {
-	default:
-		return Ident
-	}
 }

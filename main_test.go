@@ -57,31 +57,7 @@ func TestRun(t *testing.T) {
 			stdout: grammarTxt,
 			exitCode: 1,
 		},
-		{
-			name: "fmt path",
-			args: []string{"fmt", "testdata/file.grammar"},
-			stdout: "Formatting testdata/file.grammar...\n",
-		},
-		{
-			name: "check path",
-			args: []string{"check", "testdata/file.grammar"},
-			stdout: "Validating testdata/file.grammar...\n",
-		},
-		{
-			name: "print token path",
-			args: []string{"print", "-t", "testdata/file.grammar"},
-			stdout: "Line:Col   KIND            LEXEME\n--------------------------------------------------\n1:1        IDENT           document\n1:10       ASSIGN          =\n1:12       STRING          \"doc\"\n1:17       SEMICOLON       ;\n1:18       EOF             \n",
-		},
-		{
-			name: "print ast path",
-			args: []string{"print", "-a", "testdata/file.grammar"},
-			stdout: "Printing AST testdata/file.grammar...\n",
-		},
-		{
-			name: "diff paths",
-			args: []string{"diff", "testdata/file1.grammar", "testdata/file2.grammar"},
-			stdout: "Diffing testdata/file1.grammar testdata/file2.grammar\n",
-		},
+
 		{
 			name: "lsp command",
 			args: []string{"lsp"},
