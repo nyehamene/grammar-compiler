@@ -117,6 +117,10 @@ func (s *Server) handleNotification(msg map[string]any) {
 		if err := s.handleDidOpen(context.Background(), msg); err != nil {
 			s.log.Printf("Failed to handle textDocument/didOpen: %v", err)
 		}
+	case "textDocument/didChange":
+		if err := s.handleDidChange(context.Background(), msg); err != nil {
+			s.log.Printf("Failed to handle textDocument/didChange: %v", err)
+		}
 	case "exit":
 		s.handleExit()
 	default:
