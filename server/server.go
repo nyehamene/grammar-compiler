@@ -49,7 +49,7 @@ func (s *Server) Start() {
 
 	for {
 		// Decode incoming message
-		content, err := DecodeMessage(s.reader)
+		content, err := s.DecodeMessage(s.reader)
 		if err != nil {
 			s.log.Printf("Failed to decode message: %v", err)
 			continue
@@ -109,7 +109,7 @@ func (s *Server) sendResponse(id int, result any, errResp *ResponseError) {
 		Result:  &result,
 		Error:   errResp,
 	}
-	encoded, err := EncodeMessage(resp)
+	encoded, err := s.EncodeMessage(resp)
 	if err != nil {
 		s.log.Printf("Failed to encode response: %v", err)
 		return

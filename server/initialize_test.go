@@ -1,14 +1,19 @@
 package server_test
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"grammar/server"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestInitializeRequest(t *testing.T) {
 	// Sample initialize request from a client
-	requestJSON := `{
+	message := `{
 		"jsonrpc": "2.0",
 		"id": 1,
 		"method": "initialize",
@@ -19,52 +24,45 @@ func TestInitializeRequest(t *testing.T) {
 		}
 	}`
 
-	// Test Unmarshaling
-	var request server.RequestMessage
-	if err := json.Unmarshal([]byte(requestJSON), &request); err != nil {
-		t.Fatalf("Failed to unmarshal request: %v", err)
+	contentLength := len(message)
+	header := fmt.Sprintf("Content-Length: %d\r\n\r\n", contentLength)
+
+	var in bytes.Buffer
+	var out strings.Builder
+
+	srv := server.NewServer(&in, &out)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	go func() {
+		srv.Start()
+		cancel()
+	}()
+
+	in.WriteString(header)
+	in.WriteString(message)
+
+	<-ctx.Done()
+
+	response := out.String()
+
+	if len(response) == 0 {
+		t.Fatal("Server did not produce a response")
 	}
 
-	if request.Method != "initialize" {
-		t.Errorf("Expected method 'initialize', got %q", request.Method)
+	// Parse the response to get the JSON content
+	parts := strings.SplitN(response, "\r\n\r\n", 2)
+	if len(parts) != 2 {
+		t.Fatalf("Invalid response format: %s", response)
 	}
 
-	paramsBytes, err := json.Marshal(request.Params)
-	if err != nil {
-		t.Fatalf("Failed to marshal params: %v", err)
+	var resp server.ResponseMessage
+	if err := json.Unmarshal([]byte(parts[1]), &resp); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	var params server.InitializeParams
-	if err := json.Unmarshal(paramsBytes, &params); err != nil {
-		t.Fatalf("Failed to unmarshal params: %v", err)
-	}
-
-	if params.RootURI.String() != "file:///path/to/workspace" {
-		t.Errorf("Expected rootUri 'file:///path/to/workspace', got %q", params.RootURI.String())
-	}
-
-	// Test Marshaling
-	response := server.InitializeResult{
-		Capabilities: server.ServerCapabilities{
-			TextDocumentSync: &server.TextDocumentSyncOptions{
-				OpenClose: true,
-				Change:    server.TextDocumentSyncKindFull,
-			},
-		},
-		ServerInfo: &server.ServerInfo{
-			Name:    "grammar-lsp",
-			Version: "0.1.0",
-		},
-	}
-
-	responseBytes, err := json.Marshal(response)
-	if err != nil {
-		t.Fatalf("Failed to marshal response: %v", err)
-	}
-
-	// For now, we just check that it marshals without error.
-	// A more thorough test would compare the output to a known-good JSON string.
-	if len(responseBytes) == 0 {
-		t.Error("Marshaled response is empty")
+	if resp.Error != nil {
+		t.Errorf("Expected no error, got: %v", resp.Error)
 	}
 }

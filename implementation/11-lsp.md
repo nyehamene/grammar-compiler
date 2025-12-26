@@ -16,7 +16,7 @@ The language server protocol implementation code and API should be placed in 'se
 - The server now logs response messages.
 - The server logs received messages and response messages in pretty-printed JSON format.
 - The server logs received messages and response messages in a goroutine.
-- The server now handles the `initialize` request.
+- The server now handles the `initialize` request and is successfully tested.
 
 ## Gemini
 Note: This feature implementation is not complete yet.

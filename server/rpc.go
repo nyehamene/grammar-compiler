@@ -3,14 +3,16 @@ package server
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 	"strings"
 )
 
 // EncodeMessage encodes a JSON-RPC message into the LSP format (header + JSON content).
-func EncodeMessage(msg any) (string, error) {
+func (s *Server) EncodeMessage(msg any) (string, error) {
 	content, err := json.Marshal(msg)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal message: %w", err)
@@ -21,42 +23,55 @@ func EncodeMessage(msg any) (string, error) {
 }
 
 // DecodeMessage reads an LSP message (headers + JSON content) from an io.Reader and decodes it.
-func DecodeMessage(r io.Reader) ([]byte, error) {
-	reader := bufio.NewReader(r)
+func (s *Server) DecodeMessage(r io.Reader) ([]byte, error) {
+	br := bufio.NewReader(r)
+	headers := map[string]string{}
 
-	// Read headers
-	headers := make(map[string]string)
+	var contentLength int
+
+	// --- Read headers ---
 	for {
-		line, _, err := reader.ReadLine()
+		line, err := br.ReadString('\n')
 		if err != nil {
-			return nil, fmt.Errorf("failed to read header line: %w", err)
+			return nil, err
 		}
-		if len(line) == 0 { // Empty line separates headers from content
+
+		line = strings.TrimSpace(line)
+		if line == "" {
+			// Empty line -> headers done
 			break
 		}
 
-		parts := strings.SplitN(string(line), ":", 2)
+		s.log.Printf("received header: %s\n", line)
+
+		parts := strings.Split(line, ": ")
 		if len(parts) != 2 {
-			return nil, fmt.Errorf("invalid header: %s", line)
+			log.Printf("invalid header: %s\n", line)
+			continue
 		}
-		headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+
+		header := strings.ToLower(parts[0])
+		value := parts[1]
+		headers[header] = value
 	}
 
-	// Get Content-Length
-	contentLengthStr, ok := headers["Content-Length"]
-	if !ok {
-		return nil, fmt.Errorf("Content-Length header missing")
+	// Parse "Content-Length: N"
+	if v, ok := headers["content-length"]; ok {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid Content-Length: %w", err)
+		}
+		contentLength = n
+	} else {
+		return nil, errors.New("missing Content-Length header")
 	}
-	contentLength, err := strconv.Atoi(contentLengthStr)
+
+	// --- Read body ---
+	body := make([]byte, contentLength)
+	_, err := io.ReadFull(br, body)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Content-Length: %w", err)
+		return nil, err
 	}
 
-	// Read content
-	content := make([]byte, contentLength)
-	if _, err := io.ReadFull(reader, content); err != nil {
-		return nil, fmt.Errorf("failed to read content: %w", err)
-	}
-
-	return content, nil
+	return body, nil
 }

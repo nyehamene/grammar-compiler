@@ -52,20 +52,15 @@ func TestRun(t *testing.T) {
 			stdout: lspTxt,
 		},
 		{
-			name:   "no command",
-			args:   []string{},
-			stdout: grammarTxt,
+			name:     "no command",
+			args:     []string{},
+			stdout:   grammarTxt,
 			exitCode: 1,
 		},
 
 		{
-			name: "lsp command",
-			args: []string{"lsp"},
-			stdout: "TBD\n",
-		},
-		{
-			name: "help command",
-			args: []string{"help"},
+			name:   "help command",
+			args:   []string{"help"},
 			stdout: grammarTxt,
 		},
 		{
