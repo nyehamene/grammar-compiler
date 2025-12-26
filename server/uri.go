@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 )
@@ -40,4 +41,23 @@ func (d DocumentUri) String() string {
 		Fragment: d.Fragment,
 	}
 	return u.String()
+}
+
+// MarshalJSON implements json.Marshaler.
+func (d DocumentUri) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+func (d *DocumentUri) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	uri, err := ParseURI(s)
+	if err != nil {
+		return err
+	}
+	*d = uri
+	return nil
 }

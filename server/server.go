@@ -63,7 +63,7 @@ func (s *Server) Start() {
 		var msg map[string]any
 		if err := json.Unmarshal(content, &msg); err != nil {
 			s.log.Printf("Failed to unmarshal message: %v", err)
-			s.sendErrorResponse(nil, ParseError, "Failed to unmarshal message")
+			s.sendErrorResponse(0, ParseError, "Failed to unmarshal message")
 			continue
 		}
 
@@ -79,14 +79,19 @@ func (s *Server) Start() {
 func (s *Server) handleRequest(id int, msg map[string]any) {
 	method, ok := msg["method"].(string)
 	if !ok {
-		s.sendErrorResponse(&id, InvalidRequest, "Method not found in request")
+		s.sendErrorResponse(id, InvalidRequest, "Method not found in request")
 		return
 	}
 
 	go s.logMessage("Received request", msg)
 
-	// For now, just send a simple response
-	s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
+	switch method {
+	case "initialize":
+		handleInitializeRequest(s, id, msg)
+	default:
+		// For now, just send a simple response
+		s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
+	}
 }
 
 func (s *Server) handleNotification(msg map[string]any) {
@@ -130,10 +135,10 @@ func (s *Server) logMessage(title string, msg any) {
 	}
 }
 
-func (s *Server) sendErrorResponse(id *int, code ErrorCodes, message string) {
+func (s *Server) sendErrorResponse(id int, code ErrorCodes, message string) {
 	errResp := &ResponseError{
 		Code:    int(code),
 		Message: message,
 	}
-	s.sendResponse(*id, nil, errResp)
+	s.sendResponse(id, nil, errResp)
 }
