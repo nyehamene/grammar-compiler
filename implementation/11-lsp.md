@@ -13,6 +13,7 @@ The language server protocol implementation code and API should be placed in 'se
   (Implemented in `server/uri.go`)
 
 - Update the server to log its messages to the file ~/.cache/grammar/lsp.log
+- The server now logs response messages.
 
 ## Gemini
 Note: This feature implementation is not complete yet.
