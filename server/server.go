@@ -23,28 +23,24 @@ func NewServer(r io.Reader, w io.Writer) *Server {
 	if err := os.MkdirAll(filepath.Dir(logPath), 0755); err != nil {
 		log.Printf("Failed to create log directory: %v", err)
 		// Fallback to stderr if file logging fails
-		return &Server{
-			reader: bufio.NewReader(r),
-			writer: w,
-			log:    log.New(os.Stderr, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile),
-		}
+		return newServer(bufio.NewReader(r), w, os.Stderr)
 	}
 	logFilePath := filepath.Join(logPath, "lsp.log")
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Printf("Failed to open log file: %v", err)
 		// Fallback to stderr if file logging fails
-		return &Server{
-			reader: bufio.NewReader(r),
-			writer: w,
-			log:    log.New(os.Stderr, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile),
-		}
+		return newServer(bufio.NewReader(r), w, os.Stderr)
 	}
+	return newServer(r, w, logFile)
+}
 
+func newServer(r io.Reader, w io.Writer, out io.Writer) *Server {
+	logger := log.New(out, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile)
 	return &Server{
 		reader: bufio.NewReader(r),
 		writer: w,
-		log:    log.New(logFile, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile),
+		log:    logger,
 	}
 }
 
