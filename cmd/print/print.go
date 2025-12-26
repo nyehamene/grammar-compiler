@@ -56,7 +56,7 @@ func printTokens(path string, stdout io.Writer) error {
 	}
 	srcRunes := []rune(string(fileContent))
 
-	tokenizer := token.NewTokenizer(srcRunes)
+	tokenizer := token.NewTokenizer(srcRunes, false, false) // Do not skip comments or newlines
 	tokens := tokenizer.Scan()
 
 	// Define column widths
@@ -94,7 +94,7 @@ func printAST(path string, stdout io.Writer) error {
 	}
 	srcRunes := []rune(string(fileContent))
 
-	tokenizer := token.NewTokenizer(srcRunes)
+	tokenizer := token.NewTokenizer(srcRunes, false, false) // Do not skip comments or newlines
 	tokens := tokenizer.Scan()
 
 	parser := ast.NewParser(tokens, srcRunes)

@@ -13,3 +13,4 @@ The lexeme should be properly escaped. The newline escape
 character should be escaped and printed as `"\n"`.
 
 - Implement `grammar print --tokens <PATH>`.
+- Preserve newlines and comments.
