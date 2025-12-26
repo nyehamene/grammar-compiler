@@ -84,7 +84,7 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		return
 	}
 
-	go s.logMessage("Received request", msg)
+	s.logMessage("Received request", msg)
 
 	switch method {
 	case "initialize":
@@ -110,7 +110,7 @@ func (s *Server) handleNotification(msg map[string]any) {
 		return
 	}
 
-	go s.logMessage("Received notification", msg)
+	s.logMessage("Received notification", msg)
 
 	switch method {
 	case "initialized":
@@ -160,7 +160,7 @@ func (s *Server) sendResponse(id int, result any, errResp *ResponseError) {
 		s.log.Printf("Failed to write response: %v", err)
 	}
 
-	go s.logMessage("Sent response", resp)
+	s.logMessage("Sent response", resp)
 }
 
 func (s *Server) logMessage(title string, msg any) {
