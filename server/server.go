@@ -6,36 +6,63 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"path/filepath"
 )
 
 type Server struct {
 	reader *bufio.Reader
 	writer io.Writer
+	log    *log.Logger // Add logger field
 	// Add more fields as needed, e.g., for managing open files, diagnostics, etc.
 }
 
 func NewServer(r io.Reader, w io.Writer) *Server {
+	// Set up logging to a file
+	logPath := filepath.Join(os.Getenv("HOME"), ".cache", "grammar")
+	if err := os.MkdirAll(filepath.Dir(logPath), 0755); err != nil {
+		log.Printf("Failed to create log directory: %v", err)
+		// Fallback to stderr if file logging fails
+		return &Server{
+			reader: bufio.NewReader(r),
+			writer: w,
+			log:    log.New(os.Stderr, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile),
+		}
+	}
+	logFilePath := filepath.Join(logPath, "lsp.log")
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		log.Printf("Failed to open log file: %v", err)
+		// Fallback to stderr if file logging fails
+		return &Server{
+			reader: bufio.NewReader(r),
+			writer: w,
+			log:    log.New(os.Stderr, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile),
+		}
+	}
+
 	return &Server{
 		reader: bufio.NewReader(r),
 		writer: w,
+		log:    log.New(logFile, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile),
 	}
 }
 
 func (s *Server) Start() {
-	log.Println("LSP Server started")
+	s.log.Println("LSP Server started")
 
 	for {
 		// Decode incoming message
 		content, err := DecodeMessage(s.reader)
 		if err != nil {
-			log.Printf("Failed to decode message: %v", err)
+			s.log.Printf("Failed to decode message: %v", err)
 			continue
 		}
 
 		// Unmarshal into a generic map to determine message type
 		var msg map[string]any
 		if err := json.Unmarshal(content, &msg); err != nil {
-			log.Printf("Failed to unmarshal message: %v", err)
+			s.log.Printf("Failed to unmarshal message: %v", err)
 			s.sendErrorResponse(nil, ParseError, "Failed to unmarshal message")
 			continue
 		}
@@ -58,7 +85,7 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 
 	params := msg["params"]
 
-	log.Printf("Received request: id=%d, method=%s, params=%v", id, method, params)
+	s.log.Printf("Received request: id=%d, method=%s, params=%v", id, method, params)
 
 	// For now, just send a simple response
 	s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, params), nil)
@@ -67,12 +94,12 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 func (s *Server) handleNotification(msg map[string]any) {
 	method, ok := msg["method"].(string)
 	if !ok {
-		log.Printf("Notification without method: %v", msg)
+		s.log.Printf("Notification without method: %v", msg)
 		return
 	}
 	params := msg["params"]
 
-	log.Printf("Received notification: method=%s, params=%v", method, params)
+	s.log.Printf("Received notification: method=%s, params=%v", method, params)
 
 	// For now, just log notifications
 }
@@ -86,12 +113,12 @@ func (s *Server) sendResponse(id int, result any, errResp *ResponseError) {
 	}
 	encoded, err := EncodeMessage(resp)
 	if err != nil {
-		log.Printf("Failed to encode response: %v", err)
+		s.log.Printf("Failed to encode response: %v", err)
 		return
 	}
 	_, err = s.writer.Write([]byte(encoded))
 	if err != nil {
-		log.Printf("Failed to write response: %v", err)
+		s.log.Printf("Failed to write response: %v", err)
 	}
 }
 

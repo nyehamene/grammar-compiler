@@ -12,6 +12,8 @@ The language server protocol implementation code and API should be placed in 'se
 - Add a `DocumentUri` parser type that parses a uri string as illustrated below
   (Implemented in `server/uri.go`)
 
+- Update the server to log its messages to the file ~/.cache/grammar/lsp.log
+
 ## Gemini
 Note: This feature implementation is not complete yet.
 More steps will be added above until the lsp implementation is complete.
