@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,10 +12,11 @@ import (
 )
 
 type Server struct {
-	reader   *bufio.Reader
-	writer   io.Writer
-	log      *log.Logger // Add logger field
-	shutdown bool        // Add shutdown field
+	reader    *bufio.Reader
+	writer    io.Writer
+	log       *log.Logger // Add logger field
+	shutdown  bool        // Add shutdown field
+	documents map[DocumentUri]string
 	// Add more fields as needed, e.g., for managing open files, diagnostics, etc.
 }
 
@@ -39,10 +41,11 @@ func NewServer(r io.Reader, w io.Writer) *Server {
 func newServer(r io.Reader, w io.Writer, out io.Writer) *Server {
 	logger := log.New(out, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile)
 	return &Server{
-		reader:   bufio.NewReader(r),
-		writer:   w,
-		log:      logger,
-		shutdown: false,
+		reader:    bufio.NewReader(r),
+		writer:    w,
+		log:       logger,
+		shutdown:  false,
+		documents: make(map[DocumentUri]string),
 	}
 }
 
@@ -110,6 +113,10 @@ func (s *Server) handleNotification(msg map[string]any) {
 	go s.logMessage("Received notification", msg)
 
 	switch method {
+	case "textDocument/didOpen":
+		if err := s.handleDidOpen(context.Background(), msg); err != nil {
+			s.log.Printf("Failed to handle textDocument/didOpen: %v", err)
+		}
 	case "exit":
 		s.handleExit()
 	default:
