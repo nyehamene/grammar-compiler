@@ -113,6 +113,10 @@ func (s *Server) handleNotification(msg map[string]any) {
 	go s.logMessage("Received notification", msg)
 
 	switch method {
+	case "initialized":
+		if err := s.handleInitialized(context.Background(), msg); err != nil {
+			s.log.Printf("Failed to handle initialized: %v", err)
+		}
 	case "textDocument/didOpen":
 		if err := s.handleDidOpen(context.Background(), msg); err != nil {
 			s.log.Printf("Failed to handle textDocument/didOpen: %v", err)
