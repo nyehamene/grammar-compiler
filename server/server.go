@@ -11,9 +11,10 @@ import (
 )
 
 type Server struct {
-	reader *bufio.Reader
-	writer io.Writer
-	log    *log.Logger // Add logger field
+	reader   *bufio.Reader
+	writer   io.Writer
+	log      *log.Logger // Add logger field
+	shutdown bool        // Add shutdown field
 	// Add more fields as needed, e.g., for managing open files, diagnostics, etc.
 }
 
@@ -38,9 +39,10 @@ func NewServer(r io.Reader, w io.Writer) *Server {
 func newServer(r io.Reader, w io.Writer, out io.Writer) *Server {
 	logger := log.New(out, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile)
 	return &Server{
-		reader: bufio.NewReader(r),
-		writer: w,
-		log:    logger,
+		reader:   bufio.NewReader(r),
+		writer:   w,
+		log:      logger,
+		shutdown: false,
 	}
 }
 
@@ -84,14 +86,22 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 	switch method {
 	case "initialize":
 		handleInitializeRequest(s, id, msg)
+	case "shutdown":
+		s.handleShutdown(id)
 	default:
 		// For now, just send a simple response
 		s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
 	}
 }
 
+func (s *Server) handleShutdown(id int) {
+	s.shutdown = true
+	s.sendResponse(id, nil, nil) // Respond with null result
+	s.log.Printf("Shutdown request received. Server state: shutdown=%t", s.shutdown)
+}
+
 func (s *Server) handleNotification(msg map[string]any) {
-	_, ok := msg["method"].(string)
+	method, ok := msg["method"].(string)
 	if !ok {
 		s.log.Printf("Notification without method: %v", msg)
 		return
@@ -99,7 +109,19 @@ func (s *Server) handleNotification(msg map[string]any) {
 
 	go s.logMessage("Received notification", msg)
 
-	// For now, just log notifications
+	switch method {
+	case "exit":
+		s.handleExit()
+	default:
+		// For now, just log other notifications
+	}
+}
+
+func (s *Server) handleExit() {
+	if s.shutdown {
+		os.Exit(0)
+	}
+	os.Exit(1)
 }
 
 func (s *Server) sendResponse(id int, result any, errResp *ResponseError) {
