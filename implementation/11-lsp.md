@@ -15,6 +15,7 @@ The language server protocol implementation code and API should be placed in 'se
 - Update the server to log its messages to the file ~/.cache/grammar/lsp.log
 - The server now logs response messages.
 - The server logs received messages and response messages in pretty-printed JSON format.
+- The server logs received messages and response messages in a goroutine.
 
 ## Gemini
 Note: This feature implementation is not complete yet.

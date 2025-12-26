@@ -83,32 +83,20 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		return
 	}
 
-	// Log request in pretty-printed JSON
-	loggedMsg, err := json.MarshalIndent(msg, "", "  ")
-	if err != nil {
-		s.log.Printf("Failed to marshal request for logging: %v", err)
-	} else {
-		s.log.Printf("Received request (id=%d, method=%s):\n%s", id, method, loggedMsg)
-	}
+	go s.logMessage("Received request", msg)
 
 	// For now, just send a simple response
 	s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
 }
 
 func (s *Server) handleNotification(msg map[string]any) {
-	method, ok := msg["method"].(string)
+	_, ok := msg["method"].(string)
 	if !ok {
 		s.log.Printf("Notification without method: %v", msg)
 		return
 	}
 
-	// Log notification in pretty-printed JSON
-	loggedMsg, err := json.MarshalIndent(msg, "", "  ")
-	if err != nil {
-		s.log.Printf("Failed to marshal notification for logging: %v", err)
-	} else {
-		s.log.Printf("Received notification (method=%s):\n%s", method, loggedMsg)
-	}
+	go s.logMessage("Received notification", msg)
 
 	// For now, just log notifications
 }
@@ -130,12 +118,15 @@ func (s *Server) sendResponse(id int, result any, errResp *ResponseError) {
 		s.log.Printf("Failed to write response: %v", err)
 	}
 
-	// Log response in pretty-printed JSON
-	loggedResp, err := json.MarshalIndent(resp, "", "  ")
+	go s.logMessage("Sent response", resp)
+}
+
+func (s *Server) logMessage(title string, msg any) {
+	loggedMsg, err := json.MarshalIndent(msg, "", "  ")
 	if err != nil {
-		s.log.Printf("Failed to marshal response for logging: %v", err)
+		s.log.Printf("Failed to marshal message for logging: %v", err)
 	} else {
-		s.log.Printf("Sent response (id=%d):\n%s", id, loggedResp)
+		s.log.Printf("%s:\n%s", title, loggedMsg)
 	}
 }
 
