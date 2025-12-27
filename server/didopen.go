@@ -25,7 +25,7 @@ func (s *Server) handleDidOpen(ctx context.Context, msg map[string]any) error {
 	}
 
 	s.documents[params.TextDocument.URI] = params.TextDocument.Text
-	s.log.Printf("Opened and stored document: %s", params.TextDocument.URI)
+	s.log.Printf("Opened and stored document: %s version %d", params.TextDocument.URI.Path, params.TextDocument.Version)
 	s.publishDiagnostics(ctx, params.TextDocument.URI)
 	return nil
 }

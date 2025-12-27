@@ -94,7 +94,7 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		return
 	}
 
-	s.logMessage("Received request", msg)
+	s.log.Printf("Received request %d-'%s'", id, method)
 
 	switch method {
 	case "initialize":
@@ -122,7 +122,7 @@ func (s *Server) handleNotification(msg map[string]any) {
 		return
 	}
 
-	s.logMessage("Received notification", msg)
+	s.log.Printf("Received notificatin: %s", method)
 
 	ctx := context.Background()
 
@@ -172,19 +172,20 @@ func (s *Server) sendResponse(id int, result any, errResp *ResponseError) {
 	_, err = s.writer.Write([]byte(encoded))
 	if err != nil {
 		s.log.Printf("Failed to write response: %v", err)
+		return
 	}
 
-	s.logMessage("Sent response", resp)
+	s.log.Printf("(sent) %d-%s", *resp.ID, resp.Message)
 }
 
-func (s *Server) logMessage(title string, msg any) {
-	loggedMsg, err := json.MarshalIndent(msg, "", "  ")
-	if err != nil {
-		s.log.Printf("Failed to marshal message for logging: %v", err)
-	} else {
-		s.log.Printf("%s:\n%s", title, loggedMsg)
-	}
-}
+// func (s *Server) logMessage(title string, msg any) {
+// 	loggedMsg, err := json.MarshalIndent(msg, "", "  ")
+// 	if err != nil {
+// 		s.log.Printf("Failed to marshal message for logging: %v", err)
+// 	} else {
+// 		s.log.Printf("%s:\n%s", title, loggedMsg)
+// 	}
+// }
 
 func (s *Server) sendErrorResponse(id int, code ErrorCodes, message string) {
 	errResp := &ResponseError{
@@ -208,6 +209,7 @@ func (s *Server) notify(ctx context.Context, method string, params any) {
 	_, err = s.writer.Write([]byte(encoded))
 	if err != nil {
 		s.log.Printf("Failed to write notification: %v", err)
+		return
 	}
-	s.logMessage("Sent notification", note)
+	s.log.Printf("Sent notification '%s'", method)
 }
