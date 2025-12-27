@@ -156,10 +156,10 @@ A member access expression has a receiver and an object: `receiver.object`.
     - [x] In `cmd/check/check.go`, after the check is complete, iterate through the collected errors and print them to `stderr` in the format `path:line:col: message`.
     - [x] Ensure the command exits with a non-zero status code if any errors are found.
 
-- [ ] **7. Integration with Language Server**
-    - [ ] Create a function in the `check` package that can be called from the language server. This function will take the document content and URI.
-    - [ ] When a document is opened or changed (`didOpen`, `didChange`), call this checker function.
-    - [ ] Convert the checker's errors into LSP `Diagnostic` messages and send them to the client via a `textDocument/publishDiagnostics` notification.
+- [x] **7. Integration with Language Server**
+    - [x] Create a function in the `check` package that can be called from the language server. This function will take the document content and URI.
+    - [x] When a document is opened or changed (`didOpen`, `didChange`), call this checker function.
+    - [x] Convert the checker's errors into LSP `Diagnostic` messages and send them to the client via a `textDocument/publishDiagnostics` notification.
 
 
 

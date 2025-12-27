@@ -100,5 +100,5 @@ go.mod
 - [ ] Treesitter
 - [ ] Print token (color)
 - [ ] Print tokens (serial number)
-- [ ] Check
+- [x] Check
 
