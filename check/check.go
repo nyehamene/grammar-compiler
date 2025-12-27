@@ -3,7 +3,6 @@ package check
 import (
 	"fmt"
 	"grammar/ast"
-	"grammar/token"
 )
 
 // Checker holds the state for the type-checking process.
@@ -18,13 +17,18 @@ func NewChecker() *Checker {
 	}
 }
 
+// Sources returns the source code of all files processed by the checker.
+func (c *Checker) Sources() map[string][]rune {
+	return c.cu.Sources
+}
+
 // Check initiates the checking process for a given path.
 func (c *Checker) Check(path string) error {
 	ns, err := c.cu.LoadFile(path)
 	if err != nil {
-		if _, isParserError := err.(ast.ErrorList); !isParserError {
-			c.cu.AddError(token.NoPos, err.Error())
-		}
+		// Parsing and file reading errors are handled in LoadFile/LoadSource
+		// and added to the error list. We just need to check if the namespace
+		// could be loaded at all.
 	}
 	if ns != nil {
 		c.checkNode(ns.File, ns)
@@ -36,9 +40,7 @@ func (c *Checker) Check(path string) error {
 func (c *Checker) CheckSource(content []byte, path string) error {
 	ns, err := c.cu.LoadSource(content, path)
 	if err != nil {
-		if _, isParserError := err.(ast.ErrorList); !isParserError {
-			c.cu.AddError(token.NoPos, err.Error())
-		}
+		// Errors are handled in LoadSource
 	}
 	if ns != nil {
 		c.checkNode(ns.File, ns)
@@ -83,16 +85,16 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 		}
 		nsType, ok := receiverType.(*NamespaceType)
 		if !ok {
-			c.cu.AddError(n.Object.Pos(), fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
+			c.cu.AddError(ns.Name, n.Object.Pos(), fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
 			return
 		}
 		importedNs, found := c.cu.Namespaces[nsType.Name]
 		if !found {
-			c.cu.AddError(n.Object.Pos(), fmt.Sprintf("internal error: could not find namespace %s", nsType.Name))
+			c.cu.AddError(ns.Name, n.Object.Pos(), fmt.Sprintf("internal error: could not find namespace %s", nsType.Name))
 			return
 		}
 		if _, found := importedNs.Members[n.Member.Name]; !found {
-			c.cu.AddError(n.Member.Pos(), fmt.Sprintf("undefined member '%s' in namespace '%s'", n.Member.Name, nsType.Name))
+			c.cu.AddError(ns.Name, n.Member.Pos(), fmt.Sprintf("undefined member '%s' in namespace '%s'", n.Member.Name, nsType.Name))
 		}
 	}
 }
@@ -103,7 +105,7 @@ func (c *Checker) typeOf(expr ast.Expr, ns *Namespace) Type {
 		if typ, found := ns.Types[e.Name]; found {
 			return typ
 		}
-		c.cu.AddError(e.Pos(), fmt.Sprintf("undefined identifier: %s", e.Name))
+		c.cu.AddError(ns.Name, e.Pos(), fmt.Sprintf("undefined identifier: %s", e.Name))
 		return nil
 	case *ast.StringLit:
 		return String
@@ -116,14 +118,14 @@ func (c *Checker) typeOf(expr ast.Expr, ns *Namespace) Type {
 		}
 		nsType, ok := receiverType.(*NamespaceType)
 		if !ok {
-			c.cu.AddError(e.Object.Pos(), fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
+			c.cu.AddError(ns.Name, e.Object.Pos(), fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
 			return nil
 		}
 		importedNs := c.cu.Namespaces[nsType.Name]
 		if memberType, found := importedNs.Types[e.Member.Name]; found {
 			return memberType
 		}
-		c.cu.AddError(e.Member.Pos(), fmt.Sprintf("undefined member '%s' in namespace '%s'", e.Member.Name, nsType.Name))
+		c.cu.AddError(ns.Name, e.Member.Pos(), fmt.Sprintf("undefined member '%s' in namespace '%s'", e.Member.Name, nsType.Name))
 		return nil
 	default:
 		return nil

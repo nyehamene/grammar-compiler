@@ -151,10 +151,10 @@ A member access expression has a receiver and an object: `receiver.object`.
         - Verify the `object` exists within that `Namespace` and is a `Production`.
         - Report errors for undefined member access.
 
-- [ ] **6. Diagnostics and Error Reporting**
-    - [ ] Ensure all semantic errors (redeclaration, import cycles, file not found, invalid member access) are collected.
-    - [ ] In `cmd/check/check.go`, after the check is complete, iterate through the collected errors and print them to `stderr` in the format `path:line:col: message`.
-    - [ ] Ensure the command exits with a non-zero status code if any errors are found.
+- [x] **6. Diagnostics and Error Reporting**
+    - [x] Ensure all semantic errors (redeclaration, import cycles, file not found, invalid member access) are collected.
+    - [x] In `cmd/check/check.go`, after the check is complete, iterate through the collected errors and print them to `stderr` in the format `path:line:col: message`.
+    - [x] Ensure the command exits with a non-zero status code if any errors are found.
 
 - [ ] **7. Integration with Language Server**
     - [ ] Create a function in the `check` package that can be called from the language server. This function will take the document content and URI.
