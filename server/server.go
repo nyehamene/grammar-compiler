@@ -49,12 +49,21 @@ func newServer(r io.Reader, w io.Writer, out io.Writer) *Server {
 	}
 }
 
+func (s *Server) GetDocumentContent(uri DocumentUri) (string, bool) {
+	content, ok := s.documents[uri]
+	return content, ok
+}
+
 func (s *Server) Start() {
 	s.log.Println("LSP Server started")
 
 	for {
 		// Decode incoming message
 		content, err := s.DecodeMessage(s.reader)
+		if err == io.EOF {
+			s.log.Println("client disconnected!")
+			return
+		}
 		if err != nil {
 			s.log.Printf("Failed to decode message: %v", err)
 			continue
@@ -63,9 +72,10 @@ func (s *Server) Start() {
 		// Unmarshal into a generic map to determine message type
 		var msg map[string]any
 		if err := json.Unmarshal(content, &msg); err != nil {
-			s.log.Printf("Failed to unmarshal message: %v", err)
+			s.log.Printf("Failed to unmarshal message: %v\n%s\n", err, content)
 			s.sendErrorResponse(0, ParseError, "Failed to unmarshal message")
-			continue
+			// continue
+			break
 		}
 
 		// Determine if it's a request or notification
@@ -112,21 +122,23 @@ func (s *Server) handleNotification(msg map[string]any) {
 
 	s.logMessage("Received notification", msg)
 
+	ctx := context.Background()
+
 	switch method {
 	case "initialized":
-		if err := s.handleInitialized(context.Background(), msg); err != nil {
+		if err := s.handleInitialized(ctx, msg); err != nil {
 			s.log.Printf("Failed to handle initialized: %v", err)
 		}
 	case "textDocument/didOpen":
-		if err := s.handleDidOpen(context.Background(), msg); err != nil {
+		if err := s.handleDidOpen(ctx, msg); err != nil {
 			s.log.Printf("Failed to handle textDocument/didOpen: %v", err)
 		}
 	case "textDocument/didChange":
-		if err := s.handleDidChange(context.Background(), msg); err != nil {
+		if err := s.handleDidChange(ctx, msg); err != nil {
 			s.log.Printf("Failed to handle textDocument/didChange: %v", err)
 		}
 	case "textDocument/didClose":
-		if err := s.handleDidClose(context.Background(), msg); err != nil {
+		if err := s.handleDidClose(ctx, msg); err != nil {
 			s.log.Printf("Failed to handle textDocument/didClose: %v", err)
 		}
 	case "exit":

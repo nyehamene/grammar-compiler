@@ -11,22 +11,34 @@ import (
 )
 
 func TestDidOpenNotification(t *testing.T) {
-	// Sample didOpen notification from a client
-	message := `{
+	const docURI = "file:///path/to/test.grammar"
+	const docContent = `Foo = bar;`
+
+	// Step 1: Initialize the server
+	initializeMessage := `{
+		"jsonrpc": "2.0",
+		"id": 1,
+		"method": "initialize",
+		"params": {
+			"processId": 123,
+			"rootUri": null,
+			"capabilities": {}
+		}
+	}`
+
+	// Step 2: Simulate didOpen notification
+	didOpenMessage := fmt.Sprintf(`{
 		"jsonrpc": "2.0",
 		"method": "textDocument/didOpen",
 		"params": {
 			"textDocument": {
-				"uri": "file:///path/to/test.grammar",
+				"uri": "%s",
 				"languageId": "grammar",
 				"version": 1,
-				"text": "rule Foo = \"bar\";"
+				"text": "%s"
 			}
 		}
-	}`
-
-	contentLength := len(message)
-	header := fmt.Sprintf("Content-Length: %d\r\n\r\n", contentLength)
+	}`, docURI, docContent)
 
 	var in bytes.Buffer
 	var out strings.Builder
@@ -41,19 +53,28 @@ func TestDidOpenNotification(t *testing.T) {
 		cancel()
 	}()
 
-	in.WriteString(header)
-	in.WriteString(message)
+	// Send Initialize message
+	in.WriteString(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(initializeMessage)))
+	in.WriteString(initializeMessage)
+
+	// Send didOpen message
+	in.WriteString(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(didOpenMessage)))
+	in.WriteString(didOpenMessage)
 
 	<-ctx.Done()
 
-	response := out.String()
-
-	if len(response) != 0 {
-		t.Fatalf("Server produced an unexpected response for notification: %s", response)
+	// Check if the document was added to the server's state
+	textDocumentId, err := server.ParseURI(docURI)
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	// Additional check: verify the log output
-	// Since notifications don't send responses, we can only check the logs for side effects.
-	// This would require reading the log file, which is more complex for a unit test.
-	// For now, confirming no LSP response is sufficient.
+	storedContent, ok := srv.GetDocumentContent(textDocumentId)
+	if !ok {
+		t.Fatalf("Document was not added to the server's documents map. Log: %s", out.String())
+	}
+
+	if storedContent != docContent {
+		t.Errorf("Document content mismatch. Got: '%s', Expected: '%s'", storedContent, docContent)
+	}
 }
