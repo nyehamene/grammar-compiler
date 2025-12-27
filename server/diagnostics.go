@@ -24,6 +24,13 @@ func (s *Server) publishDiagnostics(ctx context.Context, uri DocumentUri) {
 	srcRunes := []rune(content)
 
 	for _, err := range errors {
+
+		s.log.Printf("error document: %s\npath: %s\n", pathAbsLocal, err.Path)
+
+		if err.Path != pathAbsLocal {
+			continue
+		}
+
 		line, col := token.FindLineAndCol(int(err.Pos), srcRunes)
 		diagnostic := Diagnostic{
 			Range: Range{
