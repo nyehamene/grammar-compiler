@@ -53,8 +53,6 @@ The project follows standard Go conventions. The implementation is guided by the
 - Print ast
 - Diff ast
 - Formatter
-
-### Pending Stages
 - Language server
 - Treesitter
 - Print token (color)
