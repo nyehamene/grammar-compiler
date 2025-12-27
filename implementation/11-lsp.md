@@ -45,12 +45,12 @@ The language server protocol implementation code and API should be placed in 'se
     - [x] **Dispatcher**: Wire up `textDocument/references` in `server.go`.
     - [x] **Test**: Add an integration test for "Find All References."
 
-- [ ] **4. `textDocument/documentSymbol`**
-    - [ ] **Types**: Add `DocumentSymbolParams`, `DocumentSymbol`, and `SymbolKind` to `server/types.go`.
-    - [ ] **Handler**: Implement `handleDocumentSymbol` in `server/documentsymbol.go`.
-    - [ ] **Logic**: Traverse the top-level declarations of a document's AST to build a list of symbols.
-    - [ ] **Dispatcher**: Wire up `textDocument/documentSymbol` in `server.go`.
-    - [ ] **Test**: Add an integration test for document symbols.
+- [x] **4. `textDocument/documentSymbol`**
+    - [x] **Types**: Add `DocumentSymbolParams`, `DocumentSymbol`, and `SymbolKind` to `server/types.go`.
+    - [x] **Handler**: Implement `handleDocumentSymbol` in `server/documentsymbol.go`.
+    - [x] **Logic**: Traverse the top-level declarations of a document's AST to build a list of symbols.
+    - [x] **Dispatcher**: Wire up `textDocument/documentSymbol` in `server.go`.
+    - [x] **Test**: Add an integration test for document symbols.
 
 - [ ] **5. `workspace/symbol`**
     - [ ] **Types**: Add `WorkspaceSymbolParams` and `SymbolInformation` to `server/types.go`.
