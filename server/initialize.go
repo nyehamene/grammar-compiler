@@ -25,12 +25,13 @@ type InitializeResult struct {
 
 // ServerCapabilities represents the capabilities of the server.
 type ServerCapabilities struct {
-	TextDocumentSync       *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
-	HoverProvider          bool                     `json:"hoverProvider,omitempty"`
-	DefinitionProvider     bool                     `json:"definitionProvider,omitempty"`
-	ReferencesProvider     bool                     `json:"referencesProvider,omitempty"`
-	DocumentSymbolProvider bool                     `json:"documentSymbolProvider,omitempty"`
-	WorkspaceSymbolProvider bool                    `json:"workspaceSymbolProvider,omitempty"`
+	TextDocumentSync        *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
+	HoverProvider           bool                     `json:"hoverProvider,omitempty"`
+	DefinitionProvider      bool                     `json:"definitionProvider,omitempty"`
+	ReferencesProvider      bool                     `json:"referencesProvider,omitempty"`
+	DocumentSymbolProvider  bool                     `json:"documentSymbolProvider,omitempty"`
+	WorkspaceSymbolProvider bool                     `json:"workspaceSymbolProvider,omitempty"`
+	RenameProvider          bool                     `json:"renameProvider,omitempty"`
 	// ... other server capabilities
 }
 
@@ -77,12 +78,13 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 				OpenClose: true,
 				Change:    TextDocumentSyncKindFull,
 			},
-			HoverProvider:      true,
-						DefinitionProvider:     true,
-						ReferencesProvider:     true,
-						DocumentSymbolProvider: true,
-						WorkspaceSymbolProvider: true,
-					},
+			HoverProvider:           true,
+			DefinitionProvider:      true,
+			ReferencesProvider:      true,
+			DocumentSymbolProvider:  true,
+			WorkspaceSymbolProvider: true,
+			RenameProvider:          true,
+		},
 		ServerInfo: &ServerInfo{
 			Name:    "grammar-lsp",
 			Version: "0.1.0",

@@ -474,6 +474,72 @@ func TestWorkspaceSymbol(t *testing.T) {
 	}
 }
 
+func TestRename(t *testing.T) {
+	h := setupTestServer(t)
+	defer h.clientConn.Close()
+
+	// 1. Open documents
+	commonContent := "rename_rule = \"hello\";"
+	commonURI, _ := server.ParseURI("file:///common.grammar")
+	h.send(newDidOpenNotification(commonURI, commonContent, 1))
+	consumeDiagnostics(h)
+
+	userContent := "common = @import(\"common.grammar\");\nlocal = common.rename_rule;"
+	userURI, _ := server.ParseURI("file:///user.grammar")
+	h.send(newDidOpenNotification(userURI, userContent, 1))
+	consumeDiagnostics(h)
+
+	// 2. Test prepareRename
+	id := 1
+	var prepareParams any = server.PrepareRenameParams{
+		TextDocument: server.TextDocumentIdentifier{URI: userURI},
+		Position:     server.Position{Line: 1, Character: 18}, // on 'rename_rule'
+	}
+	h.send(newRequest(id, "textDocument/prepareRename", &prepareParams))
+	msg := h.read()
+	assertResponseID(h, msg, id)
+	var prepareRange server.Range
+	json.Unmarshal(mustMarshal(h, msg["result"]), &prepareRange)
+	if prepareRange.Start.Character != 15 || prepareRange.End.Character != 26 {
+		t.Fatalf("Expected prepareRename range to be 15-26, got %d-%d", prepareRange.Start.Character, prepareRange.End.Character)
+	}
+
+	// 3. Test rename
+	id = 2
+	newName := "renamed_rule"
+	var renameParams any = server.RenameParams{
+		TextDocumentPositionParams: server.TextDocumentPositionParams{
+			TextDocument: server.TextDocumentIdentifier{URI: userURI},
+			Position:     server.Position{Line: 1, Character: 18}, // on 'rename_rule'
+		},
+		NewName: newName,
+	}
+	h.send(newRequest(id, "textDocument/rename", &renameParams))
+	msg = h.read()
+	assertResponseID(h, msg, id)
+	var workspaceEdit server.WorkspaceEdit
+	json.Unmarshal(mustMarshal(h, msg["result"]), &workspaceEdit)
+
+	if len(workspaceEdit.Changes) != 2 {
+		t.Fatalf("Expected edits in 2 files, got %d", len(workspaceEdit.Changes))
+	}
+	commonEdits, ok := workspaceEdit.Changes[commonURI.String()]
+	if !ok || len(commonEdits) != 1 {
+		t.Fatalf("Expected 1 edit in common.grammar")
+	}
+	if commonEdits[0].NewText != newName {
+		t.Errorf("Wrong new name in common.grammar: got %s, want %s", commonEdits[0].NewText, newName)
+	}
+
+	userEdits, ok := workspaceEdit.Changes[userURI.String()]
+	if !ok || len(userEdits) != 1 {
+		t.Fatalf("Expected 1 edit in user.grammar")
+	}
+	if userEdits[0].NewText != newName {
+		t.Errorf("Wrong new name in user.grammar: got %s, want %s", userEdits[0].NewText, newName)
+	}
+}
+
 // --- Test Helpers ---
 
 func newDidOpenNotification(uri server.DocumentUri, content string, version int) server.NotificationMessage {

@@ -115,6 +115,10 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		s.handleDocumentSymbol(id, msg)
 	case "workspace/symbol":
 		s.handleWorkspaceSymbol(id, msg)
+	case "textDocument/prepareRename":
+		s.handlePrepareRename(id, msg)
+	case "textDocument/rename":
+		s.handleRename(id, msg)
 	default:
 		s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
 		s.log.Printf("unexpected method: %s", method)

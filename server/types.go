@@ -169,3 +169,17 @@ type SymbolInformation struct {
 	ContainerName string     `json:"containerName,omitempty"`
 }
 
+// PrepareRenameParams represents the parameters of a `textDocument/prepareRename` request.
+type PrepareRenameParams = TextDocumentPositionParams
+
+// RenameParams represents the parameters of a `textDocument/rename` request.
+type RenameParams struct {
+	TextDocumentPositionParams
+	NewName string `json:"newName"`
+}
+
+// WorkspaceEdit represents a collection of text edits to be applied to documents.
+type WorkspaceEdit struct {
+	Changes map[string][]TextEdit `json:"changes,omitempty"`
+}
+
