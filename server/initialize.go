@@ -26,6 +26,7 @@ type InitializeResult struct {
 // ServerCapabilities represents the capabilities of the server.
 type ServerCapabilities struct {
 	TextDocumentSync *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
+	HoverProvider    bool                     `json:"hoverProvider,omitempty"`
 	// ... other server capabilities
 }
 
@@ -72,6 +73,7 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 				OpenClose: true,
 				Change:    TextDocumentSyncKindFull,
 			},
+			HoverProvider: true,
 		},
 		ServerInfo: &ServerInfo{
 			Name:    "grammar-lsp",
@@ -79,4 +81,5 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 		},
 	}
 	s.sendResponse(id, result, nil)
+	s.log.Printf("initialize result: %d", id)
 }

@@ -22,19 +22,22 @@ type Decl interface {
 
 // File represents a grammar file.
 type File struct {
-	Decls []Decl
+	Decls  []Decl
+	EndPos token.Pos
 }
 
 // RuleDecl represents a rule declaration.
 type RuleDecl struct {
-	Name *Ident
-	Body []Expr // { production }
+	Name   *Ident
+	Body   []Expr // { production }
+	EndPos token.Pos
 }
 
 // BindingDecl represents a binding declaration.
 type BindingDecl struct {
-	Name *Ident
-	Path *StringLit
+	Name   *Ident
+	Path   *StringLit
+	EndPos token.Pos
 }
 
 // Ident represents an identifier.
@@ -88,9 +91,10 @@ type TermExpr struct {
 
 // DirectiveExpr represents a directive.
 type DirectiveExpr struct {
-	AtPos token.Pos
-	Name  *Ident
-	Args  []Expr
+	AtPos  token.Pos
+	Name   *Ident
+	Args   []Expr
+	EndPos token.Pos
 }
 
 // Comment represents a single comment.
@@ -115,12 +119,12 @@ type MemberExpr struct {
 	Member *Ident
 }
 
-func (f *File) Pos() token.Pos             { return token.NoPos }
-func (f *File) End() token.Pos             { return token.NoPos }
+func (f *File) Pos() token.Pos             { return token.NoPos } // A file does not have a specific position
+func (f *File) End() token.Pos             { return f.EndPos }
 func (r *RuleDecl) Pos() token.Pos         { return r.Name.Pos() }
-func (r *RuleDecl) End() token.Pos         { return r.Body[len(r.Body)-1].End() }
+func (r *RuleDecl) End() token.Pos         { return r.EndPos }
 func (b *BindingDecl) Pos() token.Pos      { return b.Name.Pos() }
-func (b *BindingDecl) End() token.Pos      { return b.Path.End() }
+func (b *BindingDecl) End() token.Pos      { return b.EndPos }
 func (i *Ident) Pos() token.Pos            { return i.NamePos }
 func (i *Ident) End() token.Pos            { return token.Pos(int(i.NamePos) + len(i.Name)) }
 func (s *StringLit) Pos() token.Pos       { return s.ValuePos }
@@ -140,7 +144,7 @@ func (g *GroupExpr) End() token.Pos       { return g.Rparen + 1 }
 func (t *TermExpr) Pos() token.Pos        { return t.X.Pos() }
 func (t *TermExpr) End() token.Pos        { return t.X.End() }
 func (d *DirectiveExpr) Pos() token.Pos   { return d.AtPos }
-func (d *DirectiveExpr) End() token.Pos   { return d.Args[len(d.Args)-1].End() }
+func (d *DirectiveExpr) End() token.Pos   { return d.EndPos }
 func (m *MemberExpr) Pos() token.Pos      { return m.Object.Pos() }
 func (m *MemberExpr) End() token.Pos      { return m.Member.End() }
 

@@ -161,5 +161,18 @@ A member access expression has a receiver and an object: `receiver.object`.
     - [x] When a document is opened or changed (`didOpen`, `didChange`), call this checker function.
     - [x] Convert the checker's errors into LSP `Diagnostic` messages and send them to the client via a `textDocument/publishDiagnostics` notification.
 
+## Todos (Phase 2)
 
+- [ ] **1. Advanced Type System & Rule Validation**
+    - [ ] **Composite Types**: Define and infer types for composite expressions like `SequenceExpr` and `AlternativeExpr`. This will allow the type checker to understand the structure of a rule's body, not just its individual parts.
+    - [ ] **Unused Rule Detection**: Implement a pass to traverse the `CompilationUnit` and identify any `RuleDecl` that is not referenced by any other rule, reporting it as a warning.
+    - [ ] **Left-Recursion Detection**: Implement an algorithm to detect direct and indirect left-recursion within rule definitions (e.g., `a = a "x";`), which is a common source of errors in parser generation.
 
+- [ ] **2. Comment Processing for Documentation**
+    - [ ] **AST Enhancement**: Modify the `RuleDecl` and `BindingDecl` AST nodes to store any immediately preceding comment groups.
+    - [ ] **Parser Update**: Update the parser to correctly identify and associate leading comment blocks with the declarations they belong to.
+    - [ ] **API for Comments**: Expose a method to retrieve the documentation (comment) for a given symbol, which will be essential for providing rich hover information in the LSP.
+
+- [ ] **3. Linter for Style and Conventions**
+    - [ ] **Naming Conventions**: Add a linter check to enforce a consistent naming convention (e.g., `snake_case`) for all rule and binding identifiers, reporting style warnings.
+    - [ ] **Rule Complexity Analysis**: Implement a check to measure and warn about overly complex rules, such as those with an excessive number of alternatives or a deeply nested structure, to improve grammar readability and maintainability.

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"grammar/check"
 	"io"
 	"log"
 	"os"
@@ -12,27 +13,25 @@ import (
 )
 
 type Server struct {
-	reader    *bufio.Reader
-	writer    io.Writer
-	log       *log.Logger // Add logger field
-	shutdown  bool        // Add shutdown field
-	documents map[DocumentUri]string
-	// Add more fields as needed, e.g., for managing open files, diagnostics, etc.
+	reader       *bufio.Reader
+	writer       io.Writer
+	log          *log.Logger
+	shutdown     bool
+	documents    map[DocumentUri]string
+	checker      *check.Checker
+	fsFileLoader check.FileLoader
 }
 
 func NewServer(r io.Reader, w io.Writer) *Server {
-	// Set up logging to a file
 	logPath := filepath.Join(os.Getenv("HOME"), ".cache", "grammar")
 	if err := os.MkdirAll(filepath.Dir(logPath), 0755); err != nil {
 		log.Printf("Failed to create log directory: %v", err)
-		// Fallback to stderr if file logging fails
 		return newServer(bufio.NewReader(r), w, os.Stderr)
 	}
 	logFilePath := filepath.Join(logPath, "lsp.log")
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Printf("Failed to open log file: %v", err)
-		// Fallback to stderr if file logging fails
 		return newServer(bufio.NewReader(r), w, os.Stderr)
 	}
 	return newServer(r, w, logFile)
@@ -40,13 +39,21 @@ func NewServer(r io.Reader, w io.Writer) *Server {
 
 func newServer(r io.Reader, w io.Writer, out io.Writer) *Server {
 	logger := log.New(out, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile)
-	return &Server{
+	srv := &Server{
 		reader:    bufio.NewReader(r),
 		writer:    w,
 		log:       logger,
 		shutdown:  false,
 		documents: make(map[DocumentUri]string),
 	}
+
+	checker := check.NewChecker(
+		check.SetFileLoader(srv),
+		check.SetLogger(logger),
+	)
+	srv.checker = checker
+	srv.fsFileLoader = &check.FileSystemFileLoader{}
+	return srv
 }
 
 func (s *Server) GetDocumentContent(uri DocumentUri) (string, bool) {
@@ -56,9 +63,7 @@ func (s *Server) GetDocumentContent(uri DocumentUri) (string, bool) {
 
 func (s *Server) Start() {
 	s.log.Println("LSP Server started")
-
 	for {
-		// Decode incoming message
 		content, err := s.DecodeMessage(s.reader)
 		if err == io.EOF {
 			s.log.Println("client disconnected!")
@@ -69,19 +74,16 @@ func (s *Server) Start() {
 			continue
 		}
 
-		// Unmarshal into a generic map to determine message type
 		var msg map[string]any
 		if err := json.Unmarshal(content, &msg); err != nil {
 			s.log.Printf("Failed to unmarshal message: %v\n%s\n", err, content)
 			s.sendErrorResponse(0, ParseError, "Failed to unmarshal message")
-			// continue
 			break
 		}
 
-		// Determine if it's a request or notification
-		if id, ok := msg["id"].(float64); ok { // Requests have an ID
+		if id, ok := msg["id"].(float64); ok {
 			s.handleRequest(int(id), msg)
-		} else { // Notifications do not have an ID
+		} else {
 			s.handleNotification(msg)
 		}
 	}
@@ -103,15 +105,17 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		s.handleTextDocumentFormatting(id, msg)
 	case "shutdown":
 		s.handleShutdown(id)
+	case "textDocument/hover":
+		s.handleHover(id, msg)
 	default:
-		// For now, just send a simple response
 		s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
+		s.log.Printf("unexpected method: %s", method)
 	}
 }
 
 func (s *Server) handleShutdown(id int) {
 	s.shutdown = true
-	s.sendResponse(id, nil, nil) // Respond with null result
+	s.sendResponse(id, nil, nil)
 	s.log.Printf("Shutdown request received. Server state: shutdown=%t", s.shutdown)
 }
 
@@ -122,7 +126,7 @@ func (s *Server) handleNotification(msg map[string]any) {
 		return
 	}
 
-	s.log.Printf("Received notificatin: %s", method)
+	s.log.Printf("Received notification: %s", method)
 
 	ctx := context.Background()
 
@@ -145,8 +149,6 @@ func (s *Server) handleNotification(msg map[string]any) {
 		}
 	case "exit":
 		s.handleExit()
-	default:
-		// For now, just log other notifications
 	}
 }
 
@@ -174,18 +176,7 @@ func (s *Server) sendResponse(id int, result any, errResp *ResponseError) {
 		s.log.Printf("Failed to write response: %v", err)
 		return
 	}
-
-	s.log.Printf("(sent) %d-%s", *resp.ID, resp.Message)
 }
-
-// func (s *Server) logMessage(title string, msg any) {
-// 	loggedMsg, err := json.MarshalIndent(msg, "", "  ")
-// 	if err != nil {
-// 		s.log.Printf("Failed to marshal message for logging: %v", err)
-// 	} else {
-// 		s.log.Printf("%s:\n%s", title, loggedMsg)
-// 	}
-// }
 
 func (s *Server) sendErrorResponse(id int, code ErrorCodes, message string) {
 	errResp := &ResponseError{
@@ -193,9 +184,10 @@ func (s *Server) sendErrorResponse(id int, code ErrorCodes, message string) {
 		Message: message,
 	}
 	s.sendResponse(id, nil, errResp)
+	s.log.Printf("sent error: %s", message)
 }
 
-func (s *Server) notify(ctx context.Context, method string, params any) {
+func (s *Server) notify(_ context.Context, method string, params any) {
 	note := NotificationMessage{
 		Message: Message{JSONRPC: "2.0"},
 		Method:  method,

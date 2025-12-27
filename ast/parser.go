@@ -27,12 +27,13 @@ func (p *Parser) ParseFile() (*File, error) {
 			decls = append(decls, decl)
 		}
 	}
+	endPos := p.peek().End
 
 	if len(p.errors) > 0 {
 		return nil, p.errors
 	}
 
-	return &File{Decls: decls}, nil
+	return &File{Decls: decls, EndPos: token.Pos(endPos)}, nil
 }
 
 func (p *Parser) parseDecl() (Decl, bool) {
@@ -68,7 +69,7 @@ func (p *Parser) parseCommentGroup() *CommentGroup {
 
 func (p *Parser) parseBinding(name token.Token) Decl {
 	directive := p.parseImportDirective()
-	p.expect(token.Semicolon)
+	semicolon := p.expect(token.Semicolon)
 
 	var path *StringLit
 	if len(directive.Args) > 0 {
@@ -78,8 +79,9 @@ func (p *Parser) parseBinding(name token.Token) Decl {
 	}
 
 	return &BindingDecl{
-		Name: &Ident{NamePos: token.Pos(name.Start), Name: token.Literal(name, p.srcRunes)},
-		Path: path,
+		Name:   &Ident{NamePos: token.Pos(name.Start), Name: token.Literal(name, p.srcRunes)},
+		Path:   path,
+		EndPos: token.Pos(semicolon.End),
 	}
 }
 
@@ -94,11 +96,12 @@ func (p *Parser) parseRule(name token.Token) Decl {
 		p.errorf(token.Pos(name.Start), "rule declaration must have a body")
 	}
 
-	p.expect(token.Semicolon)
+	semicolon := p.expect(token.Semicolon)
 
 	return &RuleDecl{
-		Name: &Ident{NamePos: token.Pos(name.Start), Name: token.Literal(name, p.srcRunes)},
-		Body: body,
+		Name:   &Ident{NamePos: token.Pos(name.Start), Name: token.Literal(name, p.srcRunes)},
+		Body:   body,
+		EndPos: token.Pos(semicolon.End),
 	}
 }
 
@@ -152,12 +155,13 @@ func (p *Parser) parseImportDirective() *DirectiveExpr {
 	at := p.expect(token.AtDirective)
 	p.expect(token.LParen)
 	arg := p.expect(token.String)
-	p.expect(token.RParen)
+	rparen := p.expect(token.RParen)
 
 	return &DirectiveExpr{
-		AtPos: token.Pos(at.Start),
-		Name:  &Ident{NamePos: token.Pos(at.Start) + 1, Name: "import"},
-		Args:  []Expr{&StringLit{ValuePos: token.Pos(arg.Start), Value: token.Literal(arg, p.srcRunes)}},
+		AtPos:  token.Pos(at.Start),
+		Name:   &Ident{NamePos: token.Pos(at.Start) + 1, Name: "import"},
+		Args:   []Expr{&StringLit{ValuePos: token.Pos(arg.Start), Value: token.Literal(arg, p.srcRunes)}},
+		EndPos: token.Pos(rparen.End),
 	}
 }
 

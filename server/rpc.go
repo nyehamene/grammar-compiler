@@ -42,7 +42,7 @@ func (s *Server) DecodeMessage(r io.Reader) ([]byte, error) {
 			break
 		}
 
-		s.log.Printf("received header: %s\n", line)
+		// s.log.Printf("received header: %s\n", line)
 
 		parts := strings.Split(line, ": ")
 		if len(parts) != 2 {

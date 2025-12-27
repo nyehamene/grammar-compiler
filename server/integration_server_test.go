@@ -174,3 +174,81 @@ func TestDidOpenPublishDiagnostics(t *testing.T) {
 		t.Errorf("Expected diagnostic to start at line 0, char 4, but got line %d, char %d", diag.Range.Start.Line, diag.Range.Start.Character)
 	}
 }
+
+func TestHover(t *testing.T) {
+	h := setupTestServer(t)
+	defer h.clientConn.Close()
+
+	// 1. Open a document that imports another.
+	bContent := "rule_b = \"from b\";"
+	bURI, _ := server.ParseURI("file:///b.grammar")
+	bDidOpenParams := server.DidOpenTextDocumentParams{
+		TextDocument: server.TextDocumentItem{
+			URI: bURI, Text: bContent, Version: 1,
+		},
+	}
+	var bParams any = bDidOpenParams
+	h.send(server.NotificationMessage{
+		Message: server.Message{JSONRPC: "2.0"},
+		Method:  "textDocument/didOpen",
+		Params:  &bParams,
+	})
+	diags := h.read() // Consume diagnostics
+	diagsParams := diags["params"].(map[string]any)
+	diag := diagsParams["diagnostics"].([]any)
+	if len(diag) != 0 {
+		t.Fatalf("server reported an error: %s", diag)
+	}
+
+	aContent := "b = @import(\"b.grammar\");\na = b.rule_b;"
+	aURI, _ := server.ParseURI("file:///a.grammar")
+	aDidOpenParams := server.DidOpenTextDocumentParams{
+		TextDocument: server.TextDocumentItem{
+			URI: aURI, Text: aContent, Version: 1,
+		},
+	}
+	var aParams any = aDidOpenParams
+	h.send(server.NotificationMessage{
+		Message: server.Message{JSONRPC: "2.0"},
+		Method:  "textDocument/didOpen",
+		Params:  &aParams,
+	})
+	diags = h.read() // Consume diagnostics
+	diagsParams = diags["params"].(map[string]any)
+	diag = diagsParams["diagnostics"].([]any)
+	if len(diag) != 0 {
+		t.Fatalf("server reported an error: %s", diag)
+	}
+
+	// 2. Send hover request
+	id := 1
+	var hoverReqParams any = server.HoverParams{
+		TextDocumentPositionParams: server.TextDocumentPositionParams{
+			TextDocument: server.TextDocumentIdentifier{URI: aURI},
+			Position:     server.Position{Line: 1, Character: 5}, // Position of 'b.rule_b'
+		},
+	}
+	h.send(server.RequestMessage{
+		Message: server.Message{JSONRPC: "2.0"},
+		ID:      &id,
+		Method:  "textDocument/hover",
+		Params:  &hoverReqParams,
+	})
+
+	// 3. Read and verify response
+	msg := h.read()
+	if msg["id"] == nil || msg["id"].(float64) != float64(id) {
+		t.Fatalf("Expected response for request %d, got %v", id, msg)
+	}
+
+	resultData, _ := json.Marshal(msg["result"])
+	var hover server.Hover
+	json.Unmarshal(resultData, &hover)
+
+	if hover.Contents.Kind != server.MarkupKindPlainText {
+		t.Errorf("Expected hover kind to be plaintext, got %s", hover.Contents.Kind)
+	}
+	if hover.Contents.Value != "production" {
+		t.Errorf("Expected hover value to be 'production', got %s", hover.Contents.Value)
+	}
+}

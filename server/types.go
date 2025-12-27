@@ -54,3 +54,34 @@ type PublishDiagnosticsParams struct {
 	URI         DocumentUri  `json:"uri"`
 	Diagnostics []Diagnostic `json:"diagnostics"`
 }
+
+// TextDocumentPositionParams represents parameters for requests that require a text document and a position inside it.
+type TextDocumentPositionParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     Position               `json:"position"`
+}
+
+// HoverParams represents the parameters of a `textDocument/hover` request.
+type HoverParams struct {
+	TextDocumentPositionParams
+}
+
+// MarkupKind describes the format of a markup string.
+type MarkupKind string
+
+const (
+	MarkupKindPlainText MarkupKind = "plaintext"
+	MarkupKindMarkdown  MarkupKind = "markdown"
+)
+
+// MarkupContent represents a string that can be rendered as markup.
+type MarkupContent struct {
+	Kind  MarkupKind `json:"kind"`
+	Value string     `json:"value"`
+}
+
+// Hover represents the result of a `textDocument/hover` request.
+type Hover struct {
+	Contents MarkupContent `json:"contents"`
+	Range    *Range        `json:"range,omitempty"`
+}

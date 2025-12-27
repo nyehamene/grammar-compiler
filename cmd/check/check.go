@@ -6,7 +6,6 @@ import (
 	"grammar/check"
 	"grammar/command"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,7 +34,7 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 	var finalErr error
 
 	if fromStdin {
-		content, err := ioutil.ReadAll(os.Stdin)
+		content, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(stderr, "Error reading from stdin: %s\n", err)
 			return 1

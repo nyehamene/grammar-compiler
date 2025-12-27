@@ -1,7 +1,6 @@
 package token
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,7 +58,7 @@ func TestTokenizer(t *testing.T) {
 
 func TestTokenizerExampleFiles(t *testing.T) {
 	exampleDir := "../example" // Corrected path to be relative to the 'token' package
-	files, err := ioutil.ReadDir(exampleDir)
+	files, err := os.ReadDir(exampleDir)
 	if err != nil {
 		t.Fatalf("Failed to read example directory: %v", err)
 	}

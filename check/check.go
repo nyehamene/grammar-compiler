@@ -3,18 +3,37 @@ package check
 import (
 	"fmt"
 	"grammar/ast"
+	"log"
 )
 
 // Checker holds the state for the type-checking process.
 type Checker struct {
-	cu *CompilationUnit
+	cu  *CompilationUnit
+	log *log.Logger
 }
 
-// NewChecker creates a new Checker.
-func NewChecker() *Checker {
-	return &Checker{
-		cu: NewCompilationUnit(),
+// NewChecker creates a new Checker with a default OS file loader.
+func NewChecker(opts ...Option) *Checker {
+	logger := log.Default()
+	c := &Checker{
+		cu:  NewCompilationUnit(&FileSystemFileLoader{}, logger),
+		log: logger,
 	}
+	for _, opt := range opts {
+		opt(c)
+	}
+	c.cu.log = c.log
+	return c
+}
+
+// CompilationUnit returns the checker's compilation unit.
+func (c *Checker) CompilationUnit() *CompilationUnit {
+	return c.cu
+}
+
+// TypeOf returns the type of an expression in a given namespace.
+func (c *Checker) TypeOf(expr ast.Expr, ns *Namespace) Type {
+	return c.typeOf(expr, ns)
 }
 
 // Sources returns the source code of all files processed by the checker.
@@ -26,26 +45,23 @@ func (c *Checker) Sources() map[string][]rune {
 func (c *Checker) Check(path string) error {
 	ns, err := c.cu.LoadFile(path)
 	if err != nil {
-		// Parsing and file reading errors are handled in LoadFile/LoadSource
-		// and added to the error list. We just need to check if the namespace
-		// could be loaded at all.
+		// Errors are handled in LoadFile/LoadSource
 	}
 	if ns != nil {
 		c.checkNode(ns.File, ns)
 	}
-	return c.cu.Err()
+	return c.cu.Err(path)
 }
 
 // CheckSource initiates the checking process for a given source content.
 func (c *Checker) CheckSource(content []byte, path string) error {
 	ns, err := c.cu.LoadSource(content, path)
-	if err != nil {
-		// Errors are handled in LoadSource
-	}
+	// Errors are handled in LoadSource
+	_ = err
 	if ns != nil {
 		c.checkNode(ns.File, ns)
 	}
-	return c.cu.Err()
+	return c.cu.Err(path)
 }
 
 func (c *Checker) checkNode(node ast.Node, ns *Namespace) {

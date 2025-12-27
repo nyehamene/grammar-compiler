@@ -4,53 +4,64 @@ import (
 	"fmt"
 	"grammar/ast"
 	"grammar/token"
-	"io/ioutil"
+	"log"
 	"path/filepath"
 )
 
 // CompilationUnit manages a cache of loaded namespaces and handles file loading.
 type CompilationUnit struct {
-	Namespaces map[string]*Namespace // Cache of loaded namespaces, mapping file path to Namespace.
-	Errors     ErrorList
-	Sources    map[string][]rune // Cache of file contents.
-	loading    map[string]bool   // Used to detect import cycles.
+	loader     FileLoader
+	Namespaces map[string]*Namespace
+	Errors     map[string]ErrorList
+	Sources    map[string][]rune
+	loading    map[string]bool
+	log        *log.Logger
 }
 
-// NewCompilationUnit creates a new compilation unit.
-func NewCompilationUnit() *CompilationUnit {
+// NewCompilationUnit creates a new compilation unit with a file loader.
+func NewCompilationUnit(loader FileLoader, logger *log.Logger) *CompilationUnit {
+	l := log.New(logger.Writer(), "(cu)", log.Flags())
 	return &CompilationUnit{
+		loader:     loader,
+		log:        l,
 		Namespaces: make(map[string]*Namespace),
 		Sources:    make(map[string][]rune),
 		loading:    make(map[string]bool),
+		Errors:     map[string]ErrorList{},
 	}
 }
 
 // AddError adds a new error to the compilation unit.
 func (cu *CompilationUnit) AddError(path string, pos token.Pos, message string) {
-	cu.Errors.Add(path, pos, message)
+	errlist, ok := cu.Errors[path]
+	if !ok {
+		errlist = make(ErrorList, 0, 10)
+	}
+	errlist.Add(path, pos, message)
+	cu.Errors[path] = errlist
 }
 
 // Err returns the collected errors, or nil if there are none.
-func (cu *CompilationUnit) Err() error {
+func (cu *CompilationUnit) Err(path string) error {
 	if len(cu.Errors) == 0 {
 		return nil
 	}
-	return cu.Errors
+	return cu.Errors[path]
 }
 
-// LoadFile loads a grammar file from disk.
+// LoadFile loads a grammar file using the compilation unit's loader.
 func (cu *CompilationUnit) LoadFile(path string) (*Namespace, error) {
-	absPath, err := filepath.Abs(path)
+	content, err := cu.loader.Load(path)
 	if err != nil {
-		return nil, fmt.Errorf("could not get absolute path for %s: %w", path, err)
+		return nil, fmt.Errorf("could not read file %s: %w", path, err)
 	}
 
-	content, err := ioutil.ReadFile(absPath)
-	if err != nil {
-		return nil, fmt.Errorf("could not read file %s: %w", absPath, err)
-	}
+	return cu.LoadSource(content, path)
+}
 
-	return cu.LoadSource(content, absPath)
+func (cu *CompilationUnit) RemoveNamespace(path string) {
+	delete(cu.Namespaces, path)
+	delete(cu.Errors, path)
 }
 
 // LoadSource parses grammar source content and returns its namespace.
@@ -67,7 +78,7 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 	}
 
 	srcRunes := []rune(string(content))
-	cu.Sources[path] = srcRunes // Store source content
+	cu.Sources[path] = srcRunes
 
 	tokenizer := token.NewTokenizer(srcRunes, false, false)
 	tokens := tokenizer.Scan()

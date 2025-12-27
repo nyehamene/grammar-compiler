@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"grammar/ast"
 	"grammar/token"
+	"path/filepath"
 	"strings"
 )
 
@@ -70,6 +71,7 @@ func (s *Server) handleTextDocumentFormatting(id int, msg map[string]any) {
 	}
 
 	s.sendResponse(id, []TextEdit{textEdit}, nil)
+	s.log.Printf("text-formatting result %s", filepath.Base(params.TextDocument.URI.Path))
 }
 
 func formatContent(content string) (string, error) {

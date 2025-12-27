@@ -84,6 +84,9 @@ func TestDidChangeNotification(t *testing.T) {
 	in.WriteString(fmt.Sprintf("Content-Length: %d\r\n\r\n", len(didChangeMessage)))
 	in.WriteString(didChangeMessage)
 
+	// Give a little time for the server to process didOpen
+	time.Sleep(100 * time.Millisecond)
+
 	// Wait for server to process messages
 	<-ctx.Done()
 

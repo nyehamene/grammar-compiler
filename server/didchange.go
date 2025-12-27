@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 )
 
 type DidChangeTextDocumentParams struct {
@@ -39,11 +40,12 @@ func (s *Server) handleDidChange(ctx context.Context, msg map[string]any) error 
 	if len(params.ContentChanges) == 0 {
 		return fmt.Errorf("no content changes found for textDocument/didChange")
 	}
+	documentUri := params.TextDocument.URI.String()
+	s.log.Printf("Updated document via didChange: %d %s", params.TextDocument.Version, filepath.Base(documentUri))
 
 	// For full sync, the new text is the first and only content change.
+	s.checker.CompilationUnit().RemoveNamespace(documentUri)
 	s.documents[params.TextDocument.URI] = params.ContentChanges[0].Text
-	s.log.Printf("Updated document via didChange: %s", params.TextDocument.URI)
 	s.publishDiagnostics(ctx, params.TextDocument.URI)
-
 	return nil
 }
