@@ -28,6 +28,7 @@ type ServerCapabilities struct {
 	TextDocumentSync *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
 	HoverProvider    bool                     `json:"hoverProvider,omitempty"`
 	DefinitionProvider bool                   `json:"definitionProvider,omitempty"`
+	ReferencesProvider bool                   `json:"referencesProvider,omitempty"`
 	// ... other server capabilities
 }
 

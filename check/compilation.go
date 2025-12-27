@@ -5,6 +5,7 @@ import (
 	"grammar/ast"
 	"grammar/token"
 	"log"
+	"net/url"
 	"path/filepath"
 )
 
@@ -64,6 +65,23 @@ func (cu *CompilationUnit) RemoveNamespace(path string) {
 	delete(cu.Errors, path)
 }
 
+func resolveImport(base, imp string) (string, error) {
+	baseURI, err := url.Parse(base)
+	// If it's not a valid URL or has no scheme, treat as a file path.
+	if err != nil || baseURI.Scheme == "" {
+		return filepath.Join(filepath.Dir(base), imp), nil
+	}
+
+	// It's a URL, resolve reference.
+	impURI, err := url.Parse(imp)
+	if err != nil {
+		return "", fmt.Errorf("invalid import path: %w", err)
+	}
+	// The base is a file, so we resolve from its directory
+	baseURI.Path = filepath.Dir(baseURI.Path)
+	return baseURI.ResolveReference(impURI).String(), nil
+}
+
 // LoadSource parses grammar source content and returns its namespace.
 func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, error) {
 	if cu.loading[path] {
@@ -110,10 +128,14 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 			}
 			importPathLiteral := d.Path.Value
 			importPath := importPathLiteral[1 : len(importPathLiteral)-1]
-			importDir := filepath.Dir(path)
-			importedFilePath := filepath.Join(importDir, importPath)
 
-			importedNs, err := cu.LoadFile(importedFilePath)
+			importedPath, err := resolveImport(path, importPath)
+			if err != nil {
+				cu.AddError(path, d.Path.Pos(), err.Error())
+				continue
+			}
+
+			importedNs, err := cu.LoadFile(importedPath)
 			if err != nil {
 				cu.AddError(path, d.Path.Pos(), fmt.Sprintf("could not load imported namespace '%s'", importPath))
 				continue

@@ -41,7 +41,7 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 	}
 
 	pos := PositionToPos(params.Position, srcRunes)
-	node, parent := FindNodeAt(ns.File, pos)
+	node, parent := ast.FindNodeAt(ns.File, pos)
 	if node == nil {
 		s.sendResponse(id, nil, nil)
 		return

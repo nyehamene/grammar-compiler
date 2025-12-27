@@ -43,7 +43,7 @@ func (s *Server) handleHover(id int, msg map[string]any) {
 	pos := PositionToPos(params.Position, srcRunes)
 	s.log.Printf("handleHover: Position: %+v, token.Pos: %d", params.Position, pos)
 
-	node, parent := FindNodeAt(ns.File, pos)
+	node, parent := ast.FindNodeAt(ns.File, pos)
 	if node == nil {
 		s.log.Printf("handleHover: No node found at position %d", pos)
 		s.sendResponse(id, nil, nil)

@@ -96,3 +96,14 @@ type Location struct {
 // DefinitionParams represents the parameters of a `textDocument/definition` request.
 type DefinitionParams = TextDocumentPositionParams
 
+// ReferenceContext contains additional information about the context in which a reference request is made.
+type ReferenceContext struct {
+	IncludeDeclaration bool `json:"includeDeclaration"`
+}
+
+// ReferenceParams represents the parameters of a `textDocument/references` request.
+type ReferenceParams struct {
+	TextDocumentPositionParams
+	Context ReferenceContext `json:"context"`
+}
+
