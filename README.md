@@ -52,6 +52,7 @@ the following features.
 * A __checker__ for validating syntax and semantics
 * A __formatter__ for formatting grammar files
 * A __language server__ for the grammar language
+  (on hold until checker implementation is complete)
 
 See the content of ./command directory for the structure and format of
 the commandline arguments accepted by the tool.

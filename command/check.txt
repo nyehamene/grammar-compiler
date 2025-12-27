@@ -4,6 +4,7 @@ Checks for syntax or validation errors in input files.
 
 Argument:
 PATH          Path to a file or directory to check.
+    --stdin   Check code from stdin.
 -h, --help    Print this message.
 
 If PATH is a directory, every grammar files inside it is checked.

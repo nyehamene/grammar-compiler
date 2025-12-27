@@ -4,11 +4,11 @@ See cli interface in ../command/check.txt.
 
 If PATH argument is a file, the check shoud load the file and its dependencies
 (imported namespaces) into a CompilationUnit and perform type checking and
-name resolution. (see Loading namepsace section for details about how loading should be handled).
+name resolution. (see Loading CompilationUnit section for details about how loading should be handled).
 
 If PATH argument is a directory, the check should load all the grammar files in the directory
 along with there dependencies into a CompilationUnit.
-(see Loading namepsace section for details about how loading should be handled)
+(see Loading CompilationUnit section for details about how loading should be handled)
 
 ## Goal
 
@@ -24,22 +24,45 @@ along with there dependencies into a CompilationUnit.
 - A rule defines a variable of type `Production` whose value can be any valid expression.
 - A binding defines a variable of type `Namespace`.
 
-## Namespace loading
+## Loading CompilationUnit
 
 Namespace loading requires a compliation unit that maps the absolute path of a grammar
 file to a `Namespace`. And is used for resoloving imported namespaces.
 
 A Namespace is a structure that represents the semantic elements of a grammar. Specifically
-its binding variables and rule fields. It map each identifier a Type.
-Every declaration has an identifier. A declaration is bound to its identifier in a namespace.
+its binding variables and rule fields. It maps each identifier to a Type.
+Every declaration has an identifier. A declaration is bound to its identifier
+in the containing/enclosing namespace.
 
-The check should use the following steps to load a file.
+### Loading a file
+
+The check follows these steps to load a file.
 
 1. create a compilation unit if not already created.
 2. create a `Namespace` object to represent the file.
 2. load each namespace imported in the file into the compilation unit.
-3. bind each imported namespace to their identifier in the file to the Namespace created in step 2.
-4. bind each rule in the file to their identifier in the Namespace created in step 2.
+3. bind each imported namespace to their identifier in enclosing namespace.
+4. bind each rule in the file to their identifier in the enclosing namespace.
+
+### Loading a directory
+
+The check follows these steps to load a directory.
+
+1. create a compilation unit if not already created.
+2. create a Namespace object for each file in the directory.
+3. start with any of the files (e.g. the first one).
+4. load each namespace imported in the chosen file into the compilation unit.
+5. bind each imported namespace to their identifier in enclosing namespace.
+6. bind each rule in the file to their identifier in the enclosing namespace.
+
+## Symatic Analysis
+
+### Member access
+
+A member access expression has a receiver and an object: `receiver.object`.
+
+- The receiver must resolve to a value of type `Namespace`.
+- The object must resolve to a value of type `Production` in the receiver namespace.
 
 ## Implementation
 
@@ -95,5 +118,48 @@ The check should use the following steps to load a file.
 
   ident = "foo"; // error: "field ident redeclared in this namespace. (see other declaration at <INSERT LINE:COLUMN HERE>)"
   ```
+
+## Todos
+
+- [x] **1. Foundational Data Structures**
+    - [x] Create `check/types.go` to define the type system (e.g., `Type` interface, `StringType`, `RegexpType`, `ProductionType`, `NamespaceType`).
+    - [x] Create `check/namespace.go` to define the `Namespace` struct. It should hold mappings from identifiers to their declarations and types.
+    - [x] Create `check/compilation.go` to define the `CompilationUnit` struct. It will manage a cache of loaded namespaces (mapping file paths to `Namespace` objects) and handle file loading logic.
+
+- [ ] **2. CLI and Entrypoint**
+    - [ ] Update `cmd/check/check.go` to properly handle `PATH` arguments (distinguishing between files and directories) and the `--stdin` flag.
+    - [ ] In `cmd/check/check.go`, create a new `checker.Checker` instance and invoke its main checking method.
+
+- [ ] **3. Namespace Loading and Resolution**
+    - [ ] Implement the `CompilationUnit.LoadFile(path)` method. This method should:
+        - Check the cache for the file first.
+        - If not cached, read and parse the file to get the AST.
+        - Create a new `Namespace` for the file.
+        - Add the new `Namespace` to the cache *before* processing imports to allow for cycle detection.
+    - [ ] In `LoadFile`, iterate through the AST declarations to populate the `Namespace`.
+        - For `@import` declarations, recursively call `LoadFile` for the imported path. The import path must be resolved relative to the current file's directory.
+        - Handle and report errors for non-existent files.
+
+- [ ] **4. Semantic Validation: Name Resolution**
+    - [ ] While populating the `Namespace` in `LoadFile`, detect and report errors for redeclared identifiers (rules or binding variables with the same name in the same file).
+    - [ ] Implement import cycle detection within the `CompilationUnit`. `LoadFile` can use a map of files currently in the loading stack to detect a cycle.
+
+- [ ] **5. Semantic Validation: Type Checking**
+    - [ ] Implement a `check(node ast.Node)` method on the checker that traverses the AST.
+    - [ ] Implement type checking for `MemberExpr` (`receiver.object`):
+        - Verify the `receiver` resolves to a `Namespace` type.
+        - Verify the `object` exists within that `Namespace` and is a `Production`.
+        - Report errors for undefined member access.
+
+- [ ] **6. Diagnostics and Error Reporting**
+    - [ ] Ensure all semantic errors (redeclaration, import cycles, file not found, invalid member access) are collected.
+    - [ ] In `cmd/check/check.go`, after the check is complete, iterate through the collected errors and print them to `stderr` in the format `path:line:col: message`.
+    - [ ] Ensure the command exits with a non-zero status code if any errors are found.
+
+- [ ] **7. Integration with Language Server**
+    - [ ] Create a function in the `check` package that can be called from the language server. This function will take the document content and URI.
+    - [ ] When a document is opened or changed (`didOpen`, `didChange`), call this checker function.
+    - [ ] Convert the checker's errors into LSP `Diagnostic` messages and send them to the client via a `textDocument/publishDiagnostics` notification.
+
 
 
