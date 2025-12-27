@@ -111,6 +111,8 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		s.handleDefinition(id, msg)
 	case "textDocument/references":
 		s.handleReferences(id, msg)
+	case "textDocument/documentSymbol":
+		s.handleDocumentSymbol(id, msg)
 	default:
 		s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
 		s.log.Printf("unexpected method: %s", method)
