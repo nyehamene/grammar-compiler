@@ -89,21 +89,21 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.BindingDecl:
+			if _, found := ns.Members[d.Name.Name]; found {
+				cu.AddError(d.Pos(), fmt.Sprintf("identifier '%s' redeclared in this namespace", d.Name.Name))
+				continue
+			}
 			if d.Path == nil {
-				cu.AddError(d.Name.Pos(), "missing import path")
+				cu.AddError(d.Pos(), "missing import path")
 				continue
 			}
 			importPathLiteral := d.Path.Value
-			// remove quotes
 			importPath := importPathLiteral[1 : len(importPathLiteral)-1]
-			
-			// Resolve path relative to the current file's directory
 			importDir := filepath.Dir(path)
 			importedFilePath := filepath.Join(importDir, importPath)
 
-			// Recursively load imported namespace
-			importedNs, _ := cu.LoadFile(importedFilePath) // Use LoadFile for dependent files
-			if importedNs == nil {
+			importedNs, err := cu.LoadFile(importedFilePath)
+			if err != nil {
 				cu.AddError(d.Path.Pos(), fmt.Sprintf("could not load imported namespace '%s'", importPath))
 				continue
 			}
@@ -111,8 +111,15 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 			ns.Types[d.Name.Name] = &NamespaceType{Name: importedNs.Name}
 
 		case *ast.RuleDecl:
+			if _, found := ns.Members[d.Name.Name]; found {
+				cu.AddError(d.Pos(), fmt.Sprintf("identifier '%s' redeclared in this namespace", d.Name.Name))
+				continue
+			}
 			ns.Members[d.Name.Name] = d
 			ns.Types[d.Name.Name] = Production
+
+		case *ast.CommentGroup:
+			// No name to check for comments.
 		}
 	}
 

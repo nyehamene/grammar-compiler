@@ -1,0 +1,3 @@
+// testdata/check/redeclaration/a.grammar
+rule_a = "hello";
+rule_a = "world"; // redeclared

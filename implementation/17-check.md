@@ -140,9 +140,9 @@ A member access expression has a receiver and an object: `receiver.object`.
         - For `@import` declarations, recursively call `LoadFile` for the imported path. The import path must be resolved relative to the current file's directory.
         - Handle and report errors for non-existent files.
 
-- [ ] **4. Semantic Validation: Name Resolution**
-    - [ ] While populating the `Namespace` in `LoadFile`, detect and report errors for redeclared identifiers (rules or binding variables with the same name in the same file).
-    - [ ] Implement import cycle detection within the `CompilationUnit`. `LoadFile` can use a map of files currently in the loading stack to detect a cycle.
+- [x] **4. Semantic Validation: Name Resolution**
+    - [x] While populating the `Namespace` in `LoadFile`, detect and report errors for redeclared identifiers (rules or binding variables with the same name in the same file).
+    - [x] Implement import cycle detection within the `CompilationUnit`. `LoadFile` can use a map of files currently in the loading stack to detect a cycle.
 
 - [ ] **5. Semantic Validation: Type Checking**
     - [ ] Implement a `check(node ast.Node)` method on the checker that traverses the AST.
