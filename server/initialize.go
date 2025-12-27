@@ -30,6 +30,7 @@ type ServerCapabilities struct {
 	DefinitionProvider     bool                     `json:"definitionProvider,omitempty"`
 	ReferencesProvider     bool                     `json:"referencesProvider,omitempty"`
 	DocumentSymbolProvider bool                     `json:"documentSymbolProvider,omitempty"`
+	WorkspaceSymbolProvider bool                    `json:"workspaceSymbolProvider,omitempty"`
 	// ... other server capabilities
 }
 
@@ -77,10 +78,11 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 				Change:    TextDocumentSyncKindFull,
 			},
 			HoverProvider:      true,
-			DefinitionProvider: true,
-			ReferencesProvider: true,
-			DocumentSymbolProvider: true,
-		},
+						DefinitionProvider:     true,
+						ReferencesProvider:     true,
+						DocumentSymbolProvider: true,
+						WorkspaceSymbolProvider: true,
+					},
 		ServerInfo: &ServerInfo{
 			Name:    "grammar-lsp",
 			Version: "0.1.0",
