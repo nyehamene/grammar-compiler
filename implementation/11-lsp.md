@@ -52,12 +52,12 @@ The language server protocol implementation code and API should be placed in 'se
     - [x] **Dispatcher**: Wire up `textDocument/documentSymbol` in `server.go`.
     - [x] **Test**: Add an integration test for document symbols.
 
-- [ ] **5. `workspace/symbol`**
-    - [ ] **Types**: Add `WorkspaceSymbolParams` and `SymbolInformation` to `server/types.go`.
-    - [ ] **Handler**: Implement `handleWorkspaceSymbol` in `server/workspace_symbol.go`.
-    - [ ] **Logic**: Iterate through all files in the `CompilationUnit`, find symbols matching the query, and return them as a list of `SymbolInformation`.
-    - [ ] **Dispatcher**: Wire up `workspace/symbol` in `server.go`.
-    - [ ] **Test**: Add an integration test for workspace symbols.
+- [x] **5. `workspace/symbol`**
+    - [x] **Types**: Add `WorkspaceSymbolParams` and `SymbolInformation` to `server/types.go`.
+    - [x] **Handler**: Implement `handleWorkspaceSymbol` in `server/workspace_symbol.go`.
+    - [x] **Logic**: Iterate through all files in the `CompilationUnit`, find symbols matching the query, and return them as a list of `SymbolInformation`.
+    - [x] **Dispatcher**: Wire up `workspace/symbol` in `server.go`.
+    - [x] **Test**: Add an integration test for workspace symbols.
 
 - [ ] **6. `textDocument/rename`**
     - [ ] **Types**: Add `RenameParams` and `WorkspaceEdit` to `server/types.go`.
