@@ -168,7 +168,6 @@ func (t *Tokenizer) scanDirective() Token {
 	return t.newToken(AtDirective, start, t.offset)
 }
 
-
 func (t *Tokenizer) scanNumber() Token {
 	start := t.offset
 	// For simplicity, just consume digits for now.
@@ -195,11 +194,34 @@ func (t *Tokenizer) scanString() Token {
 func (t *Tokenizer) scanRegex() Token {
 	start := t.offset
 	t.nextChar() // Consume the opening '/'
-	for t.ch != '/' && t.ch != 0 {
-		t.nextChar()
-	}
-	if t.ch == 0 { // Unterminated regex
-		return Token{Kind: Regex, State: Invalid, Start: start, End: t.offset}
+
+	for {
+		if t.ch == '/' {
+			break
+		}
+		switch t.ch {
+		case '\\':
+			t.nextChar() // Consume the backslash
+			switch t.ch {
+			case '/', 'n', 't', 'r', 'd', 's', 'c', '\\', '.', '(', ')', '{', '}', '[', ']':
+				t.nextChar() // Consume the valid escaped character
+			default:
+				// Invalid escape sequence
+				// Consume until the closing slash or EOF to create the token
+				for t.ch != '/' && t.ch != 0 {
+					t.nextChar()
+				}
+				if t.ch == '/' {
+					t.nextChar()
+				}
+				return Token{Kind: Regex, State: Invalid, Start: start, End: t.offset}
+			}
+		case 0:
+			// Unterminated regex
+			return Token{Kind: Regex, State: Invalid, Start: start, End: t.offset}
+		default:
+			t.nextChar()
+		}
 	}
 	t.nextChar() // Consume the closing '/'
 	return t.newToken(Regex, start, t.offset)

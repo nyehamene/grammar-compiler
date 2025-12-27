@@ -13,7 +13,8 @@ func TestParseInvalidToken(t *testing.T) {
 		message string
 	}{
 		{"../testdata/parser/invalid_token/unterminated_string.grammar", "unterminated string literal"},
-		{"../testdata/parser/invalid_token/unterminated_regex.grammar", "unterminated regex literal"},
+		{"../testdata/parser/invalid_token/unterminated_regex.grammar", "invalid regex literal"},
+		{"../testdata/parser/invalid_token/invalid_regex_escape.grammar", "invalid regex literal"},
 	}
 
 	for _, tc := range testCases {

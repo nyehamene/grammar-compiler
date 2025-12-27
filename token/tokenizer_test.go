@@ -85,3 +85,76 @@ func TestTokenizerExampleFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestScanRegex(t *testing.T) {
+	testCases := []struct {
+		name    string
+		input   string
+		valid   bool
+		wantVal string
+	}{
+		{
+			name:    "valid escaped slash",
+			input:   `/[^\/]/`,
+			valid:   true,
+			wantVal: `/[^\/]/`,
+		},
+		{
+			name:    "valid other escapes",
+			input:   `/\n\t\d\s\(\)\[\]\{\}\.\\/`,
+			valid:   true,
+			wantVal: `/\n\t\d\s\(\)\[\]\{\}\.\\/`,
+		},
+		{
+			name:    "valid trailing escape",
+			input:   `/abc\\/`,
+			valid:   true,
+			wantVal: `/abc\\/`,
+		},
+		{
+			name:    "invalid escape sequence",
+			input:   `/\a/`,
+			valid:   false,
+			wantVal: `/\a/`,
+		},
+		{
+			name:    "unterminated regex",
+			input:   `/abc`,
+			valid:   false,
+			wantVal: `/abc`,
+		},
+		{
+			name:    "unterminated with escape",
+			input:   `/abc\/`,
+			valid:   false,
+			wantVal: `/abc\/`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			srcRunes := []rune(tc.input)
+			tokenizer := NewTokenizer(srcRunes, false, false)
+			tokens := tokenizer.Scan()
+
+			// We expect 2 tokens: Regex and EOF
+			if len(tokens) != 2 {
+				t.Fatalf("Expected 2 tokens, got %d", len(tokens))
+			}
+
+			regexToken := tokens[0]
+			if regexToken.Kind != Regex {
+				t.Fatalf("Expected first token to be REGEX, got %s", regexToken.Kind)
+			}
+
+			if (regexToken.State == Valid) != tc.valid {
+				t.Errorf("Expected token validity to be %t, but got %t", tc.valid, (regexToken.State == Valid))
+			}
+
+			gotVal := Literal(regexToken, srcRunes)
+			if gotVal != tc.wantVal {
+				t.Errorf("Expected token value to be %q, got %q", tc.wantVal, gotVal)
+			}
+		})
+	}
+}

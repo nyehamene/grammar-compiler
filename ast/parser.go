@@ -172,7 +172,7 @@ func (p *Parser) parseTerminal() Expr {
 		case token.String:
 			p.errorf(token.Pos(tok.Start), "unterminated string literal")
 		case token.Regex:
-			p.errorf(token.Pos(tok.Start), "unterminated regex literal")
+			p.errorf(token.Pos(tok.Start), "invalid regex literal")
 		}
 	}
 	if tok.Kind == token.String {
