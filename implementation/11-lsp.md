@@ -38,12 +38,12 @@ The language server protocol implementation code and API should be placed in 'se
     - [x] **Dispatcher**: Wire up the `textDocument/definition` method in `server.go`.
     - [x] **Test**: Add an integration test for "Go to Definition."
 
-- [ ] **3. `textDocument/references` (Find All References)**
-    - [ ] **Types**: Add `ReferenceParams` to `server/types.go`. The response is a `[]Location`.
-    - [ ] **Reference Finding Logic**: Create a function that first finds a symbol's declaration, then traverses the AST of all documents in the `CompilationUnit` to find all usages.
-    - [ ] **Handler**: Implement `handleReferences` in `server/references.go`.
-    - [ ] **Dispatcher**: Wire up `textDocument/references` in `server.go`.
-    - [ ] **Test**: Add an integration test for "Find All References."
+- [x] **3. `textDocument/references` (Find All References)**
+    - [x] **Types**: Add `ReferenceParams` to `server/types.go`. The response is a `[]Location`.
+    - [x] **Reference Finding Logic**: Create a function that first finds a symbol's declaration, then traverses the AST of all documents in the `CompilationUnit` to find all usages.
+    - [x] **Handler**: Implement `handleReferences` in `server/references.go`.
+    - [x] **Dispatcher**: Wire up `textDocument/references` in `server.go`.
+    - [x] **Test**: Add an integration test for "Find All References."
 
 - [ ] **4. `textDocument/documentSymbol`**
     - [ ] **Types**: Add `DocumentSymbolParams`, `DocumentSymbol`, and `SymbolKind` to `server/types.go`.

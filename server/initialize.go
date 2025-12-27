@@ -25,10 +25,10 @@ type InitializeResult struct {
 
 // ServerCapabilities represents the capabilities of the server.
 type ServerCapabilities struct {
-	TextDocumentSync *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
-	HoverProvider    bool                     `json:"hoverProvider,omitempty"`
-	DefinitionProvider bool                   `json:"definitionProvider,omitempty"`
-	ReferencesProvider bool                   `json:"referencesProvider,omitempty"`
+	TextDocumentSync   *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
+	HoverProvider      bool                     `json:"hoverProvider,omitempty"`
+	DefinitionProvider bool                     `json:"definitionProvider,omitempty"`
+	ReferencesProvider bool                     `json:"referencesProvider,omitempty"`
 	// ... other server capabilities
 }
 
@@ -75,7 +75,9 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 				OpenClose: true,
 				Change:    TextDocumentSyncKindFull,
 			},
-			HoverProvider: true,
+			HoverProvider:      true,
+			DefinitionProvider: true,
+			ReferencesProvider: true,
 		},
 		ServerInfo: &ServerInfo{
 			Name:    "grammar-lsp",
