@@ -3,51 +3,85 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"grammar/ast"
+	"grammar/check"
 	"grammar/command"
-	"grammar/token"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 func CheckCommand(args []string, stdout, stderr io.Writer) int {
 	checkCmd := flag.NewFlagSet("check", flag.ExitOnError)
-	var help bool
+	var help, fromStdin bool
 	checkCmd.SetOutput(stderr)
 	checkCmd.BoolVar(&help, "h", false, "Print this message.")
 	checkCmd.BoolVar(&help, "help", false, "Print this message.")
+	checkCmd.BoolVar(&fromStdin, "stdin", false, "Check code from stdin.")
 	checkCmd.Parse(args)
-	if help || checkCmd.NArg() == 0 {
+
+	if help {
 		fmt.Fprint(stdout, command.CheckUsage)
 		return 0
 	}
 
-	for _, path := range checkCmd.Args() {
-		fileContent, err := os.ReadFile(path)
+	if !fromStdin && checkCmd.NArg() == 0 {
+		fmt.Fprint(stdout, command.CheckUsage)
+		return 0
+	}
+
+	checker := check.NewChecker()
+	var hadError bool
+
+	handleCheckError := func(err error) {
 		if err != nil {
-			fmt.Fprintf(stderr, "Error opening file %s: %s\n", path, err)
+			// This will be expanded later to handle ast.ErrorList
+			fmt.Fprintln(stderr, err)
+			hadError = true
+		}
+	}
+
+	if fromStdin {
+		content, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Fprintf(stderr, "Error reading from stdin: %s\n", err)
 			return 1
 		}
-		srcRunes := []rune(string(fileContent))
+		handleCheckError(checker.CheckSource(content, "<stdin>"))
+	} else {
+		for _, path := range checkCmd.Args() {
+			info, err := os.Stat(path)
+			if err != nil {
+				fmt.Fprintf(stderr, "Error accessing path %s: %s\n", path, err)
+				hadError = true
+				continue
+			}
 
-		tokenizer := token.NewTokenizer(srcRunes, true, true) // Skip comments and newlines for checking
-		tokens := tokenizer.Scan()
-
-		parser := ast.NewParser(tokens, srcRunes)
-		_, err = parser.ParseFile()
-		if err != nil {
-			if errs, ok := err.(ast.ErrorList); ok {
-				for _, e := range errs {
-					line, col := token.FindLineAndCol(int(e.Pos), srcRunes)
-					fmt.Fprintf(stderr, "%s:%d:%d: %s\n", path, line, col, e.Message)
+			if info.IsDir() {
+				err := filepath.Walk(path, func(filePath string, fileInfo os.FileInfo, err error) error {
+					if err != nil {
+						return err // Propagate errors from walking the path.
+					}
+					if !fileInfo.IsDir() && strings.HasSuffix(fileInfo.Name(), ".grammar") {
+						handleCheckError(checker.Check(filePath))
+					}
+					return nil
+				})
+				if err != nil {
+					fmt.Fprintf(stderr, "Error walking directory %s: %s\n", path, err)
+					hadError = true
 				}
 			} else {
-				fmt.Fprintf(stderr, "Error parsing file %s: %s\n", path, err)
+				handleCheckError(checker.Check(path))
 			}
-			return 1
 		}
-
-		fmt.Fprintf(stdout, "Validating %s...\n", path)
 	}
+
+	if hadError {
+		return 1
+	}
+
+	// We can add a success message if needed, for now, silence is success.
 	return 0
 }

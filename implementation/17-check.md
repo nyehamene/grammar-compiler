@@ -126,9 +126,9 @@ A member access expression has a receiver and an object: `receiver.object`.
     - [x] Create `check/namespace.go` to define the `Namespace` struct. It should hold mappings from identifiers to their declarations and types.
     - [x] Create `check/compilation.go` to define the `CompilationUnit` struct. It will manage a cache of loaded namespaces (mapping file paths to `Namespace` objects) and handle file loading logic.
 
-- [ ] **2. CLI and Entrypoint**
-    - [ ] Update `cmd/check/check.go` to properly handle `PATH` arguments (distinguishing between files and directories) and the `--stdin` flag.
-    - [ ] In `cmd/check/check.go`, create a new `checker.Checker` instance and invoke its main checking method.
+- [x] **2. CLI and Entrypoint**
+    - [x] Update `cmd/check/check.go` to properly handle `PATH` arguments (distinguishing between files and directories) and the `--stdin` flag.
+    - [x] In `cmd/check/check.go`, create a new `checker.Checker` instance and invoke its main checking method.
 
 - [ ] **3. Namespace Loading and Resolution**
     - [ ] Implement the `CompilationUnit.LoadFile(path)` method. This method should:
