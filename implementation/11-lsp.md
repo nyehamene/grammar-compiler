@@ -31,12 +31,12 @@ The language server protocol implementation code and API should be placed in 'se
     - [x] **Dispatcher**: Wire up the `textDocument/hover` method in `server.go`'s request handler.
     - [x] **Test**: Add an integration test for the hover feature.
 
-- [ ] **2. `textDocument/definition` (Go to Definition)**
-    - [ ] **Types**: Add `DefinitionParams` and `Location` types to `server/types.go`.
-    - [ ] **Definition Logic**: Create a function that, given an `ast.Ident` node, finds its declaration (either in the current file or an imported one via the `CompilationUnit`).
-    - [ ] **Handler**: Implement `handleDefinition` in `server/definition.go` to use the AST position logic and the new definition logic.
-    - [ ] **Dispatcher**: Wire up the `textDocument/definition` method in `server.go`.
-    - [ ] **Test**: Add an integration test for "Go to Definition."
+- [x] **2. `textDocument/definition` (Go to Definition)**
+    - [x] **Types**: Add `DefinitionParams` and `Location` types to `server/types.go`.
+    - [x] **Definition Logic**: Create a function that, given an `ast.Ident` node, finds its declaration (either in the current file or an imported one via the `CompilationUnit`).
+    - [x] **Handler**: Implement `handleDefinition` in `server/definition.go` to use the AST position logic and the new definition logic.
+    - [x] **Dispatcher**: Wire up the `textDocument/definition` method in `server.go`.
+    - [x] **Test**: Add an integration test for "Go to Definition."
 
 - [ ] **3. `textDocument/references` (Find All References)**
     - [ ] **Types**: Add `ReferenceParams` to `server/types.go`. The response is a `[]Location`.
