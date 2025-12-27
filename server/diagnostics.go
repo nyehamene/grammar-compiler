@@ -13,8 +13,13 @@ func (s *Server) publishDiagnostics(ctx context.Context, uri DocumentUri) {
 		return
 	}
 
+	pathAbsLocal := uri.String()
+	if uri.Scheme == "file" {
+		pathAbsLocal = uri.Path
+	}
+
 	diagnostics := []Diagnostic{}
-	errors, _ := check.CheckDocument([]byte(content), uri.String())
+	errors, _ := check.CheckDocument([]byte(content), pathAbsLocal)
 
 	srcRunes := []rune(content)
 
