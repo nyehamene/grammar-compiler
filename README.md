@@ -96,7 +96,7 @@ go.mod
 - [x] Print ast
 - [x] Diff ast
 - [x] Formatter
-- [ ] Language server
+- [x] Language server
 - [ ] Treesitter
 - [ ] Print token (color)
 - [ ] Print tokens (serial number)
