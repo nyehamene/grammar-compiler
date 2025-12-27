@@ -59,12 +59,12 @@ The language server protocol implementation code and API should be placed in 'se
     - [x] **Dispatcher**: Wire up `workspace/symbol` in `server.go`.
     - [x] **Test**: Add an integration test for workspace symbols.
 
-- [ ] **6. `textDocument/rename`**
-    - [ ] **Types**: Add `RenameParams` and `WorkspaceEdit` to `server/types.go`.
-    - [ ] **Handlers**: Implement `handlePrepareRename` and `handleRename` in `server/rename.go`.
-    - [ ] **Logic**: Use the "Find All References" logic to get all locations of a symbol and create a `WorkspaceEdit` containing `TextEdit`s to perform the rename.
-    - [ ] **Dispatcher**: Wire up `textDocument/prepareRename` and `textDocument/rename` in `server.go`.
-    - [ ] **Test**: Add an integration test for the rename feature.
+- [x] **6. `textDocument/rename`**
+    - [x] **Types**: Add `RenameParams` and `WorkspaceEdit` to `server/types.go`.
+    - [x] **Handlers**: Implement `handlePrepareRename` and `handleRename` in `server/rename.go`.
+    - [x] **Logic**: Use the "Find All References" logic to get all locations of a symbol and create a `WorkspaceEdit` containing `TextEdit`s to perform the rename.
+    - [x] **Dispatcher**: Wire up `textDocument/prepareRename` and `textDocument/rename` in `server.go`.
+    - [x] **Test**: Add an integration test for the rename feature.
 
 ## LSP features
 
