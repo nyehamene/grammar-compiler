@@ -4,10 +4,7 @@ Formats input files inplace. Any syntax error is printed to
 the console and the input file is left unchanged.
 
 Argument:
-PATH           Path to a file or directory.
-    --stdout   Print formatted output to stdout. Do not modify input file.
--h, --help     Print this message.
-
-If PATH is a directory, every grammar file inside it is formatted
-inplace. If an error is found the file containing the error is left unchanged.
-
+PATH                PATH is a file, Format code inplace,
+    --stdout PATH   Print formatted output to stdout. Do not modify input file.
+    --stdin         Format code from stdin, output to stdout.
+-h, --help          Print this message.
