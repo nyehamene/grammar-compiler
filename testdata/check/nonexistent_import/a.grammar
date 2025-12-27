@@ -1,0 +1,2 @@
+// testdata/check/nonexistent_import/a.grammar
+non = @import("nonexistent.grammar");

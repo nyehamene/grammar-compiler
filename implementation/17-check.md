@@ -130,13 +130,13 @@ A member access expression has a receiver and an object: `receiver.object`.
     - [x] Update `cmd/check/check.go` to properly handle `PATH` arguments (distinguishing between files and directories) and the `--stdin` flag.
     - [x] In `cmd/check/check.go`, create a new `checker.Checker` instance and invoke its main checking method.
 
-- [ ] **3. Namespace Loading and Resolution**
-    - [ ] Implement the `CompilationUnit.LoadFile(path)` method. This method should:
+- [x] **3. Namespace Loading and Resolution**
+    - [x] Implement the `CompilationUnit.LoadFile(path)` method. This method should:
         - Check the cache for the file first.
         - If not cached, read and parse the file to get the AST.
         - Create a new `Namespace` for the file.
         - Add the new `Namespace` to the cache *before* processing imports to allow for cycle detection.
-    - [ ] In `LoadFile`, iterate through the AST declarations to populate the `Namespace`.
+    - [x] In `LoadFile`, iterate through the AST declarations to populate the `Namespace`.
         - For `@import` declarations, recursively call `LoadFile` for the imported path. The import path must be resolved relative to the current file's directory.
         - Handle and report errors for non-existent files.
 

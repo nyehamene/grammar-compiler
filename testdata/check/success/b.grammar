@@ -1,0 +1,2 @@
+// testdata/check/success/b.grammar
+rule_b = "from b";

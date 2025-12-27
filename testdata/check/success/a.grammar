@@ -1,0 +1,3 @@
+// testdata/check/success/a.grammar
+b = @import("b.grammar");
+rule_a = b.rule_b;

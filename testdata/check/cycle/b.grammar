@@ -1,0 +1,2 @@
+// testdata/check/cycle/b.grammar
+a = @import("a.grammar");
