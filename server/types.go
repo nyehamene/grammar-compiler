@@ -85,3 +85,14 @@ type Hover struct {
 	Contents MarkupContent `json:"contents"`
 	Range    *Range        `json:"range,omitempty"`
 }
+
+// Location represents a location inside a resource, such as a line
+// inside a text file.
+type Location struct {
+	URI   DocumentUri `json:"uri"`
+	Range Range       `json:"range"`
+}
+
+// DefinitionParams represents the parameters of a `textDocument/definition` request.
+type DefinitionParams = TextDocumentPositionParams
+

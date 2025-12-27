@@ -27,6 +27,7 @@ type InitializeResult struct {
 type ServerCapabilities struct {
 	TextDocumentSync *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
 	HoverProvider    bool                     `json:"hoverProvider,omitempty"`
+	DefinitionProvider bool                   `json:"definitionProvider,omitempty"`
 	// ... other server capabilities
 }
 

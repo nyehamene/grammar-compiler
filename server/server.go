@@ -107,6 +107,8 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		s.handleShutdown(id)
 	case "textDocument/hover":
 		s.handleHover(id, msg)
+	case "textDocument/definition":
+		s.handleDefinition(id, msg)
 	default:
 		s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
 		s.log.Printf("unexpected method: %s", method)
