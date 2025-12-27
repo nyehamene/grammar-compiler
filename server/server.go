@@ -99,6 +99,8 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 	switch method {
 	case "initialize":
 		handleInitializeRequest(s, id, msg)
+	case "textDocument/formatting":
+		s.handleTextDocumentFormatting(id, msg)
 	case "shutdown":
 		s.handleShutdown(id)
 	default:

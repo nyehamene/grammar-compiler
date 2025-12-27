@@ -10,11 +10,6 @@ type DidCloseTextDocumentParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-// TextDocumentIdentifier is a light-weight descriptor for a text document.
-type TextDocumentIdentifier struct {
-	URI DocumentUri `json:"uri"`
-}
-
 func (s *Server) handleDidClose(ctx context.Context, msg map[string]any) error {
 	var params DidCloseTextDocumentParams
 	if p, ok := msg["params"]; ok {
