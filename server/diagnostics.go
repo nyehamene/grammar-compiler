@@ -1,0 +1,39 @@
+package server
+
+import (
+	"context"
+	"grammar/check"
+	"grammar/token"
+)
+
+func (s *Server) publishDiagnostics(ctx context.Context, uri DocumentUri) {
+	content, ok := s.GetDocumentContent(uri)
+	if !ok {
+		// Document not open, nothing to do.
+		return
+	}
+
+	diagnostics := []Diagnostic{}
+	errors, _ := check.CheckDocument([]byte(content), uri.String())
+
+	srcRunes := []rune(content)
+
+	for _, err := range errors {
+		line, col := token.FindLineAndCol(int(err.Pos), srcRunes)
+		diagnostic := Diagnostic{
+			Range: Range{
+				Start: Position{Line: line - 1, Character: col - 1},
+				End:   Position{Line: line - 1, Character: col}, // Highlight one character
+			},
+			Severity: SeverityError,
+			Source:   "checker",
+			Message:  err.Message,
+		}
+		diagnostics = append(diagnostics, diagnostic)
+	}
+
+	s.notify(ctx, "textDocument/publishDiagnostics", PublishDiagnosticsParams{
+		URI:         uri,
+		Diagnostics: diagnostics,
+	})
+}

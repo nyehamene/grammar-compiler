@@ -10,13 +10,6 @@ type DidOpenTextDocumentParams struct {
 	TextDocument TextDocumentItem `json:"textDocument"`
 }
 
-type TextDocumentItem struct {
-	URI        DocumentUri `json:"uri"`
-	LanguageID string      `json:"languageId"`
-	Version    int         `json:"version"`
-	Text       string      `json:"text"`
-}
-
 func (s *Server) handleDidOpen(ctx context.Context, msg map[string]any) error {
 	var params DidOpenTextDocumentParams
 	if p, ok := msg["params"]; ok {
@@ -33,5 +26,6 @@ func (s *Server) handleDidOpen(ctx context.Context, msg map[string]any) error {
 
 	s.documents[params.TextDocument.URI] = params.TextDocument.Text
 	s.log.Printf("Opened and stored document: %s", params.TextDocument.URI)
+	s.publishDiagnostics(ctx, params.TextDocument.URI)
 	return nil
 }

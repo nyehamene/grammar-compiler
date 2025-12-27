@@ -43,6 +43,7 @@ func (s *Server) handleDidChange(ctx context.Context, msg map[string]any) error 
 	// For full sync, the new text is the first and only content change.
 	s.documents[params.TextDocument.URI] = params.ContentChanges[0].Text
 	s.log.Printf("Updated document via didChange: %s", params.TextDocument.URI)
+	s.publishDiagnostics(ctx, params.TextDocument.URI)
 
 	return nil
 }

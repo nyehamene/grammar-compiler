@@ -193,3 +193,21 @@ func (s *Server) sendErrorResponse(id int, code ErrorCodes, message string) {
 	}
 	s.sendResponse(id, nil, errResp)
 }
+
+func (s *Server) notify(ctx context.Context, method string, params any) {
+	note := NotificationMessage{
+		Message: Message{JSONRPC: "2.0"},
+		Method:  method,
+		Params:  &params,
+	}
+	encoded, err := s.EncodeMessage(note)
+	if err != nil {
+		s.log.Printf("Failed to encode notification: %v", err)
+		return
+	}
+	_, err = s.writer.Write([]byte(encoded))
+	if err != nil {
+		s.log.Printf("Failed to write notification: %v", err)
+	}
+	s.logMessage("Sent notification", note)
+}
