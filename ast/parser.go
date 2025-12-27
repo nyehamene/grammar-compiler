@@ -167,6 +167,14 @@ func (p *Parser) parseImportDirective() *DirectiveExpr {
 
 func (p *Parser) parseTerminal() Expr {
 	tok := p.next()
+	if tok.State == token.Invalid {
+		switch tok.Kind {
+		case token.String:
+			p.errorf(token.Pos(tok.Start), "unterminated string literal")
+		case token.Regex:
+			p.errorf(token.Pos(tok.Start), "unterminated regex literal")
+		}
+	}
 	if tok.Kind == token.String {
 		return &StringLit{ValuePos: token.Pos(tok.Start), Value: token.Literal(tok, p.srcRunes)}
 	}
@@ -240,6 +248,15 @@ func (p *Parser) expect(kind token.Kind) token.Token {
 	tok := p.next()
 	if tok.Kind != kind {
 		p.errorf(token.Pos(tok.Start), "expected %s, got %s", kind, tok.Kind)
+	}
+	if tok.State == token.Invalid {
+		// Report errors for invalid tokens consumed via expect()
+		switch tok.Kind {
+		case token.String:
+			p.errorf(token.Pos(tok.Start), "unterminated string literal")
+		case token.Regex:
+			p.errorf(token.Pos(tok.Start), "unterminated regex literal")
+		}
 	}
 	return tok
 }
