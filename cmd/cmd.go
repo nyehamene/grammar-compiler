@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"grammar/command"
 	checkcmd "grammar/cmd/check"
 	diffcmd "grammar/cmd/diff"
 	fmtcmd "grammar/cmd/fmt"
 	lspcmd "grammar/cmd/lsp"
 	printcmd "grammar/cmd/print"
+	"grammar/command"
 	"io"
+	"os"
 )
 
 // Run executes the main command-line interface.
@@ -23,7 +24,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 
 	switch subcommand {
 	case "fmt":
-		return fmtcmd.FmtCommand(subcommandArgs, stdout, stderr)
+		return fmtcmd.FmtCommand(subcommandArgs, os.Stdin, stdout, stderr)
 	case "check":
 		return checkcmd.CheckCommand(subcommandArgs, stdout, stderr)
 	case "print":

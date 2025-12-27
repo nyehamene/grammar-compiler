@@ -113,18 +113,20 @@ func (f *Formatter) formatDeclGroup(group []Decl) {
 			f.buffer.WriteString(n.Name.Name)
 			f.buffer.WriteString(strings.Repeat(" ", maxNameLen-len(n.Name.Name)))
 			f.buffer.WriteString(" = ")
-			for i, expr := range n.Body {
-				if i > 0 && f.findLine(expr.Pos()) == ruleLine {
-					f.buffer.WriteString(" ")
+			if len(n.Body) > 0 {
+				for i, expr := range n.Body {
+					if i > 0 && f.findLine(expr.Pos()) == ruleLine {
+						f.buffer.WriteString(" ")
+					}
+					f.formatExpr(expr, ruleLine, maxNameLen)
 				}
-				f.formatExpr(expr, ruleLine, maxNameLen)
-			}
-			// Handle trailing semicolon alignment
-			lastExpr := n.Body[len(n.Body)-1]
-			lastExprLine := f.findLine(lastExpr.End() - 1) // Get line of the last character
-			if lastExprLine > ruleLine {                   // If alternatives were vertically aligned
-				f.buffer.WriteString("\n")
-				f.buffer.WriteString(strings.Repeat(" ", maxNameLen+1))
+				// Handle trailing semicolon alignment
+				lastExpr := n.Body[len(n.Body)-1]
+				lastExprLine := f.findLine(lastExpr.End() - 1) // Get line of the last character
+				if lastExprLine > ruleLine {                   // If alternatives were vertically aligned
+					f.buffer.WriteString("\n")
+					f.buffer.WriteString(strings.Repeat(" ", maxNameLen+1))
+				}
 			}
 			f.buffer.WriteString(";")
 		case *BindingDecl:

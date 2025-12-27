@@ -89,6 +89,11 @@ func (p *Parser) parseRule(name token.Token) Decl {
 		body = append(body, p.parseProduction())
 	}
 
+	if len(body) == 0 {
+		// Report error at the position where the body was expected (after the '=')
+		p.errorf(token.Pos(name.Start), "rule declaration must have a body")
+	}
+
 	p.expect(token.Semicolon)
 
 	return &RuleDecl{
