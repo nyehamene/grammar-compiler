@@ -56,19 +56,15 @@ func (cu *CompilationUnit) LoadFile(path string) (*Namespace, error) {
 func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, error) {
 	if cu.loading[path] {
 		cu.AddError(token.NoPos, fmt.Sprintf("import cycle detected involving %s", path))
-		// Return the partially loaded namespace to avoid infinite recursion
-		// and allow other errors to be found.
 		return cu.Namespaces[path], nil
 	}
 	cu.loading[path] = true
 	defer func() { cu.loading[path] = false }()
 
-	// 1. Check cache
 	if ns, found := cu.Namespaces[path]; found {
 		return ns, nil
 	}
 
-	// 2. Parse the source
 	srcRunes := []rune(string(content))
 	tokenizer := token.NewTokenizer(srcRunes, false, false)
 	tokens := tokenizer.Scan()
@@ -81,11 +77,10 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 		return nil, err
 	}
 
-	// 3. Create and cache namespace early for cycle detection
 	ns := NewNamespace(path)
+	ns.File = file // Set the file AST
 	cu.Namespaces[path] = ns
 
-	// 4. Populate namespace by processing declarations
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case *ast.BindingDecl:

@@ -1,0 +1,2 @@
+b = @import("../success/b.grammar");
+rule_a = b.non_existent_rule;

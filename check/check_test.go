@@ -48,3 +48,15 @@ func TestCheckRedeclaration(t *testing.T) {
 		t.Errorf("Expected error to contain 'redeclared in this namespace', but got: %v", err)
 	}
 }
+
+func TestCheckUndefinedMember(t *testing.T) {
+	checker := NewChecker()
+	err := checker.Check("../testdata/check/undefined_member/a.grammar")
+	if err == nil {
+		t.Fatal("Expected an error for undefined member, but got none.")
+	}
+
+	if !strings.Contains(err.Error(), "undefined member") {
+		t.Errorf("Expected error to contain 'undefined member', but got: %v", err)
+	}
+}
