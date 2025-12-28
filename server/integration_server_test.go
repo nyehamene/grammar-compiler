@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"grammar/server"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -179,6 +181,48 @@ func TestDidOpenPublishDiagnostics(t *testing.T) {
 
 	if diag.Range.Start.Line != 0 || diag.Range.Start.Character != 4 {
 		t.Errorf("Expected diagnostic to start at line 0, char 4, but got line %d, char %d", diag.Range.Start.Line, diag.Range.Start.Character)
+	}
+}
+
+func TestImportedNamespaceLoading(t *testing.T) {
+	// Create test files on disk
+	testDir := t.TempDir()
+	bPath := filepath.Join(testDir, "b.grammar")
+	aPath := filepath.Join(testDir, "a.grammar")
+
+	bContent := `rule_b = "from b";`
+	if err := os.WriteFile(bPath, []byte(bContent), 0644); err != nil {
+		t.Fatalf("Failed to write b.grammar: %v", err)
+	}
+
+	aContent := fmt.Sprintf(`b = @import("b.grammar"); a = b.rule_b;`) // relative import
+	if err := os.WriteFile(aPath, []byte(aContent), 0644); err != nil {
+		t.Fatalf("Failed to write a.grammar: %v", err)
+	}
+
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer h.clientConn.Close()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	aURI, _ := server.ParseURI("file://" + aPath)
+
+	// Open only a.grammar. The server should load b.grammar from filesystem.
+	h.send(newDidOpenNotification(aURI, aContent, 1))
+
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
+	params, _ := msg["params"].(map[string]any)
+	diags, _ := params["diagnostics"].([]any)
+
+	if len(diags) != 0 {
+		t.Errorf("Expected no diagnostics, but got %d: %v", len(diags), diags)
 	}
 }
 

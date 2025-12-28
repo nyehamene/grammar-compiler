@@ -77,8 +77,6 @@ func resolveImport(base, imp string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("invalid import path: %w", err)
 	}
-	// The base is a file, so we resolve from its directory
-	baseURI.Path = filepath.Dir(baseURI.Path)
 	return baseURI.ResolveReference(impURI).String(), nil
 }
 
