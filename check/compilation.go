@@ -99,14 +99,14 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 	tokenizer := token.NewTokenizer(srcRunes, false, false)
 	tokens := tokenizer.Scan()
 	parser := ast.NewParser(tokens, srcRunes)
-	file, err := parser.ParseFile()
-	if err != nil {
-		if errs, ok := err.(ast.ErrorList); ok {
+	file, parseErr := parser.ParseFile()
+	if parseErr != nil {
+		if errs, ok := parseErr.(ast.ErrorList); ok {
 			for _, e := range errs {
 				cu.AddError(path, e.Pos, e.Message)
 			}
 		}
-		return nil, err
+		// Continue with partial file for completion/hover
 	}
 
 	ns := NewNamespace(path)
@@ -127,14 +127,14 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 			importPathLiteral := d.Path.Value
 			importPath := importPathLiteral[1 : len(importPathLiteral)-1]
 
-			importedPath, err := resolveImport(path, importPath)
-			if err != nil {
-				cu.AddError(path, d.Path.Pos(), err.Error())
+			importedPath, resolveErr := resolveImport(path, importPath)
+			if resolveErr != nil {
+				cu.AddError(path, d.Path.Pos(), resolveErr.Error())
 				continue
 			}
 
-			importedNs, err := cu.LoadFile(importedPath)
-			if err != nil {
+			importedNs, loadErr := cu.LoadFile(importedPath)
+			if loadErr != nil {
 				cu.AddError(path, d.Path.Pos(), fmt.Sprintf("could not load imported namespace '%s'", importPath))
 				continue
 			}
@@ -154,5 +154,5 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 		}
 	}
 
-	return ns, nil
+	return ns, parseErr
 }

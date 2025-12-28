@@ -26,6 +26,7 @@ type InitializeResult struct {
 // ServerCapabilities represents the capabilities of the server.
 type ServerCapabilities struct {
 	TextDocumentSync        *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
+	CompletionProvider      *CompletionOptions       `json:"completionProvider,omitempty"`
 	HoverProvider           bool                     `json:"hoverProvider,omitempty"`
 	DefinitionProvider      bool                     `json:"definitionProvider,omitempty"`
 	ReferencesProvider      bool                     `json:"referencesProvider,omitempty"`
@@ -77,6 +78,9 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 			TextDocumentSync: &TextDocumentSyncOptions{
 				OpenClose: true,
 				Change:    TextDocumentSyncKindFull,
+			},
+			CompletionProvider: &CompletionOptions{
+				TriggerCharacters: []string{"."}, // Trigger completion on '.'
 			},
 			HoverProvider:           true,
 			DefinitionProvider:      true,

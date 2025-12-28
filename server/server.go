@@ -107,6 +107,8 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		s.handleShutdown(id)
 	case "textDocument/hover":
 		s.handleHover(id, msg)
+	case "textDocument/completion":
+		s.handleCompletion(id, msg)
 	case "textDocument/definition":
 		s.handleDefinition(id, msg)
 	case "textDocument/references":
