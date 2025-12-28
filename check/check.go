@@ -93,6 +93,10 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 		c.checkNode(n.Expr, ns)
 	case *ast.ExternalValue:
 		// No children to check.
+	case *ast.Ident:
+		if _, found := ns.Members[n.Name]; !found {
+			c.cu.AddError(ns.Name, n.Pos(), fmt.Sprintf("undefined: %s", n.Name))
+		}
 	case *ast.MemberExpr:
 		receiverType := c.typeOf(n.Object, ns)
 		if receiverType == nil {
