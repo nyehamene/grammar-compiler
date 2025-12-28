@@ -255,6 +255,6 @@ type CompletionList struct {
 
 // CompletionOptions represents the server's completion capabilities.
 type CompletionOptions struct {
-	TriggerCharacters   []string `json:"triggerCharacters,omitempty"`
-	ResolveProvider     *bool    `json:"resolveProvider,omitempty"`
+	TriggerCharacters []string `json:"triggerCharacters,omitempty"`
+	ResolveProvider   *bool    `json:"resolveProvider,omitempty"`
 }

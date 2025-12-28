@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -692,7 +693,6 @@ prod_b = b.
 			TextDocumentPositionParams: server.TextDocumentPositionParams{
 				TextDocument: server.TextDocumentIdentifier{URI: aURI},
 				Position:     server.Position{Line: 3, Character: 11}, // after 'b.'
-
 			},
 		}
 
@@ -716,39 +716,17 @@ prod_b = b.
 
 		expectedLabels := []string{"rule_b", "rule_c"}
 		for _, item := range completionList.Items {
-
-			found := false
-
-			for _, expected := range expectedLabels {
-
-				if item.Label == expected {
-
-					found = true
-
-					break
-
-				}
-
-			}
-
+			found := slices.Contains(expectedLabels, item.Label)
 			if !found {
-
 				t.Errorf("Unexpected completion item: %s", item.Label)
-
 			}
-
 		}
-
 		idCounter++
-
 	})
 
 	t.Run("rule body completion", func(t *testing.T) {
-
 		// Restore a valid state (or a different valid state for this test)
-
 		// Document version is 3
-
 		validAContent := `
 
 b = @import("b.grammar");
@@ -760,40 +738,29 @@ prod_b = ;
 `
 
 		h.send(newDidChangeNotification(aURI, validAContent, 3)) // version 3
-
 		consumeDiagnostics(h)
-
 		id := idCounter
 
 		var completionParams any = server.CompletionParams{
-
 			TextDocumentPositionParams: server.TextDocumentPositionParams{
-
 				TextDocument: server.TextDocumentIdentifier{URI: aURI},
-
-				Position: server.Position{Line: 4, Character: 9}, // after '='
-
+				Position:     server.Position{Line: 4, Character: 9}, // after '='
 			},
 		}
 
 		h.send(newRequest(id, "textDocument/completion", &completionParams))
-
 		msg := h.read()
-
 		assertResponseID(h, msg, id)
 
 		resultData, err := json.Marshal(msg["result"])
 
 		if err != nil {
-
 			t.Fatalf("Failed to marshal completion result: %v", err)
-
 		}
 
 		var completionList server.CompletionList
 
 		if err := json.Unmarshal(resultData, &completionList); err != nil {
-
 			t.Fatalf("Failed to unmarshal completion list: %v", err)
 
 		}
@@ -801,41 +768,20 @@ prod_b = ;
 		// Expect 'b' and 'prod_a'
 
 		if len(completionList.Items) != 2 {
-
 			t.Fatalf("Expected 2 completion items, got %d", len(completionList.Items))
-
 		}
 
 		expectedLabels := []string{"b", "prod_a"}
 
 		for _, item := range completionList.Items {
-
-			found := false
-
-			for _, expected := range expectedLabels {
-
-				if item.Label == expected {
-
-					found = true
-
-					break
-
-				}
-
-			}
-
+			found := slices.Contains(expectedLabels, item.Label)
 			if !found {
-
 				t.Errorf("Unexpected completion item: %s", item.Label)
-
 			}
-
 		}
 
 		idCounter++
-
 	})
-
 }
 
 // --- Test Helpers ---
