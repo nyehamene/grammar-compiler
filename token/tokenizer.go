@@ -180,15 +180,38 @@ func (t *Tokenizer) scanNumber() Token {
 
 func (t *Tokenizer) scanString() Token {
 	start := t.offset
-	t.nextChar() // Consume the opening '"'
-	for t.ch != '"' && t.ch != 0 {
-		t.nextChar()
+	t.nextChar() // Consume opening '"'
+
+	for {
+		if t.ch == '"' {
+			t.nextChar() // Consume closing '"'
+			return t.newToken(String, start, t.offset)
+		}
+
+		if t.ch == '\n' || t.ch == 0 {
+			// Unterminated string
+			return Token{Kind: String, State: Invalid, Start: start, End: t.offset}
+		}
+
+		if t.ch == '\\' {
+			t.nextChar() // Consume backslash
+			switch t.ch {
+			case '"', '\\', 'n', 't', 'r', 'c', '\'':
+				t.nextChar() // Consume escaped char
+			default:
+				// Invalid escape. Consume until the end of the potential literal.
+				for t.ch != '"' && t.ch != '\n' && t.ch != 0 {
+					t.nextChar()
+				}
+				if t.ch == '"' {
+					t.nextChar()
+				}
+				return Token{Kind: String, State: Invalid, Start: start, End: t.offset}
+			}
+		} else {
+			t.nextChar()
+		}
 	}
-	if t.ch == 0 { // Unterminated string
-		return Token{Kind: String, State: Invalid, Start: start, End: t.offset}
-	}
-	t.nextChar() // Consume the closing '"'
-	return t.newToken(String, start, t.offset)
 }
 
 func (t *Tokenizer) scanRegex() Token {

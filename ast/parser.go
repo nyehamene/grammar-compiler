@@ -170,7 +170,7 @@ func (p *Parser) parseTerminal() Expr {
 	if tok.State == token.Invalid {
 		switch tok.Kind {
 		case token.String:
-			p.errorf(token.Pos(tok.Start), "unterminated string literal")
+			p.errorf(token.Pos(tok.Start), "invalid string literal")
 		case token.Regex:
 			p.errorf(token.Pos(tok.Start), "invalid regex literal")
 		}
@@ -253,7 +253,7 @@ func (p *Parser) expect(kind token.Kind) token.Token {
 		// Report errors for invalid tokens consumed via expect()
 		switch tok.Kind {
 		case token.String:
-			p.errorf(token.Pos(tok.Start), "unterminated string literal")
+			p.errorf(token.Pos(tok.Start), "invalid string literal")
 		case token.Regex:
 			p.errorf(token.Pos(tok.Start), "unterminated regex literal")
 		}
