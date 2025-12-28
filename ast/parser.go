@@ -12,6 +12,7 @@ type Parser struct {
 	pos          int // current position in the token slice
 	errors       ErrorList
 	hadBlankLine bool // Add hadBlankLine field
+	recovering   bool
 }
 
 // NewParser creates a new Parser.
@@ -29,14 +30,19 @@ func (p *Parser) ParseFile() (*File, error) {
 	}
 	endPos := p.peek().End
 
+	file := &File{Decls: decls, EndPos: token.Pos(endPos)}
 	if len(p.errors) > 0 {
-		return nil, p.errors
+		return file, p.errors
 	}
 
-	return &File{Decls: decls, EndPos: token.Pos(endPos)}, nil
+	return file, nil
 }
 
 func (p *Parser) parseDecl() (Decl, bool) {
+	if p.recovering {
+		p.synchronize()
+	}
+
 	hadBlankLine := p.hadBlankLine
 	p.hadBlankLine = false
 
@@ -50,12 +56,25 @@ func (p *Parser) parseDecl() (Decl, bool) {
 		return nil, hadBlankLine
 	}
 
+	// Track errors that occur during this parse attempt
+	errCount := len(p.errors)
+
 	ident := p.expect(token.Ident)
 	p.expect(token.Assign)
+
+	var result Decl
 	if p.peek().Kind == token.AtDirective {
-		return p.parseBinding(ident), hadBlankLine
+		result = p.parseBinding(ident)
+	} else {
+		result = p.parseRule(ident)
 	}
-	return p.parseRule(ident), hadBlankLine
+
+	// If errors were added, discard the potentially malformed AST node
+	if len(p.errors) > errCount {
+		return nil, hadBlankLine
+	}
+
+	return result, hadBlankLine
 }
 
 func (p *Parser) parseCommentGroup() *CommentGroup {
@@ -261,6 +280,28 @@ func (p *Parser) expect(kind token.Kind) token.Token {
 	return tok
 }
 
+func (p *Parser) synchronize() {
+	p.recovering = false
+
+	for p.peek().Kind != token.EOF {
+		if p.peek().Kind == token.Semicolon {
+			p.next()
+			return
+		}
+
+		switch p.peek().Kind {
+		case token.Ident, token.Comment:
+			return
+		}
+
+		p.next()
+	}
+}
+
 func (p *Parser) errorf(pos token.Pos, format string, args ...interface{}) {
+	if p.recovering {
+		return
+	}
+	p.recovering = true
 	p.errors.Add(pos, fmt.Sprintf(format, args...))
 }

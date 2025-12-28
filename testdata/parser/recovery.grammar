@@ -1,0 +1,4 @@
+a b;
+c = ;
+d = "d" | | "e";
+valid_rule = "valid";
