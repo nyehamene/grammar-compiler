@@ -30,4 +30,3 @@ func PositionToPos(pos Position, srcRunes []rune) token.Pos {
 	}
 	return token.Pos(lineStart + pos.Character)
 }
-

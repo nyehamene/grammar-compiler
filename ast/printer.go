@@ -2,9 +2,9 @@ package ast
 
 import (
 	"fmt"
+	"grammar/token" // Import token package
 	"io"
 	"strings"
-	"grammar/token" // Import token package
 )
 
 // Printer holds the state for printing the AST.
@@ -82,6 +82,7 @@ func (p *Printer) PrintDecl(decl Decl) error {
 	}
 	return nil
 }
+
 // PrintExpr prints an expression node.
 func (p *Printer) PrintExpr(expr Expr) error {
 	line, col := token.FindLineAndCol(int(expr.Pos()), p.srcRunes)
@@ -186,6 +187,7 @@ func (p *Printer) PrintExpr(expr Expr) error {
 	}
 	return nil
 }
+
 // Printf is a helper to print with current indentation.
 func (p *Printer) Printf(format string, args ...interface{}) error {
 	for i := 0; i < p.indent; i++ {

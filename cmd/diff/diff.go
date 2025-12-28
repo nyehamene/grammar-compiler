@@ -59,29 +59,29 @@ func diffAST(path1, path2 string, stdout, stderr io.Writer) error {
 		return err
 	}
 	srcRunes1 := []rune(string(content1))
-	    	tokenizer1 := token.NewTokenizer(srcRunes1, true, true)
-	    	tokens1 := tokenizer1.Scan()
-	    	parser1 := ast.NewParser(tokens1, srcRunes1)
-	    	ast1, err := parser1.ParseFile()
-	    	if err != nil {
-	    		if errs, ok := err.(ast.ErrorList); ok {
-	    			for _, e := range errs {
-	    				line, col := token.FindLineAndCol(int(e.Pos), srcRunes1)
-	    				fmt.Fprintf(stderr, "%s:%d:%d: %s\n", path1, line, col, e.Message)
-	    			}
-	    		} else {
-	    			fmt.Fprintf(stderr, "Error parsing file %s: %s\n", path1, err)
-	    		}
-	    		return fmt.Errorf("parsing error in %s", path1)
-	    	}
-	    
-	    	// Parse file 2
-	    	content2, err := os.ReadFile(path2)
-	    	if err != nil {
-	    		return err
-	    	}
-	    	srcRunes2 := []rune(string(content2))
-	    	tokenizer2 := token.NewTokenizer(srcRunes2, true, true)
+	tokenizer1 := token.NewTokenizer(srcRunes1, true, true)
+	tokens1 := tokenizer1.Scan()
+	parser1 := ast.NewParser(tokens1, srcRunes1)
+	ast1, err := parser1.ParseFile()
+	if err != nil {
+		if errs, ok := err.(ast.ErrorList); ok {
+			for _, e := range errs {
+				line, col := token.FindLineAndCol(int(e.Pos), srcRunes1)
+				fmt.Fprintf(stderr, "%s:%d:%d: %s\n", path1, line, col, e.Message)
+			}
+		} else {
+			fmt.Fprintf(stderr, "Error parsing file %s: %s\n", path1, err)
+		}
+		return fmt.Errorf("parsing error in %s", path1)
+	}
+
+	// Parse file 2
+	content2, err := os.ReadFile(path2)
+	if err != nil {
+		return err
+	}
+	srcRunes2 := []rune(string(content2))
+	tokenizer2 := token.NewTokenizer(srcRunes2, true, true)
 	tokens2 := tokenizer2.Scan()
 	parser2 := ast.NewParser(tokens2, srcRunes2)
 	ast2, err := parser2.ParseFile()
@@ -239,17 +239,15 @@ func diffTokens(path1, path2 string, w io.Writer) error {
 		return err
 	}
 
-		srcRunes1 := []rune(string(content1))
+	srcRunes1 := []rune(string(content1))
 
-		tokenizer1 := token.NewTokenizer(srcRunes1, true, true)
+	tokenizer1 := token.NewTokenizer(srcRunes1, true, true)
 
-		tokens1 := tokenizer1.Scan()
+	tokens1 := tokenizer1.Scan()
 
-	
+	srcRunes2 := []rune(string(content2))
 
-		srcRunes2 := []rune(string(content2))
-
-		tokenizer2 := token.NewTokenizer(srcRunes2, true, true)
+	tokenizer2 := token.NewTokenizer(srcRunes2, true, true)
 	tokens2 := tokenizer2.Scan()
 
 	// LCS-based diff
