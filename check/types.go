@@ -12,15 +12,18 @@ type (
 	StringType     struct{}
 	RegexpType     struct{}
 	ProductionType struct{}
+	ExternalType   struct{}
 )
 
 func (StringType) String() string     { return "string" }
 func (RegexpType) String() string     { return "regexp" }
 func (ProductionType) String() string { return "production" }
+func (ExternalType) String() string   { return "external" }
 
 func (StringType) isType()     {}
 func (RegexpType) isType()     {}
 func (ProductionType) isType() {}
+func (ExternalType) isType()   {}
 
 // NamespaceType represents an imported grammar file.
 type NamespaceType struct {
@@ -34,4 +37,5 @@ var (
 	String     = StringType{}
 	Regexp     = RegexpType{}
 	Production = ProductionType{}
+	External   = ExternalType{}
 )

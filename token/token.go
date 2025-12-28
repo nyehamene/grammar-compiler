@@ -39,6 +39,7 @@ const (
 	Dot
 	Assign // New token kind for '='
 	AtDirective
+	External
 )
 
 // String returns the string representation of a TokenKind.
@@ -84,6 +85,8 @@ func (k Kind) String() string {
 		return "ASSIGN"
 	case AtDirective:
 		return "AT_Directive"
+	case External:
+		return "EXTERNAL"
 	default:
 		return fmt.Sprintf("UNKNOWN(%d)", k)
 	}

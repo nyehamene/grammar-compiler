@@ -94,6 +94,8 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 		c.checkNode(n.Expr, ns)
 	case *ast.GroupExpr:
 		c.checkNode(n.Expr, ns)
+	case *ast.ExternalValue:
+		// No children to check.
 	case *ast.MemberExpr:
 		receiverType := c.typeOf(n.Object, ns)
 		if receiverType == nil {
@@ -127,6 +129,8 @@ func (c *Checker) typeOf(expr ast.Expr, ns *Namespace) Type {
 		return String
 	case *ast.RegexLit:
 		return Regexp
+	case *ast.ExternalValue:
+		return External
 	case *ast.MemberExpr:
 		receiverType := c.typeOf(e.Object, ns)
 		if receiverType == nil {

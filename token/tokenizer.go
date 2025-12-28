@@ -48,6 +48,8 @@ loop:
 			token = t.scanString()
 		case t.ch == '@':
 			token = t.scanDirective()
+		case t.ch == '$':
+			token = t.scanExternal()
 		case t.ch == '/':
 			// Check if it's a regex or a comment
 			if t.peek() == '/' { // Comment
@@ -166,6 +168,19 @@ func (t *Tokenizer) scanDirective() Token {
 	}
 
 	return t.newToken(AtDirective, start, t.offset)
+}
+
+func (t *Tokenizer) scanExternal() Token {
+	start := t.offset
+	t.nextChar() // Consume '$'
+
+	// The External token should contain the '$' and the following identifier.
+	// We need to scan the identifier part.
+	for isLetter(t.ch) || isDigit(t.ch) {
+		t.nextChar()
+	}
+
+	return t.newToken(External, start, t.offset)
 }
 
 func (t *Tokenizer) scanNumber() Token {

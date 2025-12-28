@@ -209,3 +209,75 @@ func TestScanString(t *testing.T) {
 		})
 	}
 }
+
+func TestScanExternal(t *testing.T) {
+	testCases := []struct {
+		name    string
+		input   string
+		valid   bool // For external values, it's always valid at tokenizer level if it starts with $
+		wantVal string
+	}{
+		{
+			name:    "simple external value",
+			input:   "$foo",
+			valid:   true,
+			wantVal: "$foo",
+		},
+		{
+			name:    "external value with underscore",
+			input:   "$bar_baz",
+			valid:   true,
+			wantVal: "$bar_baz",
+		},
+		{
+			name:    "external value with digits",
+			input:   "$qux123",
+			valid:   true,
+			wantVal: "$qux123",
+		},
+		{
+			name:    "just dollar sign (parser will error)",
+			input:   "$",
+			valid:   true, // Tokenizer still considers it valid External kind
+			wantVal: "$",
+		},
+		{
+			name:    "dollar sign followed by non-ident char",
+			input:   "$1foo",
+			valid:   true, // Tokenizer produces $1, parser will likely error on '1' being invalid ident start
+			wantVal: "$1foo",
+		},
+		{
+			name:    "external value followed by space",
+			input:   "$foo ",
+			valid:   true,
+			wantVal: "$foo",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			srcRunes := []rune(tc.input)
+			tokenizer := NewTokenizer(srcRunes, false, false)
+			tokens := tokenizer.Scan()
+
+			if len(tokens) == 0 {
+				t.Fatalf("Expected at least 1 token, got 0")
+			}
+
+			externalToken := tokens[0]
+			if externalToken.Kind != External {
+				t.Fatalf("Expected first token to be EXTERNAL, got %s", externalToken.Kind)
+			}
+
+			if (externalToken.State == Valid) != tc.valid {
+				t.Errorf("Expected token validity to be %t, but got %t", tc.valid, (externalToken.State == Valid))
+			}
+
+			gotVal := Literal(externalToken, srcRunes)
+			if gotVal != tc.wantVal {
+				t.Errorf("Expected token value to be %q, got %q", tc.wantVal, gotVal)
+			}
+		})
+	}
+}

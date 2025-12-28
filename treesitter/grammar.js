@@ -56,7 +56,8 @@ module.exports = grammar({
 
     _terminal: $ => choice(
       $.string,
-      $.regexp
+      $.regexp,
+      $.external_value
     ),
 
     member_access: $ => prec.left(2, seq(
@@ -94,6 +95,11 @@ module.exports = grammar({
 
     escape_sequence: $ => token.immediate(/\\./),
 
-    ident: $ => token(/[a-zA-Z_][a-zA-Z0-9_]*/)
+    ident: $ => token(/[a-zA-Z_][a-zA-Z0-9_]*/),
+
+    external_value: $ => seq(
+      '$',
+      $.ident
+    )
   }
 });

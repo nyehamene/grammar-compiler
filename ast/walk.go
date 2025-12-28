@@ -59,7 +59,7 @@ func walk(node, parent Node, visitor Visitor) {
 		for _, c := range n.List {
 			walk(c, n, visitor)
 		}
-		// Terminals (Ident, StringLit, RegexLit, Comment) have no children to walk.
+		// Terminals (Ident, StringLit, RegexLit, ExternalValue, Comment) have no children to walk.
 	}
 }
 

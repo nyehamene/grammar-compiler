@@ -156,6 +156,9 @@ func (f *Formatter) formatExpr(expr Expr, ruleLine int, maxLen int) {
 		f.buffer.WriteString(n.Value)
 	case *RegexLit:
 		f.buffer.WriteString(n.Value)
+	case *ExternalValue:
+		f.buffer.WriteString("$")
+		f.buffer.WriteString(n.Name)
 	case *AlternativeExpr:
 		f.formatAlternativeExpr(n, ruleLine, maxLen)
 	case *OptionalExpr:

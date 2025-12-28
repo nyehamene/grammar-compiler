@@ -16,12 +16,13 @@ basic       = group
 
 // basic, terminal, non_terminal and term should not
 // appear in the syntax tree.
-group        = "(" production ")";
-repetition   = "{" production "}";
-optional     = "[" production "]";
-term         = terminal | non_teminal;
-non_terminal = ident | member_access;
-terminal     = string | regexp;
+group          = "(" production ")";
+repetition     = "{" production "}";
+optional       = "[" production "]";
+term           = terminal | non_teminal;
+non_terminal   = ident | member_access;
+terminal       = string | regexp | external_value;
+external_value = "$" ident;
 
 // member_access is left-associative
 member_access    = ident "." ident { "." ident };

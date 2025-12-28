@@ -163,6 +163,8 @@ func (p *Parser) parseBasic() Expr {
 		return p.parseRepetition()
 	case token.LParen:
 		return p.parseGroup()
+	case token.External:
+		return p.parseExternalValue()
 	default:
 		tok := p.next()
 		p.errorf(token.Pos(tok.Start), "unexpected token %s", tok.Kind)
@@ -214,6 +216,29 @@ func (p *Parser) parseNonTerminal() Expr {
 	}
 
 	return expr
+}
+
+// parseExternalValue parses an external value expression ($ident).
+func (p *Parser) parseExternalValue() *ExternalValue {
+	tok := p.expect(token.External)
+	// The token literal includes the '$'. We need to strip it for the Name field.
+	literal := token.Literal(tok, p.srcRunes)
+
+	name := ""
+	if len(literal) > 1 { // Check if there's anything after '$'
+		name = literal[1:]
+	}
+
+	// Semantic check: an external value must have an identifier after '$'.
+	if name == "" {
+		p.errorf(token.Pos(tok.Start), "expected identifier after '$'")
+		// Even with an error, return a partially formed node for recovery.
+	}
+
+	return &ExternalValue{
+		DollarPos: token.Pos(tok.Start),
+		Name:      name,
+	}
 }
 
 func (p *Parser) parseOptional() Expr {
