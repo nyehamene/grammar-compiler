@@ -1,0 +1,140 @@
+==================
+Simple Rule Declaration
+==================
+
+Source = { declaration };
+
+---
+
+(source
+  (declaration
+    (rule_declaration
+      name: (ident)
+      body: (rule_body_expression
+        (sequence_expression
+          (_basic_production_unit
+            (repetition_production
+              "{"
+              content: (rule_body_expression
+                (sequence_expression
+                  (_basic_production_unit
+                    (non_terminal
+                      (ident)))))
+              "}"))))
+      ";")))
+
+==================
+Binding Declaration
+==================
+
+MyBinding = "@import" ("path/to/file.grammar");
+
+---
+
+(source
+  (declaration
+    (binding
+      name: (ident)
+      "="
+      value: (import_directive
+        "@import"
+        "("
+        path: (string_literal)
+        ")")
+      ";")))
+
+==================
+Rule with Alternatives
+==================
+
+Expression = Term | Factor;
+
+---
+
+(source
+  (declaration
+    (rule_declaration
+      name: (ident)
+      body: (rule_body_expression
+        (rule_body_expression
+          (sequence_expression
+            (_basic_production_unit
+              (non_terminal
+                (ident))))
+        "|"
+        (sequence_expression
+          (_basic_production_unit
+            (non_terminal
+              (ident))))))
+      ";")))
+
+==================
+Rule with Group, Optional, Repetition
+==================
+
+Complex = ( A B ) [ C ] { D };
+
+---
+
+(source
+  (declaration
+    (rule_declaration
+      name: (ident)
+      body: (rule_body_expression
+        (sequence_expression
+          (_basic_production_unit
+            (group_production
+              "("
+              content: (rule_body_expression
+                (sequence_expression
+                  (_basic_production_unit
+                    (non_terminal
+                      (ident)))
+                  (_basic_production_unit
+                    (non_terminal
+                      (ident)))))
+              ")"))
+          (_basic_production_unit
+            (optional_production
+              "["
+              content: (rule_body_expression
+                (sequence_expression
+                  (_basic_production_unit
+                    (non_terminal
+                      (ident)))))
+              "]"))
+          (_basic_production_unit
+            (repetition_production
+              "{"
+              content: (rule_body_expression
+                (sequence_expression
+                  (_basic_production_unit
+                    (non_terminal
+                      (ident)))))
+              "}"))))
+      ";")))
+
+==================
+Rule with Terminals and Member Access
+==================
+
+Leaf = "hello" /world/ obj.prop;
+
+---
+
+(source
+  (declaration
+    (rule_declaration
+      name: (ident)
+      body: (rule_body_expression
+        (sequence_expression
+          (_basic_production_unit
+            (term_production
+              (terminal (string_literal))
+              (terminal (regex_literal))
+              (non_terminal
+                (member_access
+                  object: (ident)
+                  "."
+                  property: (ident)))))))
+      ";")))
