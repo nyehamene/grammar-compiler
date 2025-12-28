@@ -1,7 +1,7 @@
 ;; Tag queries for the grammar language
 
 ;; Definitions
-(rule_declaration
+(rule
   name: (ident) @definition.rule
 )
 
@@ -9,10 +9,6 @@
   name: (ident) @definition.binding
 )
 
-;; References
-(non_terminal
-  (ident) @reference
-)
 
 (member_access
   object: (ident) @reference

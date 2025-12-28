@@ -16,15 +16,13 @@
 "}" @punctuation.bracket
 
 ;; Rule names (as fields, as requested)
-(rule_declaration
-  name: (ident) @field)
+(rule
+  name: (ident) @variable.other.member)
 
 ;; Binding names (as variables, as requested)
 (binding
-  name: (ident) @variable)
+  name: (ident) @namespace)
 
-;; Non-terminal references
-(non_terminal (ident) @variable)
 
 ;; Member access identifiers
 (member_access
@@ -33,8 +31,8 @@
   property: (ident) @variable)
 
 ;; Literals
-(string_literal) @string
-(regex_literal) @string.regexp
+(string) @string
+(regexp) @string.regexp
 
 ;; Comments
 (comment) @comment

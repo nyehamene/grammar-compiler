@@ -6,7 +6,7 @@ module.exports = grammar({
 
     declaration: $ => choice(
       $.binding,
-      $.rule_declaration,
+      $.rule,
       $.comment
     ),
 
@@ -17,54 +17,49 @@ module.exports = grammar({
       ';'
     ),
 
-    rule_declaration: $ => seq(
+    rule: $ => seq(
       field('name', $.ident),
       '=',
-      field('body', $.rule_body_expression),
+      field('body', $.production),
       ';'
     ),
 
-    comment: $ => token(seq('//', /[^\n]*/)),
+    comment: $ => token(seq('//', /[^\n]*/, optional("\n"))),
 
-    rule_body_expression: $ => prec.left(
-      1, // Lower precedence for '|' than concatenation
-      choice(
-        seq($.rule_body_expression, '|', $.sequence_expression),
-        $.sequence_expression
-      )
+    production: $ => prec.left(1, choice(
+      seq($.production, '|', $.sequence),
+      $.sequence
+    )),
+
+    sequence: $ => repeat1($._basic),
+
+    _basic: $ => choice(
+      $.group,
+      $.repetition,
+      $.optional,
+      $._term
     ),
 
-    sequence_expression: $ => repeat1($._basic_production_unit),
+    group: $ => seq('(', field('content', $.production), ')'),
+    repetition: $ => seq('{', field('content', $.production), '}'),
+    optional: $ => seq('[', field('content', $.production), ']'),
 
-    _basic_production_unit: $ => choice(
-      $.optional_production,
-      $.repetition_production,
-      $.group_production,
-      $.term_production
+    _term: $ => choice(
+        $._terminal,
+        $._non_terminal
     ),
 
-    optional_production: $ => seq('[', field('content', $.rule_body_expression), ']'),
-    repetition_production: $ => seq('{', field('content', $.rule_body_expression), '}'),
-    group_production: $ => seq('(', field('content', $.rule_body_expression), ')'),
-
-    term_production: $ => repeat1($.basic),
-
-    basic: $ => choice(
-      $.terminal,
-      $.non_terminal
-    ),
-
-    terminal: $ => choice(
-      $.string_literal,
-      $.regex_literal
-    ),
-
-    non_terminal: $ => choice(
+    _non_terminal: $ => choice(
       $.ident,
       $.member_access
     ),
 
-    member_access: $ => prec.left(2, seq( // Higher precedence than '|' and concatenation
+    _terminal: $ => choice(
+      $.string,
+      $.regexp
+    ),
+
+    member_access: $ => prec.left(2, seq(
       field('object', choice($.ident, $.member_access)),
       '.',
       field('property', $.ident)
@@ -73,12 +68,12 @@ module.exports = grammar({
     import_directive: $ => seq(
       '@import',
       '(' ,
-      field('path', $.string_literal),
+      field('path', $.string),
       ')'
     ),
 
-    string_literal: $ => token(seq('"', /[^"\n]*/, '"')),
+    string: $ => token(seq('"', /[^"\n]*/, '"')),
     ident: $ => token(/[a-zA-Z_][a-zA-Z0-9_]*/),
-    regex_literal: $ => token(seq('/', /[^\/]*/, '/'))
+    regexp: $ => token(seq('/', /[^\/]*/, '/'))
   }
 });
