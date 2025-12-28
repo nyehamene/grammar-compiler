@@ -34,5 +34,8 @@
 (string) @string
 (regexp) @string.regexp
 
+;; Escape sequences
+(escape_sequence) @string.escape
+
 ;; Comments
 (comment) @comment
