@@ -97,7 +97,7 @@ go.mod
 - [x] Diff ast
 - [x] Formatter
 - [x] Language server
-- [ ] Treesitter
+- [x] Treesitter
 - [ ] Print token (color)
 - [ ] Print tokens (serial number)
 - [x] Check
