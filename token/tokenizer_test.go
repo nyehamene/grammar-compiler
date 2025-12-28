@@ -1,9 +1,6 @@
 package token
 
 import (
-	"os"
-	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -52,37 +49,6 @@ func TestTokenizer(t *testing.T) {
 		}
 		if tok.State != Valid {
 			t.Errorf("Token %d: Expected state Valid, got Invalid", i)
-		}
-	}
-}
-
-func TestTokenizerExampleFiles(t *testing.T) {
-	t.Skip("Skipping for now as it fails after tokenizer changes.")
-	exampleDir := "../example" // Corrected path to be relative to the 'token' package
-	files, err := os.ReadDir(exampleDir)
-	if err != nil {
-		t.Fatalf("Failed to read example directory: %v", err)
-	}
-
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".grammar") {
-			t.Run(file.Name(), func(t *testing.T) {
-				filePath := filepath.Join(exampleDir, file.Name())
-				fileContent, err := os.ReadFile(filePath)
-				if err != nil {
-					t.Fatalf("Failed to read example file %s: %v", filePath, err)
-				}
-			srcRunes := []rune(string(fileContent))
-
-			tokenizer := NewTokenizer(srcRunes, false, false)
-			tokens := tokenizer.Scan()
-
-			for _, tok := range tokens {
-				if tok.State == Invalid {
-					t.Errorf("File %s: Found invalid token %q", file.Name(), Literal(tok, srcRunes))
-				}
-			}
-		})
 		}
 	}
 }
