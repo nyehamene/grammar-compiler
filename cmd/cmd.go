@@ -15,7 +15,7 @@ import (
 // Run executes the main command-line interface.
 func Run(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		fmt.Fprint(stdout, command.GrammarUsage)
+		_, _ = fmt.Fprint(stdout, command.GrammarUsage)
 		return 1
 	}
 
@@ -34,13 +34,13 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	case "lsp":
 		return lspcmd.LspCommand(subcommandArgs, stdout, stderr)
 	case "help":
-		fmt.Fprint(stdout, command.GrammarUsage)
+		_, _ = fmt.Fprint(stdout, command.GrammarUsage)
 		return 0
 	case "version":
-		fmt.Fprintln(stdout, "0.1.0")
+		_, _ = fmt.Fprintln(stdout, "0.1.0")
 		return 0
 	default:
-		fmt.Fprint(stdout, command.GrammarUsage)
+		_, _ = fmt.Fprint(stdout, command.GrammarUsage)
 		return 1
 	}
 }

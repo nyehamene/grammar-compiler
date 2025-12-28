@@ -23,9 +23,11 @@ func DiffCommand(args []string, stdout, stderr io.Writer) int {
 	var help bool
 	diffCmd.BoolVar(&help, "h", false, "Print this message.")
 	diffCmd.BoolVar(&help, "help", false, "Print this message.")
-	diffCmd.Parse(args)
+	_ = diffCmd.Parse(args)
 	if help || diffCmd.NArg() != 2 {
-		fmt.Fprint(stdout, command.DiffUsage)
+		if _, err := fmt.Fprint(stdout, command.DiffUsage); err != nil {
+			return 1
+		}
 		return 0
 	}
 

@@ -110,7 +110,7 @@ func (h *lspTestHarness) read() map[string]any {
 func TestDidOpenPublishDiagnostics(t *testing.T) {
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
-	defer h.clientConn.Close()
+	defer func() { _ = h.clientConn.Close() }()
 	defer func() {
 		if t.Failed() {
 			t.Log(logBuf.String())
@@ -164,7 +164,9 @@ func TestDidOpenPublishDiagnostics(t *testing.T) {
 
 	paramsData, _ := json.Marshal(msg["params"])
 	var diagParams server.PublishDiagnosticsParams
-	json.Unmarshal(paramsData, &diagParams)
+	if err := json.Unmarshal(paramsData, &diagParams); err != nil {
+		t.Fatalf("Failed to unmarshal PublishDiagnosticsParams: %v", err)
+	}
 
 	if diagParams.URI != textDocumentId {
 		t.Errorf("Expected diagnostics for URI 'file:///test.grammar', but got: %s", diagParams.URI)
@@ -195,14 +197,14 @@ func TestImportedNamespaceLoading(t *testing.T) {
 		t.Fatalf("Failed to write b.grammar: %v", err)
 	}
 
-	aContent := fmt.Sprintf(`b = @import("b.grammar"); a = b.rule_b;`) // relative import
+	aContent := `b = @import("b.grammar"); a = b.rule_b;` // relative import
 	if err := os.WriteFile(aPath, []byte(aContent), 0644); err != nil {
 		t.Fatalf("Failed to write a.grammar: %v", err)
 	}
 
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
-	defer h.clientConn.Close()
+	defer func() { _ = h.clientConn.Close() }()
 	defer func() {
 		if t.Failed() {
 			t.Log(logBuf.String())
@@ -229,7 +231,7 @@ func TestImportedNamespaceLoading(t *testing.T) {
 func TestHover(t *testing.T) {
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
-	defer h.clientConn.Close()
+	defer func() { _ = h.clientConn.Close() }()
 	defer func() {
 		if t.Failed() {
 			t.Log(logBuf.String())
@@ -309,7 +311,7 @@ prod_c = b.rule_b;
 func TestDefinition(t *testing.T) {
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
-	defer h.clientConn.Close()
+	defer func() { _ = h.clientConn.Close() }()
 	defer func() {
 		if t.Failed() {
 			t.Log(logBuf.String())
@@ -339,7 +341,9 @@ func TestDefinition(t *testing.T) {
 	assertResponseID(h, msg, id)
 
 	var location server.Location
-	json.Unmarshal(mustMarshal(h, msg["result"]), &location)
+	if err := json.Unmarshal(mustMarshal(h, msg["result"]), &location); err != nil {
+		t.Fatalf("Failed to unmarshal location: %v", err)
+	}
 
 	if location.URI != bURI {
 		t.Errorf("Expected URI %s, got %s", bURI, location.URI)
@@ -358,7 +362,9 @@ func TestDefinition(t *testing.T) {
 
 	msg = h.read()
 	assertResponseID(h, msg, id)
-	json.Unmarshal(mustMarshal(h, msg["result"]), &location)
+	if err := json.Unmarshal(mustMarshal(h, msg["result"]), &location); err != nil {
+		t.Fatalf("Failed to unmarshal location: %v", err)
+	}
 
 	if location.URI != aURI {
 		t.Errorf("Expected URI %s, got %s", aURI, location.URI)
@@ -371,7 +377,7 @@ func TestDefinition(t *testing.T) {
 func TestReferences(t *testing.T) {
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
-	defer h.clientConn.Close()
+	defer func() { _ = h.clientConn.Close() }()
 	defer func() {
 		if t.Failed() {
 			t.Log(logBuf.String())
@@ -409,7 +415,9 @@ func TestReferences(t *testing.T) {
 	assertResponseID(h, msg, id)
 
 	var locations []server.Location
-	json.Unmarshal(mustMarshal(h, msg["result"]), &locations)
+	if err := json.Unmarshal(mustMarshal(h, msg["result"]), &locations); err != nil {
+		t.Fatalf("Failed to unmarshal locations: %v", err)
+	}
 
 	if len(locations) != 3 {
 		t.Fatalf("Expected 3 references, got %d", len(locations))
@@ -429,7 +437,9 @@ func TestReferences(t *testing.T) {
 	msgFromUsage := h.read()
 	assertResponseID(h, msgFromUsage, id)
 	var locationsFromUsage []server.Location
-	json.Unmarshal(mustMarshal(h, msgFromUsage["result"]), &locationsFromUsage)
+	if err := json.Unmarshal(mustMarshal(h, msgFromUsage["result"]), &locationsFromUsage); err != nil {
+		t.Fatalf("Failed to unmarshal locations from usage: %v", err)
+	}
 
 	if len(locationsFromUsage) != 3 {
 		t.Fatalf("Expected 3 references from usage, got %d", len(locationsFromUsage))
@@ -439,7 +449,7 @@ func TestReferences(t *testing.T) {
 func TestDocumentSymbol(t *testing.T) {
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
-	defer h.clientConn.Close()
+	defer func() { _ = h.clientConn.Close() }()
 	defer func() {
 		if t.Failed() {
 			t.Log(logBuf.String())
@@ -499,7 +509,7 @@ rule_a = "hello";
 func TestWorkspaceSymbol(t *testing.T) {
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
-	defer h.clientConn.Close()
+	defer func() { _ = h.clientConn.Close() }()
 	defer func() {
 		if t.Failed() {
 			t.Log(logBuf.String())
@@ -529,7 +539,9 @@ func TestWorkspaceSymbol(t *testing.T) {
 	assertResponseID(h, msg, id)
 
 	var symbols []server.SymbolInformation
-	json.Unmarshal(mustMarshal(h, msg["result"]), &symbols)
+	if err := json.Unmarshal(mustMarshal(h, msg["result"]), &symbols); err != nil {
+		t.Fatalf("Failed to unmarshal workspace symbols: %v", err)
+	}
 
 	if len(symbols) != 2 {
 		t.Fatalf("Expected 2 workspace symbols for query 'foo', got %d", len(symbols))
@@ -554,7 +566,7 @@ func TestWorkspaceSymbol(t *testing.T) {
 func TestRename(t *testing.T) {
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
-	defer h.clientConn.Close()
+	defer func() { _ = h.clientConn.Close() }()
 	defer func() {
 		if t.Failed() {
 			t.Log(logBuf.String())
@@ -582,7 +594,9 @@ func TestRename(t *testing.T) {
 	msg := h.read()
 	assertResponseID(h, msg, id)
 	var prepareRange server.Range
-	json.Unmarshal(mustMarshal(h, msg["result"]), &prepareRange)
+	if err := json.Unmarshal(mustMarshal(h, msg["result"]), &prepareRange); err != nil {
+		t.Fatalf("Failed to unmarshal prepare rename range: %v", err)
+	}
 	if prepareRange.Start.Character != 15 || prepareRange.End.Character != 26 {
 		t.Fatalf("Expected prepareRename range to be 15-26, got %d-%d", prepareRange.Start.Character, prepareRange.End.Character)
 	}
@@ -601,7 +615,9 @@ func TestRename(t *testing.T) {
 	msg = h.read()
 	assertResponseID(h, msg, id)
 	var workspaceEdit server.WorkspaceEdit
-	json.Unmarshal(mustMarshal(h, msg["result"]), &workspaceEdit)
+	if err := json.Unmarshal(mustMarshal(h, msg["result"]), &workspaceEdit); err != nil {
+		t.Fatalf("Failed to unmarshal workspace edit: %v", err)
+	}
 
 	if len(workspaceEdit.Changes) != 2 {
 		t.Fatalf("Expected edits in 2 files, got %d", len(workspaceEdit.Changes))

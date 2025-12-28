@@ -233,10 +233,7 @@ func (t *Tokenizer) scanRegex() Token {
 	start := t.offset
 	t.nextChar() // Consume the opening '/'
 
-	for {
-		if t.ch == '/' {
-			break
-		}
+	for t.ch != '/' {
 		switch t.ch {
 		case '\\':
 			t.nextChar() // Consume the backslash

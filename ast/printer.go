@@ -25,99 +25,174 @@ func NewPrinter(output io.Writer, srcRunes []rune) *Printer {
 }
 
 // PrintFile prints the entire File AST.
-func (p *Printer) PrintFile(file *File) {
-	p.Printf("File\n")
+func (p *Printer) PrintFile(file *File) error {
+	if err := p.Printf("File\n"); err != nil {
+		return err
+	}
 	p.indent++
 	for _, decl := range file.Decls {
-		p.PrintDecl(decl)
+		if err := p.PrintDecl(decl); err != nil {
+			return err
+		}
 	}
 	p.indent--
+	return nil
 }
 
 // PrintDecl prints a declaration node.
-func (p *Printer) PrintDecl(decl Decl) {
+func (p *Printer) PrintDecl(decl Decl) error {
 	line, col := token.FindLineAndCol(int(decl.Pos()), p.srcRunes)
-	fmt.Fprintf(p.output, "%d:%-4d", line, col) // Print line/col with padding
-	p.Printf("")  // This will print the indentation
+	if _, err := fmt.Fprintf(p.output, "%d:%-4d", line, col); err != nil { // Print line/col with padding
+		return err
+	}
+	if err := p.Printf(""); err != nil { // This will print the indentation
+		return err
+	}
 
 	switch n := decl.(type) {
 	case *RuleDecl:
-		p.Printf("RuleDecl: %s\n", n.Name.Name)
+		if err := p.Printf("RuleDecl: %s\n", n.Name.Name); err != nil {
+			return err
+		}
 		p.indent++
 		for _, expr := range n.Body {
-			p.PrintExpr(expr)
+			if err := p.PrintExpr(expr); err != nil {
+				return err
+			}
 		}
 		p.indent--
 	case *BindingDecl:
 		pathValue := strings.Trim(n.Path.Value, "\"")
-		p.Printf("BindingDecl: %s = @import(\"%s\")\n", n.Name.Name, pathValue)
+		if err := p.Printf("BindingDecl: %s = @import(\"%s\")\n", n.Name.Name, pathValue); err != nil {
+			return err
+		}
+	case *CommentGroup:
+		for _, comment := range n.List {
+			if _, err := fmt.Fprint(p.output, comment.Text); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprint(p.output, "\n"); err != nil {
+			return err
+		}
 	default:
-		p.Printf("Unknown Decl Type: %T\n", n)
+		if err := p.Printf("Unknown Decl Type: %T\n", n); err != nil {
+			return err
+		}
 	}
+	return nil
 }
-
 // PrintExpr prints an expression node.
-func (p *Printer) PrintExpr(expr Expr) {
+func (p *Printer) PrintExpr(expr Expr) error {
 	line, col := token.FindLineAndCol(int(expr.Pos()), p.srcRunes)
-	fmt.Fprintf(p.output, "%d:%-4d", line, col) // Print line/col with padding
-	p.Printf("")  // This will print the indentation
+	if _, err := fmt.Fprintf(p.output, "%d:%-4d", line, col); err != nil { // Print line/col with padding
+		return err
+	}
+	if err := p.Printf(""); err != nil { // This will print the indentation
+		return err
+	}
 
 	switch n := expr.(type) {
 	case *Ident:
-		p.Printf("Ident: %s\n", n.Name)
+		if err := p.Printf("Ident: %s\n", n.Name); err != nil {
+			return err
+		}
 	case *StringLit:
-		p.Printf("StringLit: %s\n", n.Value)
+		if err := p.Printf("StringLit: %s\n", n.Value); err != nil {
+			return err
+		}
 	case *RegexLit:
-		p.Printf("RegexLit: %s\n", n.Value)
+		if err := p.Printf("RegexLit: %s\n", n.Value); err != nil {
+			return err
+		}
+	case *ExternalValue: // Added for completeness, after previous steps
+		if err := p.Printf("ExternalValue: $%s\n", n.Name); err != nil {
+			return err
+		}
 	case *AlternativeExpr:
-		p.Printf("AlternativeExpr\n")
+		if err := p.Printf("AlternativeExpr\n"); err != nil {
+			return err
+		}
 		p.indent++
 		for _, altExpr := range n.Exprs {
-			p.PrintExpr(altExpr)
+			if err := p.PrintExpr(altExpr); err != nil {
+				return err
+			}
 		}
 		p.indent--
 	case *OptionalExpr:
-		p.Printf("OptionalExpr\n")
+		if err := p.Printf("OptionalExpr\n"); err != nil {
+			return err
+		}
 		p.indent++
-		p.PrintExpr(n.Expr)
+		if err := p.PrintExpr(n.Expr); err != nil {
+			return err
+		}
 		p.indent--
 	case *RepetitionExpr:
-		p.Printf("RepetitionExpr\n")
+		if err := p.Printf("RepetitionExpr\n"); err != nil {
+			return err
+		}
 		p.indent++
-		p.PrintExpr(n.Expr)
+		if err := p.PrintExpr(n.Expr); err != nil {
+			return err
+		}
 		p.indent--
 	case *GroupExpr:
-		p.Printf("GroupExpr\n")
+		if err := p.Printf("GroupExpr\n"); err != nil {
+			return err
+		}
 		p.indent++
-		p.PrintExpr(n.Expr)
+		if err := p.PrintExpr(n.Expr); err != nil {
+			return err
+		}
 		p.indent--
 	case *TermExpr:
-		p.Printf("TermExpr\n")
+		if err := p.Printf("TermExpr\n"); err != nil {
+			return err
+		}
 		p.indent++
-		p.PrintExpr(n.X)
+		if err := p.PrintExpr(n.X); err != nil {
+			return err
+		}
 		p.indent--
 	case *DirectiveExpr:
-		p.Printf("DirectiveExpr: @%s\n", n.Name.Name)
+		if err := p.Printf("DirectiveExpr: @%s\n", n.Name.Name); err != nil {
+			return err
+		}
 		p.indent++
 		for _, arg := range n.Args {
-			p.PrintExpr(arg)
+			if err := p.PrintExpr(arg); err != nil {
+				return err
+			}
 		}
 		p.indent--
 	case *MemberExpr:
-		p.Printf("MemberExpr\n")
+		if err := p.Printf("MemberExpr\n"); err != nil {
+			return err
+		}
 		p.indent++
-		p.PrintExpr(n.Object)
-		p.Printf("Member: %s\n", n.Member.Name)
+		if err := p.PrintExpr(n.Object); err != nil {
+			return err
+		}
+		if err := p.Printf("Member: %s\n", n.Member.Name); err != nil {
+			return err
+		}
 		p.indent--
 	default:
-		p.Printf("Unknown Expr Type: %T\n", n)
+		if err := p.Printf("Unknown Expr Type: %T\n", n); err != nil {
+			return err
+		}
 	}
+	return nil
 }
-
 // Printf is a helper to print with current indentation.
-func (p *Printer) Printf(format string, args ...interface{}) {
+func (p *Printer) Printf(format string, args ...interface{}) error {
 	for i := 0; i < p.indent; i++ {
-		fmt.Fprint(p.output, p.indentStr)
+		if _, err := fmt.Fprint(p.output, p.indentStr); err != nil {
+			return err
+		}
 	}
-	fmt.Fprintf(p.output, format, args...)
+	_, err := fmt.Fprintf(p.output, format, args...)
+	return err
 }

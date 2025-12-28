@@ -20,10 +20,12 @@ func FmtCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fmtCmd.BoolVar(&help, "help", false, "Print this message.")
 	fmtCmd.BoolVar(&stdoutFlag, "stdout", false, "Print formatted output to stdout. Do not modify input file.")
 	fmtCmd.BoolVar(&stdinFlag, "stdin", false, "Format code from stdin, output to stdout.")
-	fmtCmd.Parse(args)
+	_ = fmtCmd.Parse(args)
 
 	if help {
-		fmt.Fprint(stdout, command.FmtUsage)
+		if _, err := fmt.Fprint(stdout, command.FmtUsage); err != nil {
+			return 1
+		}
 		return 0
 	}
 

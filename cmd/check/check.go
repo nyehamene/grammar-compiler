@@ -18,15 +18,19 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 	checkCmd.BoolVar(&help, "h", false, "Print this message.")
 	checkCmd.BoolVar(&help, "help", false, "Print this message.")
 	checkCmd.BoolVar(&fromStdin, "stdin", false, "Check code from stdin.")
-	checkCmd.Parse(args)
+	_ = checkCmd.Parse(args)
 
 	if help {
-		fmt.Fprint(stdout, command.CheckUsage)
+		if _, err := fmt.Fprint(stdout, command.CheckUsage); err != nil {
+			return 1
+		}
 		return 0
 	}
 
 	if !fromStdin && checkCmd.NArg() == 0 {
-		fmt.Fprint(stdout, command.CheckUsage)
+		if _, err := fmt.Fprint(stdout, command.CheckUsage); err != nil {
+			return 1
+		}
 		return 0
 	}
 
@@ -36,7 +40,9 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 	if fromStdin {
 		content, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			fmt.Fprintf(stderr, "Error reading from stdin: %s\n", err)
+			if _, err := fmt.Fprintf(stderr, "Error reading from stdin: %s\n", err); err != nil {
+				return 1
+			}
 			return 1
 		}
 		finalErr = checker.CheckSource(content, "<stdin>")
@@ -44,7 +50,9 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 		for _, path := range checkCmd.Args() {
 			info, err := os.Stat(path)
 			if err != nil {
-				fmt.Fprintf(stderr, "Error accessing path %s: %s\n", path, err)
+				if _, err := fmt.Fprintf(stderr, "Error accessing path %s: %s\n", path, err); err != nil {
+					return 1
+				}
 				return 1
 			}
 
@@ -59,7 +67,9 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 					return nil
 				})
 				if err != nil {
-					fmt.Fprintf(stderr, "Error walking directory %s: %s\n", path, err)
+					if _, err := fmt.Fprintf(stderr, "Error walking directory %s: %s\n", path, err); err != nil {
+						return 1
+					}
 					return 1
 				}
 			} else {
@@ -72,7 +82,7 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 		if errs, ok := finalErr.(check.ErrorList); ok {
 			errs.Format(stderr, checker.Sources())
 		} else {
-			fmt.Fprintln(stderr, finalErr)
+			_, _ = fmt.Fprintln(stderr, finalErr)
 		}
 		return 1
 	}

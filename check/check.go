@@ -43,10 +43,7 @@ func (c *Checker) Sources() map[string][]rune {
 
 // Check initiates the checking process for a given path.
 func (c *Checker) Check(path string) error {
-	ns, err := c.cu.LoadFile(path)
-	if err != nil {
-		// Errors are handled in LoadFile/LoadSource
-	}
+	ns, _ := c.cu.LoadFile(path)
 	if ns != nil {
 		c.checkNode(ns.File, ns)
 	}

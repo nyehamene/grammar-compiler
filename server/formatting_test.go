@@ -106,8 +106,13 @@ longname = "b";`
 	}
 
 	var textEdit server.TextEdit
-	editBytes, _ := json.Marshal(resultSlice[0])
-	json.Unmarshal(editBytes, &textEdit)
+	editBytes, err := json.Marshal(resultSlice[0])
+	if err != nil {
+		t.Fatalf("Failed to marshal text edit: %v", err)
+	}
+	if err := json.Unmarshal(editBytes, &textEdit); err != nil {
+		t.Fatalf("Failed to unmarshal text edit: %v", err)
+	}
 
 	expectedFormatted := `a        = "a";
 longname = "b";

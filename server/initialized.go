@@ -19,8 +19,6 @@ func (s *Server) handleInitialized(ctx context.Context, msg map[string]any) erro
 		if err := json.Unmarshal(encodedParams, &params); err != nil {
 			return err
 		}
-	} else {
-		// Params can be omitted if empty
 	}
 
 	s.log.Printf("Initialized notification received. Client is ready.")

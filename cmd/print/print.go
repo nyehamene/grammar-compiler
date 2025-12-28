@@ -22,27 +22,35 @@ func PrintCommand(args []string, stdout, stderr io.Writer) int {
 	var help bool
 	printCmd.BoolVar(&help, "h", false, "Print this message.")
 	printCmd.BoolVar(&help, "help", false, "Print this message.")
-	printCmd.Parse(args)
+	_ = printCmd.Parse(args)
 
 	if help || printCmd.NArg() == 0 {
-		fmt.Fprint(stdout, command.PrintUsage)
+		if _, err := fmt.Fprint(stdout, command.PrintUsage); err != nil {
+			return 1
+		}
 		return 0
 	}
 
 	for _, path := range printCmd.Args() {
 		if tokenFlag {
 			if err := printTokens(path, stdout); err != nil {
-				fmt.Fprintf(stderr, "Error printing tokens for %s: %v\n", path, err)
+				if _, err := fmt.Fprintf(stderr, "Error printing tokens for %s: %v\n", path, err); err != nil {
+					return 1
+				}
 				return 1
 			}
 		} else if astFlag {
 			if err := printAST(path, stdout); err != nil {
-				fmt.Fprintf(stderr, "Error printing AST for %s: %v\n", path, err)
+				if _, err := fmt.Fprintf(stderr, "Error printing AST for %s: %v\n", path, err); err != nil {
+					return 1
+				}
 				return 1
 			}
 		} else {
 			// Default behavior if neither --tokens nor --ast is specified
-			fmt.Fprintf(stdout, "Printing AST %s...\n", path)
+			if _, err := fmt.Fprintf(stdout, "Printing AST %s...\n", path); err != nil {
+				return 1
+			}
 		}
 	}
 
@@ -66,8 +74,12 @@ func printTokens(path string, stdout io.Writer) error {
 	)
 
 	// Print header
-	fmt.Fprintf(stdout, "%-*s %-*s %s\n", lineColWidth, "Line:Col", kindWidth, "KIND", "LEXEME")
-	fmt.Fprintln(stdout, "--------------------------------------------------") // Adjust separator to match total width
+	if _, err := fmt.Fprintf(stdout, "%-*s %-*s %s\n", lineColWidth, "Line:Col", kindWidth, "KIND", "LEXEME"); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintln(stdout, "--------------------------------------------------"); err != nil { // Adjust separator to match total width
+		return err
+	}
 
 	for _, tok := range tokens {
 		line, col := token.FindLineAndCol(tok.Start, srcRunes)
@@ -81,7 +93,9 @@ func printTokens(path string, stdout io.Writer) error {
 			formattedLexeme = token.EscapeLexeme(lexeme)
 		}
 
-		fmt.Fprintf(stdout, "%-*s %-*s %s\n", lineColWidth, lineCol, kindWidth, tok.Kind, formattedLexeme)
+		if _, err := fmt.Fprintf(stdout, "%-*s %-*s %s\n", lineColWidth, lineCol, kindWidth, tok.Kind, formattedLexeme); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -104,7 +118,9 @@ func printAST(path string, stdout io.Writer) error {
 	}
 
 	printer := ast.NewPrinter(stdout, srcRunes)
-	printer.PrintFile(astFile)
+	if err := printer.PrintFile(astFile); err != nil {
+		return err
+	}
 
 	return nil
 }

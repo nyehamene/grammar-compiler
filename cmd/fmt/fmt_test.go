@@ -93,7 +93,9 @@ func TestFmtCommand(t *testing.T) {
 	t.Run("FileFormattingInPlace", func(t *testing.T) {
 		dir := t.TempDir()
 		filePath := filepath.Join(dir, "test.grammar")
-		os.WriteFile(filePath, []byte(unformattedComplex), 0644)
+		if err := os.WriteFile(filePath, []byte(unformattedComplex), 0644); err != nil {
+			t.Fatalf("Failed to write file: %v", err)
+		}
 
 		stdin := &bytes.Buffer{}
 		stdout := &bytes.Buffer{}
@@ -120,7 +122,9 @@ func TestFmtCommand(t *testing.T) {
 	t.Run("FileFormattingToStdout", func(t *testing.T) {
 		dir := t.TempDir()
 		filePath := filepath.Join(dir, "test.grammar")
-		os.WriteFile(filePath, []byte(unformattedComplex), 0644)
+		if err := os.WriteFile(filePath, []byte(unformattedComplex), 0644); err != nil {
+			t.Fatalf("Failed to write file: %v", err)
+		}
 
 		stdin := &bytes.Buffer{}
 		stdout := &bytes.Buffer{}
@@ -146,7 +150,9 @@ func TestFmtCommand(t *testing.T) {
 	t.Run("FileFormattingError", func(t *testing.T) {
 		dir := t.TempDir()
 		filePath := filepath.Join(dir, "test.grammar")
-		os.WriteFile(filePath, []byte(invalidContent), 0644)
+		if err := os.WriteFile(filePath, []byte(invalidContent), 0644); err != nil {
+			t.Fatalf("Failed to write file: %v", err)
+		}
 
 		stdin := &bytes.Buffer{}
 		stdout := &bytes.Buffer{}
