@@ -2,10 +2,11 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"grammar/ast"
 	"grammar/check"
+	"grammar/token"
 	"path/filepath"
-	//"log" // Removed log import
 )
 
 func (s *Server) handleHover(id int, msg map[string]any) {
@@ -41,8 +42,6 @@ func (s *Server) handleHover(id int, msg map[string]any) {
 	}
 
 	pos := PositionToPos(params.Position, srcRunes)
-	s.log.Printf("handleHover: Position: %+v, token.Pos: %d", params.Position, pos)
-
 	node, parent := ast.FindNodeAt(ns.File, pos)
 	if node == nil {
 		s.log.Printf("handleHover: No node found at position %d", pos)
@@ -51,34 +50,98 @@ func (s *Server) handleHover(id int, msg map[string]any) {
 	}
 	s.log.Printf("handleHover: Found node: %+v, Parent: %+v", node, parent)
 
-	var typ check.Type
-	if ident, isIdent := node.(*ast.Ident); isIdent {
-		if p, isMember := parent.(*ast.MemberExpr); isMember && p.Member == ident {
-			s.log.Printf("handleHover: Hovering over member of MemberExpr: %+v", p)
-			typ = s.checker.TypeOf(p, ns) // p is the MemberExpr 'b.rule_b'
-		} else {
-			s.log.Printf("handleHover: Hovering over standalone ident: %+v", ident)
-			typ = s.checker.TypeOf(ident, ns)
-		}
-	} else if expr, isExpr := node.(ast.Expr); isExpr {
-		s.log.Printf("handleHover: Hovering over non-ident expr: %+v", expr)
-		typ = s.checker.TypeOf(expr, ns)
-	}
-	s.log.Printf("handleHover: Determined type: %+v", typ)
+	var typ string
+	var value string
 
-	if typ == nil {
-		s.log.Printf("handleHover: Type is nil, sending null response.")
+	switch n := node.(type) {
+	case *ast.StringLit:
+		typ = "string"
+		value = sourceOf(n, srcRunes)
+	case *ast.RegexLit:
+		typ = "regexp"
+		value = sourceOf(n, srcRunes)
+	case *ast.ExternalValue:
+		typ = "external"
+		value = sourceOf(n, srcRunes)
+	case *ast.Ident:
+		if memberExpr, isMember := parent.(*ast.MemberExpr); isMember && memberExpr.Member == n {
+			receiverType := s.checker.TypeOf(memberExpr.Object, ns)
+			if nsType, ok := receiverType.(*check.NamespaceType); ok {
+				if importedNs, found := s.checker.CompilationUnit().Namespaces[nsType.Name]; found {
+					if decl, found := importedNs.Members[n.Name]; found {
+						if ruleDecl, ok := decl.(*ast.RuleDecl); ok {
+							typ = "production"
+							importedSrc, srcFound := s.checker.Sources()[nsType.Name]
+							if srcFound {
+								value = sourceOf(ruleDecl.Body, importedSrc) + ";"
+							}
+						}
+					}
+				}
+			}
+		} else {
+			identType := s.checker.TypeOf(n, ns)
+			if identType != nil {
+				switch identType.(type) {
+				case check.ProductionType:
+					if decl, found := ns.Members[n.Name]; found {
+						if ruleDecl, ok := decl.(*ast.RuleDecl); ok {
+							typ = "production"
+							value = sourceOf(ruleDecl.Body, srcRunes) + ";"
+						}
+					}
+				case *check.NamespaceType:
+					if decl, found := ns.Members[n.Name]; found {
+						if bindingDecl, ok := decl.(*ast.BindingDecl); ok {
+							typ = "namespace"
+							path := bindingDecl.Path.Value
+							value = path[1 : len(path)-1] // remove quotes
+						}
+					}
+				}
+			}
+		}
+	}
+	var hoverContent string
+	if typ != "" && value != "" {
+		hoverContent = fmt.Sprintf("(%s)\n\n```grammar\n%s\n```\n", typ, value)
+	}
+
+	if hoverContent == "" {
 		s.sendResponse(id, nil, nil)
 		return
 	}
 
 	hover := Hover{
 		Contents: MarkupContent{
-			Kind:  MarkupKindPlainText,
-			Value: typ.String(),
+			Kind:  MarkupKindMarkdown,
+			Value: hoverContent,
 		},
 	}
 
 	s.sendResponse(id, hover, nil)
-	s.log.Printf("send hover: %s %s", filepath.Base(params.TextDocument.URI.Path), typ.String())
+	s.log.Printf("send hover: %s %s", filepath.Base(params.TextDocument.URI.Path), typ)
+}
+
+func sourceOf(nodeOrSlice interface{}, src []rune) string {
+	var start, end token.Pos
+
+	switch v := nodeOrSlice.(type) {
+	case ast.Node:
+		start = v.Pos()
+		end = v.End()
+	case []ast.Expr:
+		if len(v) == 0 {
+			return ""
+		}
+		start = v[0].Pos()
+		end = v[len(v)-1].End()
+	default:
+		return ""
+	}
+
+	if start < 0 || int(end) > len(src) || start > end {
+		return ""
+	}
+	return string(src[start:end])
 }

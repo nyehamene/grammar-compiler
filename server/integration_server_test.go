@@ -2,6 +2,7 @@ package server_test
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -20,11 +21,11 @@ type lspTestHarness struct {
 }
 
 // setupTestServer creates a new server with an in-memory client connection.
-func setupTestServer(t *testing.T) *lspTestHarness {
+func setupTestServer(t *testing.T, logOut io.Writer) *lspTestHarness {
 	serverRead, clientWrite := io.Pipe()
 	clientRead, serverWrite := io.Pipe()
 
-	serv := server.NewServer(serverRead, serverWrite)
+	serv := server.NewServerWithLogger(serverRead, serverWrite, logOut)
 
 	clientConn := &inMemoryConn{
 		Reader: clientRead,
@@ -105,8 +106,14 @@ func (h *lspTestHarness) read() map[string]any {
 }
 
 func TestDidOpenPublishDiagnostics(t *testing.T) {
-	h := setupTestServer(t)
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
 	defer h.clientConn.Close()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
 
 	textDocumentId, err := server.ParseURI("file:///test.grammar")
 	if err != nil {
@@ -176,86 +183,94 @@ func TestDidOpenPublishDiagnostics(t *testing.T) {
 }
 
 func TestHover(t *testing.T) {
-	h := setupTestServer(t)
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
 	defer h.clientConn.Close()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
 
-	// 1. Open a document that imports another.
+	// Setup for cross-file tests
 	bContent := "rule_b = \"from b\";"
 	bURI, _ := server.ParseURI("file:///b.grammar")
-	bDidOpenParams := server.DidOpenTextDocumentParams{
-		TextDocument: server.TextDocumentItem{
-			URI: bURI, Text: bContent, Version: 1,
-		},
-	}
-	var bParams any = bDidOpenParams
-	h.send(server.NotificationMessage{
-		Message: server.Message{JSONRPC: "2.0"},
-		Method:  "textDocument/didOpen",
-		Params:  &bParams,
-	})
-	diags := h.read() // Consume diagnostics
-	diagsParams := diags["params"].(map[string]any)
-	diag := diagsParams["diagnostics"].([]any)
-	if len(diag) != 0 {
-		t.Fatalf("server reported an error: %s", diag)
-	}
+	h.send(newDidOpenNotification(bURI, bContent, 1))
+	consumeDiagnostics(h)
 
-	aContent := "b = @import(\"b.grammar\");\na = b.rule_b;"
+	aContent := `
+b = @import("b.grammar");
+str = "hello";
+re = /[a-z]/;
+ext = $foo;
+prod_a = "a";
+prod_b = prod_a;
+prod_c = b.rule_b;
+`
 	aURI, _ := server.ParseURI("file:///a.grammar")
-	aDidOpenParams := server.DidOpenTextDocumentParams{
-		TextDocument: server.TextDocumentItem{
-			URI: aURI, Text: aContent, Version: 1,
-		},
-	}
-	var aParams any = aDidOpenParams
-	h.send(server.NotificationMessage{
-		Message: server.Message{JSONRPC: "2.0"},
-		Method:  "textDocument/didOpen",
-		Params:  &aParams,
-	})
-	diags = h.read() // Consume diagnostics
-	diagsParams = diags["params"].(map[string]any)
-	diag = diagsParams["diagnostics"].([]any)
-	if len(diag) != 0 {
-		t.Fatalf("server reported an error: %s", diag)
+	h.send(newDidOpenNotification(aURI, aContent, 2))
+	consumeDiagnostics(h)
+
+	testCases := []struct {
+		name          string
+		uri           server.DocumentUri
+		position      server.Position
+		expectedType  string
+		expectedValue string
+	}{
+		{"string literal", aURI, server.Position{Line: 2, Character: 7}, "string", `"hello"`},
+		{"regexp literal", aURI, server.Position{Line: 3, Character: 6}, "regexp", `/[a-z]/`},
+		{"external value", aURI, server.Position{Line: 4, Character: 7}, "external", `$foo`},
+		{"local production", aURI, server.Position{Line: 6, Character: 9}, "production", `"a";`},
+		{"binding", aURI, server.Position{Line: 1, Character: 0}, "namespace", "b.grammar"},
+		{"imported member", aURI, server.Position{Line: 7, Character: 11}, "production", `"from b";`},
 	}
 
-	// 2. Send hover request
-	id := 1
-	var hoverReqParams any = server.HoverParams{
-		TextDocumentPositionParams: server.TextDocumentPositionParams{
-			TextDocument: server.TextDocumentIdentifier{URI: aURI},
-			Position:     server.Position{Line: 1, Character: 5}, // Position of 'b.rule_b'
-		},
-	}
-	h.send(server.RequestMessage{
-		Message: server.Message{JSONRPC: "2.0"},
-		ID:      &id,
-		Method:  "textDocument/hover",
-		Params:  &hoverReqParams,
-	})
+	idCounter := 1
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			id := idCounter
+			var hoverReqParams any = server.HoverParams{
+				TextDocumentPositionParams: server.TextDocumentPositionParams{
+					TextDocument: server.TextDocumentIdentifier{URI: tc.uri},
+					Position:     tc.position,
+				},
+			}
+			h.send(newRequest(id, "textDocument/hover", &hoverReqParams))
 
-	// 3. Read and verify response
-	msg := h.read()
-	if msg["id"] == nil || msg["id"].(float64) != float64(id) {
-		t.Fatalf("Expected response for request %d, got %v", id, msg)
-	}
+			msg := h.read()
+			assertResponseID(h, msg, id)
 
-	resultData, _ := json.Marshal(msg["result"])
-	var hover server.Hover
-	json.Unmarshal(resultData, &hover)
+			resultData, err := json.Marshal(msg["result"])
+			if err != nil {
+				t.Fatalf("Failed to marshal hover result: %v", err)
+			}
+			var hover server.Hover
+			json.Unmarshal(resultData, &hover)
 
-	if hover.Contents.Kind != server.MarkupKindPlainText {
-		t.Errorf("Expected hover kind to be plaintext, got %s", hover.Contents.Kind)
-	}
-	if hover.Contents.Value != "production" {
-		t.Errorf("Expected hover value to be 'production', got %s", hover.Contents.Value)
+			if hover.Contents.Kind != server.MarkupKindMarkdown {
+				t.Errorf("Expected hover kind to be Markdown, got %s", hover.Contents.Kind)
+			}
+
+			expectedHoverValue := fmt.Sprintf("(%s)\n\n```grammar\n%s\n```\n", tc.expectedType, tc.expectedValue)
+			if hover.Contents.Value != expectedHoverValue {
+				t.Errorf("Expected hover value:\n%s\nGot:\n%s", expectedHoverValue, hover.Contents.Value)
+			}
+
+			idCounter++
+		})
 	}
 }
 
 func TestDefinition(t *testing.T) {
-	h := setupTestServer(t)
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
 	defer h.clientConn.Close()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
 
 	// 1. Open documents
 	bContent := "rule_b = \"from b\";"
@@ -310,8 +325,14 @@ func TestDefinition(t *testing.T) {
 }
 
 func TestReferences(t *testing.T) {
-	h := setupTestServer(t)
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
 	defer h.clientConn.Close()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
 
 	// 1. Open documents
 	commonContent := "export_rule = \"hello\";"
@@ -372,8 +393,14 @@ func TestReferences(t *testing.T) {
 }
 
 func TestDocumentSymbol(t *testing.T) {
-	h := setupTestServer(t)
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
 	defer h.clientConn.Close()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
 
 	// 1. Open document
 	content := `
@@ -426,8 +453,14 @@ rule_a = "hello";
 }
 
 func TestWorkspaceSymbol(t *testing.T) {
-	h := setupTestServer(t)
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
 	defer h.clientConn.Close()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
 
 	// 1. Open documents
 	contentA := "rule_foo = \"a\";"
@@ -475,8 +508,14 @@ func TestWorkspaceSymbol(t *testing.T) {
 }
 
 func TestRename(t *testing.T) {
-	h := setupTestServer(t)
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
 	defer h.clientConn.Close()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
 
 	// 1. Open documents
 	commonContent := "rename_rule = \"hello\";"

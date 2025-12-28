@@ -26,22 +26,22 @@ func NewServer(r io.Reader, w io.Writer) *Server {
 	logPath := filepath.Join(os.Getenv("HOME"), ".cache", "grammar")
 	if err := os.MkdirAll(filepath.Dir(logPath), 0755); err != nil {
 		log.Printf("Failed to create log directory: %v", err)
-		return newServer(bufio.NewReader(r), w, os.Stderr)
+		return NewServerWithLogger(bufio.NewReader(r), w, os.Stderr)
 	}
 	logFilePath := filepath.Join(logPath, "lsp.log")
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		log.Printf("Failed to open log file: %v", err)
-		return newServer(bufio.NewReader(r), w, os.Stderr)
+		return NewServerWithLogger(bufio.NewReader(r), w, os.Stderr)
 	}
-	return newServer(r, w, logFile)
+	return NewServerWithLogger(r, w, logFile)
 }
 
-func newServer(r io.Reader, w io.Writer, out io.Writer) *Server {
-	logger := log.New(out, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile)
+func NewServerWithLogger(in io.Reader, out io.Writer, logOut io.Writer) *Server {
+	logger := log.New(logOut, "lsp: ", log.Ldate|log.Ltime|log.Lshortfile)
 	srv := &Server{
-		reader:    bufio.NewReader(r),
-		writer:    w,
+		reader:    bufio.NewReader(in),
+		writer:    out,
 		log:       logger,
 		shutdown:  false,
 		documents: make(map[DocumentUri]string),
