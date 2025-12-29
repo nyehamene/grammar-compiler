@@ -33,6 +33,7 @@ type ServerCapabilities struct {
 	DocumentSymbolProvider  bool                     `json:"documentSymbolProvider,omitempty"`
 	WorkspaceSymbolProvider bool                     `json:"workspaceSymbolProvider,omitempty"`
 	RenameProvider          bool                     `json:"renameProvider,omitempty"`
+	DiagnosticProvider      *DiagnosticOptions       `json:"diagnosticProvider,omitempty"`
 	// ... other server capabilities
 }
 
@@ -88,6 +89,10 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 			DocumentSymbolProvider:  true,
 			WorkspaceSymbolProvider: true,
 			RenameProvider:          true,
+			DiagnosticProvider: &DiagnosticOptions{
+				WorkspaceDiagnostics:  true,
+				InterFileDependencies: true,
+			},
 		},
 		ServerInfo: &ServerInfo{
 			Name:    "grammar-lsp",

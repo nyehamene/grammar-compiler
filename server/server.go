@@ -121,6 +121,8 @@ func (s *Server) handleRequest(id int, msg map[string]any) {
 		s.handlePrepareRename(id, msg)
 	case "textDocument/rename":
 		s.handleRename(id, msg)
+	case "textDocument/diagnostic":
+		s.handleDocumentDiagnostic(id, msg)
 	default:
 		s.sendResponse(id, fmt.Sprintf("Received method %s with params %v", method, msg["params"]), nil)
 		s.log.Printf("unexpected method: %s", method)

@@ -858,3 +858,56 @@ func mustMarshal(h *lspTestHarness, v any) []byte {
 	}
 	return bytes
 }
+
+func TestDocumentDiagnosticRequest(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer func() { _ = h.clientConn.Close() }()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	// 1. Open document with an error
+	content := "a = b;" // 'b' is undefined
+	uri, _ := server.ParseURI("file:///test_diagnostic.grammar")
+	h.send(newDidOpenNotification(uri, content, 1))
+
+	// 2. Consume the initial push diagnostic
+	consumeDiagnostics(h)
+
+	// 3. Send a pull diagnostic request
+	id := 1
+	var diagnosticParams any = server.DocumentDiagnosticParams{
+		TextDocument: server.TextDocumentIdentifier{URI: uri},
+	}
+	h.send(newRequest(id, "textDocument/diagnostic", &diagnosticParams))
+
+	// 4. Read and verify the response
+	msg := h.read()
+	assertResponseID(h, msg, id)
+
+	resultData, err := json.Marshal(msg["result"])
+	if err != nil {
+		t.Fatalf("Failed to marshal diagnostic result: %v", err)
+	}
+
+	var report server.RelatedFullDocumentDiagnosticReport
+	if err := json.Unmarshal(resultData, &report); err != nil {
+		t.Fatalf("Failed to unmarshal diagnostic report: %v", err)
+	}
+
+	if report.Kind != server.DocumentDiagnosticReportKindFull {
+		t.Errorf("Expected report kind to be 'full', got '%s'", report.Kind)
+	}
+
+	if len(report.Items) != 1 {
+		t.Fatalf("Expected 1 diagnostic item, got %d", len(report.Items))
+	}
+
+	diag := report.Items[0]
+	if !strings.Contains(diag.Message, "undefined identifier: b") {
+		t.Errorf("Expected diagnostic message to contain 'undefined identifier: b', got: '%s'", diag.Message)
+	}
+}

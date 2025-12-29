@@ -258,3 +258,30 @@ type CompletionOptions struct {
 	TriggerCharacters []string `json:"triggerCharacters,omitempty"`
 	ResolveProvider   *bool    `json:"resolveProvider,omitempty"`
 }
+
+// DiagnosticOptions options for providing diagnostics.
+type DiagnosticOptions struct {
+	WorkspaceDiagnostics  bool `json:"workspaceDiagnostics,omitempty"`
+	InterFileDependencies bool `json:"interFileDependencies,omitempty"`
+}
+
+// DocumentDiagnosticParams parameters for `textDocument/diagnostic` request.
+type DocumentDiagnosticParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// DocumentDiagnosticReportKind is the kind of diagnostic report.
+type DocumentDiagnosticReportKind string
+
+const (
+	// DocumentDiagnosticReportKindFull is a full diagnostic report.
+	DocumentDiagnosticReportKindFull DocumentDiagnosticReportKind = "full"
+	// DocumentDiagnosticReportKindUnchanged is an unchanged diagnostic report.
+	DocumentDiagnosticReportKindUnchanged DocumentDiagnosticReportKind = "unchanged"
+)
+
+// RelatedFullDocumentDiagnosticReport is a full diagnostic report for a document.
+type RelatedFullDocumentDiagnosticReport struct {
+	Kind  DocumentDiagnosticReportKind `json:"kind"` // "full"
+	Items []Diagnostic                 `json:"items"`
+}

@@ -95,7 +95,7 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 		// No children to check.
 	case *ast.Ident:
 		if _, found := ns.Members[n.Name]; !found {
-			c.cu.AddError(ns.Name, n.Pos(), fmt.Sprintf("undefined: %s", n.Name))
+			c.cu.AddError(ns.Name, n.Pos(), fmt.Sprintf("undefined identifier: %s", n.Name))
 		}
 	case *ast.MemberExpr:
 		receiverType := c.typeOf(n.Object, ns)
