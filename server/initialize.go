@@ -34,6 +34,7 @@ type ServerCapabilities struct {
 	WorkspaceSymbolProvider bool                     `json:"workspaceSymbolProvider,omitempty"`
 	RenameProvider          bool                     `json:"renameProvider,omitempty"`
 	DiagnosticProvider      *DiagnosticOptions       `json:"diagnosticProvider,omitempty"`
+	DocumentLinkProvider    *DocumentLinkOptions     `json:"documentLinkProvider,omitempty"`
 	// ... other server capabilities
 }
 
@@ -92,6 +93,9 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 			DiagnosticProvider: &DiagnosticOptions{
 				WorkspaceDiagnostics:  true,
 				InterFileDependencies: true,
+			},
+			DocumentLinkProvider: &DocumentLinkOptions{
+				ResolveProvider: false,
 			},
 		},
 		ServerInfo: &ServerInfo{

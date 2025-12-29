@@ -285,3 +285,19 @@ type RelatedFullDocumentDiagnosticReport struct {
 	Kind  DocumentDiagnosticReportKind `json:"kind"` // "full"
 	Items []Diagnostic                 `json:"items"`
 }
+
+// DocumentLinkOptions is the server capability for document link.
+type DocumentLinkOptions struct {
+	ResolveProvider bool `json:"resolveProvider,omitempty"`
+}
+
+// DocumentLinkParams is the parameter for `textDocument/documentLink`.
+type DocumentLinkParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// DocumentLink is a link to a document.
+type DocumentLink struct {
+	Range  Range       `json:"range"`
+	Target DocumentUri `json:"target,omitempty"`
+}

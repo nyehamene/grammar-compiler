@@ -911,3 +911,80 @@ func TestDocumentDiagnosticRequest(t *testing.T) {
 		t.Errorf("Expected diagnostic message to contain 'undefined identifier: b', got: '%s'", diag.Message)
 	}
 }
+
+func TestDocumentLinkRequest(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer func() { _ = h.clientConn.Close() }()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	// Create test files on disk
+	testDir := t.TempDir()
+	bPath := filepath.Join(testDir, "b.grammar")
+	aPath := filepath.Join(testDir, "a.grammar")
+
+	bContent := `rule_b = "from b";`
+	if err := os.WriteFile(bPath, []byte(bContent), 0644); err != nil {
+		t.Fatalf("Failed to write b.grammar: %v", err)
+	}
+
+	aContent := `binding_b = @import("b.grammar");`
+	if err := os.WriteFile(aPath, []byte(aContent), 0644); err != nil {
+		t.Fatalf("Failed to write a.grammar: %v", err)
+	}
+
+	aURI, _ := server.ParseURI("file://" + aPath)
+	bURI, _ := server.ParseURI("file://" + bPath)
+
+	// 1. Open a.grammar
+	h.send(newDidOpenNotification(aURI, aContent, 1))
+	consumeDiagnostics(h) // Consume initial diagnostics for a.grammar
+
+	// 2. Send documentLink request for a.grammar
+	id := 1
+	var linkParams any = server.DocumentLinkParams{
+		TextDocument: server.TextDocumentIdentifier{URI: aURI},
+	}
+	h.send(newRequest(id, "textDocument/documentLink", &linkParams))
+
+	// 3. Read and verify the response
+	msg := h.read()
+	assertResponseID(h, msg, id)
+
+	resultData, err := json.Marshal(msg["result"])
+	if err != nil {
+		t.Fatalf("Failed to marshal documentLink result: %v", err)
+	}
+
+	var links []server.DocumentLink
+	if err := json.Unmarshal(resultData, &links); err != nil {
+		t.Fatalf("Failed to unmarshal document links: %v", err)
+	}
+
+	if len(links) != 1 {
+		t.Fatalf("Expected 1 document link, got %d", len(links))
+	}
+
+	link := links[0]
+	// Expected range for "b.grammar" in 'binding_b = @import("b.grammar");'
+	// The string "b.grammar" starts at character 19 (0-indexed) and ends at 29.
+	// Line is 0.
+	expectedStart := server.Position{Line: 0, Character: 20}
+	expectedEnd := server.Position{Line: 0, Character: 31} // 19 + len("b.grammar") + 1 (for quotes) - 1
+
+	if link.Range.Start != expectedStart {
+		t.Errorf("Expected link start %v, got %v", expectedStart, link.Range.Start)
+	}
+	if link.Range.End != expectedEnd {
+		t.Errorf("Expected link end %v, got %v", expectedEnd, link.Range.End)
+	}
+
+	if link.Target != bURI {
+		t.Errorf("Expected link target %v, got %v", bURI, link.Target)
+	}
+}
+
