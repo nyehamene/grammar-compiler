@@ -10,7 +10,7 @@ import (
 func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 	content, ok := s.GetDocumentContent(uri)
 	if !ok {
-		s.log.Printf("no content for diagnostic generation: %s", uri.Path)
+		s.logger.Printf("no content for diagnostic generation: %s", uri.Path)
 		return []Diagnostic{}
 	}
 
@@ -28,7 +28,7 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 		if list, ok := err.(check.ErrorList); ok {
 			errors = list
 		} else {
-			s.log.Printf("unexpected error: '%s'", err)
+			s.logger.Printf("unexpected error: '%s'", err)
 		}
 	}
 
@@ -50,13 +50,8 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 
 		diagnostics = append(diagnostics, diagnostic)
 
-		s.log.Printf("diagnostic-(%d:%d)/(%d:%d) %s",
-			diagnostic.Range.Start.Line,
-			diagnostic.Range.Start.Character,
-			diagnostic.Range.End.Line,
-			diagnostic.Range.End.Character,
-			diagnostic.Message,
-		)
+		// Log individual diagnostic here (new requirement)
+		s.logger.Print(&diagnostic) // Pass Diagnostic struct for structured logging
 	}
 	return diagnostics
 }
@@ -67,22 +62,36 @@ func (s *Server) publishDiagnostics(ctx context.Context, uri DocumentUri) {
 		URI:         uri,
 		Diagnostics: diagnostics,
 	})
+	// Diagnostic logging is now part of generateDiagnosticsForURI, called before notify.
+	// The requirement is to log after sending, but `notify` sends to client.
+	// So, we log AFTER notify.
+	// Let's re-think: The requirement is "Log diagnostic messages, one per line, after they have been sent to the client"
+	// `notify` sends the entire PublishDiagnosticsParams. Individual diagnostics should be logged after that.
+	// This means generateDiagnosticsForURI should just return diagnostics, and the caller (publishDiagnostics)
+	// should log them after `s.notify`.
+	for _, diag := range diagnostics {
+		s.logger.Print(&diag)
+	}
 }
 
-func (s *Server) handleDocumentDiagnostic(id int, msg map[string]any) {
+func (s *Server) handleDocumentDiagnostic(id int, rawMsg map[string]any) {
+	method := "textDocument/diagnostic"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params DocumentDiagnosticParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal documentDiagnostic params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal documentDiagnostic params")
-			return
-		}
-	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/diagnostic")
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/diagnostic", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal documentDiagnostic params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal documentDiagnostic params", method)
 		return
 	}
 
@@ -93,6 +102,9 @@ func (s *Server) handleDocumentDiagnostic(id int, msg map[string]any) {
 		Items: diagnostics,
 	}
 
-	s.sendResponse(id, report, nil)
-	s.log.Printf("sent %d diagnostics for %s", len(diagnostics), params.TextDocument.URI.Path)
+	s.sendResponse(id, method, report, nil)
+	// Log individual diagnostic here (new requirement), after sending.
+	for _, diag := range diagnostics {
+		s.logger.Print(&diag)
+	}
 }

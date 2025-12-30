@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 // InitializeParams represents the parameters of an `initialize` request.
@@ -59,20 +60,25 @@ type ServerInfo struct {
 	Version string `json:"version,omitempty"`
 }
 
-func handleInitializeRequest(s *Server, id int, msg map[string]any) {
+func handleInitializeRequest(s *Server, id int, rawMsg map[string]any) {
+	method := "initialize"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params InitializeParams
-	paramsBytes, err := json.Marshal(msg["params"])
+	paramsBytes, err := json.Marshal(rawMsg["params"])
 	if err != nil {
-		s.sendErrorResponse(id, InvalidParams, "Failed to marshal initialize params")
+		s.sendErrorResponse(id, InvalidParams, fmt.Sprintf("Failed to marshal initialize params: %v", err), method)
 		return
 	}
 	if err := json.Unmarshal(paramsBytes, &params); err != nil {
-		s.log.Println(err)
-		s.sendErrorResponse(id, InvalidParams, "Invalid initialize params")
+		s.logger.Printf("Invalid initialize params: %v", err)
+		s.sendErrorResponse(id, InvalidParams, "Invalid initialize params", method)
 		return
 	}
 
-	s.log.Printf("Client capabilities: %v", params.Capabilities)
+	s.logger.Print(&params) // Log the InitializeParams struct directly for special handling
 
 	// Respond with server capabilities
 	result := InitializeResult{
@@ -103,6 +109,5 @@ func handleInitializeRequest(s *Server, id int, msg map[string]any) {
 			Version: "0.1.0",
 		},
 	}
-	s.sendResponse(id, result, nil)
-	s.log.Printf("initialize result: %d", id)
+	s.sendResponse(id, method, result, nil)
 }

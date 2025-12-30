@@ -3,30 +3,35 @@ package server
 import (
 	"encoding/json"
 	"grammar/ast"
+	"path/filepath"
 	"strings"
 )
 
-func (s *Server) handleWorkspaceSymbol(id int, msg map[string]any) {
+func (s *Server) handleWorkspaceSymbol(id int, rawMsg map[string]any) {
+	method := "workspace/symbol"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params WorkspaceSymbolParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal workspaceSymbol params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal workspaceSymbol params")
-			return
-		}
-	} else {
-		// Params can be missing, in which case the query is empty and all symbols should be returned.
-		params.Query = ""
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for workspace/symbol", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal workspaceSymbol params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal workspaceSymbol params", method)
+		return
 	}
 
 	query := strings.ToLower(params.Query)
 	symbols := []SymbolInformation{}
 
-	s.log.Printf("handling workspace symbol request with query: '%s'", query)
+	s.logger.Printf("handling workspace symbol request with query: '%s'", query)
 
 	for uriStr, ns := range s.checker.CompilationUnit().Namespaces {
 		if ns == nil || ns.File == nil {
@@ -34,6 +39,7 @@ func (s *Server) handleWorkspaceSymbol(id int, msg map[string]any) {
 		}
 		srcRunes, ok := s.checker.CompilationUnit().Sources[uriStr]
 		if !ok {
+			s.logger.Printf("handleWorkspaceSymbol: no source available for '%s'", filepath.Base(uriStr))
 			continue
 		}
 		uri, err := ParseURI(uriStr)
@@ -74,6 +80,6 @@ func (s *Server) handleWorkspaceSymbol(id int, msg map[string]any) {
 		}
 	}
 
-	s.sendResponse(id, symbols, nil)
-	s.log.Printf("sent %d workspace symbols for query '%s'", len(symbols), query)
+	s.sendResponse(id, method, symbols, nil)
+	// Logged by sendResponse: s.logger.Printf("sent %d workspace symbols for query '%s'", len(symbols), query)
 }

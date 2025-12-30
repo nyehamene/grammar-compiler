@@ -3,29 +3,32 @@ package server
 import (
 	"encoding/json"
 	"grammar/ast"
-	"path/filepath"
 )
 
-func (s *Server) handlePrepareRename(id int, msg map[string]any) {
+func (s *Server) handlePrepareRename(id int, rawMsg map[string]any) {
+	method := "textDocument/prepareRename"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params PrepareRenameParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal prepareRename params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal prepareRename params")
-			return
-		}
-	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/prepareRename")
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/prepareRename", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal prepareRename params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal prepareRename params", method)
 		return
 	}
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.sendResponse(id, nil, nil) // Document not open
+		s.sendResponse(id, method, nil, nil) // Document not open
 		return
 	}
 	srcRunes := []rune(content)
@@ -33,7 +36,7 @@ func (s *Server) handlePrepareRename(id int, msg map[string]any) {
 
 	ns, ok := s.checker.CompilationUnit().Namespaces[uriStr]
 	if !ok || ns == nil || ns.File == nil {
-		s.sendResponse(id, nil, nil) // No AST available
+		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
 
@@ -42,7 +45,7 @@ func (s *Server) handlePrepareRename(id int, msg map[string]any) {
 
 	// A rename is only valid on an identifier.
 	if _, isIdent := node.(*ast.Ident); !isIdent {
-		s.sendResponse(id, nil, nil) // Not a valid symbol to rename.
+		s.sendResponse(id, method, nil, nil) // Not a valid symbol to rename.
 		return
 	}
 
@@ -52,30 +55,34 @@ func (s *Server) handlePrepareRename(id int, msg map[string]any) {
 		End:   PosToPosition(node.End(), srcRunes),
 	}
 
-	s.sendResponse(id, renameRange, nil)
-	s.log.Printf("prepared rename for %s", filepath.Base(uriStr))
+	s.sendResponse(id, method, renameRange, nil)
+	// Logged by sendResponse: s.logger.Printf("prepared rename for %s", filepath.Base(uriStr))
 }
 
-func (s *Server) handleRename(id int, msg map[string]any) {
+func (s *Server) handleRename(id int, rawMsg map[string]any) {
+	method := "textDocument/rename"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params RenameParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal rename params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal rename params")
-			return
-		}
-	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/rename")
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/rename", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal rename params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal rename params", method)
 		return
 	}
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.sendResponse(id, nil, nil) // Document not open
+		s.sendResponse(id, method, nil, nil) // Document not open
 		return
 	}
 	srcRunes := []rune(content)
@@ -85,7 +92,7 @@ func (s *Server) handleRename(id int, msg map[string]any) {
 	// Find all references to the symbol at the given position.
 	refNodes := s.checker.FindReferences(uriStr, pos)
 	if refNodes == nil {
-		s.sendResponse(id, nil, nil) // No symbol found or no references.
+		s.sendResponse(id, method, nil, nil) // No symbol found or no references.
 		return
 	}
 
@@ -128,6 +135,6 @@ func (s *Server) handleRename(id int, msg map[string]any) {
 		}
 	}
 
-	s.sendResponse(id, workspaceEdit, nil)
-	s.log.Printf("sent workspace edit with %d files for rename to '%s'", len(workspaceEdit.Changes), params.NewName)
+	s.sendResponse(id, method, workspaceEdit, nil)
+	// Logged by sendResponse: s.logger.Printf("sent workspace edit with %d files for rename to '%s'", len(workspaceEdit.Changes), params.NewName)
 }

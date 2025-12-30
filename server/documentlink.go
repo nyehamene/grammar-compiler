@@ -8,34 +8,38 @@ import (
 	"path/filepath"
 )
 
-func (s *Server) handleDocumentLink(id int, msg map[string]any) {
+func (s *Server) handleDocumentLink(id int, rawMsg map[string]any) {
+	method := "textDocument/documentLink"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params DocumentLinkParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal documentLink params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal documentLink params")
-			return
-		}
-	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/documentLink")
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/documentLink", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal documentLink params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal documentLink params", method)
 		return
 	}
 
 	uriStr := params.TextDocument.URI.String()
 	ns, ok := s.checker.CompilationUnit().Namespaces[uriStr]
 	if !ok || ns == nil || ns.File == nil {
-		s.log.Printf("handleDocumentLink: No AST available for %s.", uriStr)
-		s.sendResponse(id, []DocumentLink{}, nil) // No AST available, return empty list
+		s.logger.Printf("handleDocumentLink: No AST available for %s.", uriStr)
+		s.sendResponse(id, method, []DocumentLink{}, nil) // No AST available, return empty list
 		return
 	}
 	srcRunes, ok := s.checker.CompilationUnit().Sources[uriStr]
 	if !ok {
-		s.log.Printf("handleDocumentLink: No source available for %s.", uriStr)
-		s.sendResponse(id, []DocumentLink{}, nil) // No source available, return empty list
+		s.logger.Printf("handleDocumentLink: No source available for %s.", uriStr)
+		s.sendResponse(id, method, []DocumentLink{}, nil) // No source available, return empty list
 		return
 	}
 
@@ -52,7 +56,7 @@ func (s *Server) handleDocumentLink(id int, msg map[string]any) {
 				// Resolve the import path to an absolute URI
 				targetURI, err := resolveImportPath(uriStr, importPath)
 				if err != nil {
-					s.log.Printf("handleDocumentLink: failed to resolve import path '%s': %v", importPath, err)
+					s.logger.Printf("handleDocumentLink: failed to resolve import path '%s': %v", importPath, err)
 					return // Continue walking the AST, skip this link
 				}
 
@@ -67,8 +71,8 @@ func (s *Server) handleDocumentLink(id int, msg map[string]any) {
 		}
 	})
 
-	s.sendResponse(id, links, nil)
-	s.log.Printf("sent %d document links for %s", len(links), params.TextDocument.URI.Path)
+	s.sendResponse(id, method, links, nil)
+	// s.logger.Printf("sent %d document links for %s", len(links), params.TextDocument.URI.Path) // Logged by sendResponse
 }
 
 // resolveImportPath resolves a relative import path to an absolute DocumentUri.

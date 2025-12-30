@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"grammar/check"
 	"grammar/command"
+	"grammar/log"
 	"io"
 	"os"
 	"path/filepath"
@@ -34,7 +35,10 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
-	checker := check.NewChecker()
+	logger := log.NewStderrLogger()
+	fileLoader := &check.FileSystemFileLoader{}
+	cu := check.NewCompilationUnit(fileLoader, logger)
+	checker := check.NewChecker(cu, logger)
 	var finalErr error
 
 	if fromStdin {

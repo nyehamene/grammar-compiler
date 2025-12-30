@@ -6,49 +6,52 @@ import (
 	"grammar/ast"
 	"grammar/check"
 	"grammar/token"
-	"path/filepath"
 )
 
-func (s *Server) handleHover(id int, msg map[string]any) {
+func (s *Server) handleHover(id int, rawMsg map[string]any) {
+	method := "textDocument/hover"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params HoverParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal hover params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal hover params")
-			return
-		}
-	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/hover")
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/hover", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal hover params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal hover params", method)
 		return
 	}
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.log.Printf("handleHover: Document not open %s", params.TextDocument.URI.String())
-		s.sendResponse(id, nil, nil) // Document not open
+		s.logger.Printf("handleHover: Document not open %s", params.TextDocument.URI.String())
+		s.sendResponse(id, method, nil, nil) // Document not open
 		return
 	}
 	srcRunes := []rune(content)
 
 	ns, ok := s.checker.CompilationUnit().Namespaces[params.TextDocument.URI.String()]
 	if !ok || ns == nil || ns.File == nil {
-		s.log.Printf("handleHover: No AST available for %s. ok: %t", params.TextDocument.URI.String(), ok)
-		s.sendResponse(id, nil, nil) // No AST available
+		s.logger.Printf("handleHover: No AST available for %s. ok: %t", params.TextDocument.URI.String(), ok)
+		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
 
 	pos := PositionToPos(params.Position, srcRunes)
 	node, parent := ast.FindNodeAt(ns.File, pos)
 	if node == nil {
-		s.log.Printf("handleHover: No node found at position %d", pos)
-		s.sendResponse(id, nil, nil)
+		s.logger.Printf("handleHover: No node found at position %d", pos)
+		s.sendResponse(id, method, nil, nil)
 		return
 	}
-	s.log.Printf("handleHover: Found node: %+v, Parent: %+v", node, parent)
+	s.logger.Printf("handleHover: Found node: %+v, Parent: %+v", node, parent)
 
 	var typ string
 	var value string
@@ -108,7 +111,7 @@ func (s *Server) handleHover(id int, msg map[string]any) {
 	}
 
 	if hoverContent == "" {
-		s.sendResponse(id, nil, nil)
+		s.sendResponse(id, method, nil, nil)
 		return
 	}
 
@@ -119,8 +122,7 @@ func (s *Server) handleHover(id int, msg map[string]any) {
 		},
 	}
 
-	s.sendResponse(id, hover, nil)
-	s.log.Printf("send hover: %s %s", filepath.Base(params.TextDocument.URI.Path), typ)
+	s.sendResponse(id, method, hover, nil)
 }
 
 func sourceOf(nodeOrSlice interface{}, src []rune) string {

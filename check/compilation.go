@@ -3,8 +3,8 @@ package check
 import (
 	"fmt"
 	"grammar/ast"
+	"grammar/log"
 	"grammar/token"
-	"log"
 	"net/url"
 	"path/filepath"
 )
@@ -16,15 +16,14 @@ type CompilationUnit struct {
 	Errors     map[string]ErrorList
 	Sources    map[string][]rune
 	loading    map[string]bool
-	log        *log.Logger
+	log        log.Logger
 }
 
 // NewCompilationUnit creates a new compilation unit with a file loader.
-func NewCompilationUnit(loader FileLoader, logger *log.Logger) *CompilationUnit {
-	l := log.New(logger.Writer(), "(cu)", log.Flags())
+func NewCompilationUnit(loader FileLoader, logger log.Logger) *CompilationUnit {
 	return &CompilationUnit{
 		loader:     loader,
-		log:        l,
+		log:        logger,
 		Namespaces: make(map[string]*Namespace),
 		Sources:    make(map[string][]rune),
 		loading:    make(map[string]bool),

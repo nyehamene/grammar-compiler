@@ -4,47 +4,50 @@ import (
 	"encoding/json"
 	"grammar/ast"
 	"grammar/check"
-	"grammar/token" // Import token package
-	"path/filepath"
+	"grammar/token"
 	"unicode" // Import unicode package
 )
 
-func (s *Server) handleCompletion(id int, msg map[string]any) {
+func (s *Server) handleCompletion(id int, rawMsg map[string]any) {
+	method := "textDocument/completion"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params CompletionParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal completion params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal completion params")
-			return
-		}
-	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/completion")
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/completion", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal completion params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal completion params", method)
 		return
 	}
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.log.Printf("handleCompletion: Document not open %s", params.TextDocument.URI.String())
-		s.sendResponse(id, nil, nil) // Document not open
+		s.logger.Printf("handleCompletion: Document not open %s", params.TextDocument.URI.String())
+		s.sendResponse(id, method, nil, nil) // Document not open
 		return
 	}
 	srcRunes := []rune(content)
 
 	ns, ok := s.checker.CompilationUnit().Namespaces[params.TextDocument.URI.String()]
 	if !ok || ns == nil || ns.File == nil {
-		s.log.Printf("handleCompletion: No AST available for %s. ok: %t", params.TextDocument.URI.String(), ok)
-		s.sendResponse(id, nil, nil) // No AST available
+		s.logger.Printf("handleCompletion: No AST available for %s. ok: %t", params.TextDocument.URI.String(), ok)
+		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
 
 	pos := PositionToPos(params.Position, srcRunes)
 	node, parent := ast.FindNodeAt(ns.File, pos)
 
-	s.log.Printf("Completion node at position: %#v %#v", node, parent)
+	s.logger.Printf("Completion node at position: %#v %#v", node, parent)
 
 	items := s.getCompletions(node, parent, ns, s.checker.CompilationUnit(), params.Position, srcRunes)
 
@@ -53,8 +56,7 @@ func (s *Server) handleCompletion(id int, msg map[string]any) {
 		Items:        items,
 	}
 
-	s.sendResponse(id, completionList, nil)
-	s.log.Printf("send completion: %s", filepath.Base(params.TextDocument.URI.Path))
+	s.sendResponse(id, method, completionList, nil)
 }
 
 func (s *Server) getCompletions(node, parent ast.Node, ns *check.Namespace, cu *check.CompilationUnit, cursorPosition Position, srcRunes []rune) []CompletionItem {
@@ -76,31 +78,31 @@ func (s *Server) getCompletions(node, parent ast.Node, ns *check.Namespace, cu *
 
 		if identStart < identEnd { // If an identifier was found before the dot
 			identName := string(srcRunes[identStart:identEnd])
-			s.log.Printf("Completion: Identified receiver: %s", identName)
+			s.logger.Printf("Completion: Identified receiver: %s", identName)
 
 			// Create a dummy Ident node for type checking. Position doesn't matter much here.
 			dummyIdent := &ast.Ident{NamePos: token.NoPos, Name: identName}
 			typ := s.checker.TypeOf(dummyIdent, ns)
-			s.log.Printf("Completion: Type of receiver (%s): %T", identName, typ)
+			s.logger.Printf("Completion: Type of receiver (%s): %T", identName, typ)
 
 			nsType, ok := typ.(*check.NamespaceType)
 			if !ok {
-				s.log.Printf("Completion: Receiver %s is not NamespaceType, got %T", identName, typ)
+				s.logger.Printf("Completion: Receiver %s is not NamespaceType, got %T", identName, typ)
 				return nil
 			}
 
-			s.log.Printf("Completion: Receiver is NamespaceType: %s", nsType.Name)
+			s.logger.Printf("Completion: Receiver is NamespaceType: %s", nsType.Name)
 			importedNs, found := cu.Namespaces[nsType.Name]
 			if !found {
-				s.log.Printf("Completion: Imported namespace %s not found in CU", nsType.Name)
+				s.logger.Printf("Completion: Imported namespace %s not found in CU", nsType.Name)
 				return nil
 			}
 
-			s.log.Printf("Completion: Found imported namespace: %s. Members: %v", nsType.Name, importedNs.Members)
+			s.logger.Printf("Completion: Found imported namespace: %s. Members: %v", nsType.Name, importedNs.Members)
 
 			for name, decl := range importedNs.Members {
 				if _, isRule := decl.(*ast.RuleDecl); isRule {
-					s.log.Printf("Completion: Adding member: %s", name)
+					s.logger.Printf("Completion: Adding member: %s", name)
 					items = append(items, CompletionItem{
 						Label: name,
 						Kind:  FunctionCompletion,
@@ -112,11 +114,11 @@ func (s *Server) getCompletions(node, parent ast.Node, ns *check.Namespace, cu *
 
 		}
 
-		s.log.Printf("Completion: No identifier found before the dot.")
+		s.logger.Printf("Completion: No identifier found before the dot.")
 	}
 
-	s.log.Printf("Completion: Falling back to rule body/top-level for %s", ns.Name)
-	s.log.Printf("Completion: Namespace members: %v", ns.Members)
+	s.logger.Printf("Completion: Falling back to rule body/top-level for %s", ns.Name)
+	s.logger.Printf("Completion: Namespace members: %v", ns.Members)
 
 	for name, decl := range ns.Members {
 		if _, isRule := decl.(*ast.RuleDecl); isRule {

@@ -4,30 +4,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"grammar/ast"
-	"path/filepath"
 )
 
 func (s *Server) handleDefinition(id int, msg map[string]any) {
+	method := "unknown"
+	if m, ok := msg["method"].(string); ok {
+		method = m
+	}
 	var params DefinitionParams
 	if p, ok := msg["params"]; ok {
 		encoded, err := json.Marshal(p)
 		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal definition params")
+			s.sendErrorResponse(id, InternalError, "could not marshal definition params", method)
 			return
 		}
 		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal definition params")
+			s.sendErrorResponse(id, InternalError, "could not unmarshal definition params", method)
 			return
 		}
 	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/definition")
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/definition", method)
 		return
 	}
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.log.Printf("handleDefinition: Document not open %s", params.TextDocument.URI.String())
-		s.sendResponse(id, nil, nil) // Document not open
+		s.logger.Printf("handleDefinition: Document not open %s", params.TextDocument.URI.String())
+		s.sendResponse(id, method, nil, nil) // Document not open
 		return
 	}
 	srcRunes := []rune(content)
@@ -35,21 +38,21 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 
 	ns, ok := s.checker.CompilationUnit().Namespaces[uriStr]
 	if !ok || ns == nil || ns.File == nil {
-		s.log.Printf("handleDefinition: No AST available for %s.", uriStr)
-		s.sendResponse(id, nil, nil) // No AST available
+		s.logger.Printf("handleDefinition: No AST available for %s.", uriStr)
+		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
 
 	pos := PositionToPos(params.Position, srcRunes)
 	node, parent := ast.FindNodeAt(ns.File, pos)
 	if node == nil {
-		s.sendResponse(id, nil, nil)
+		s.sendResponse(id, method, nil, nil)
 		return
 	}
 
 	defDecl := s.checker.FindDefinition(ns, node, parent)
 	if defDecl == nil {
-		s.sendResponse(id, nil, nil)
+		s.sendResponse(id, method, nil, nil)
 		return
 	}
 
@@ -68,20 +71,20 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 	}
 
 	if defNsURI == "" {
-		s.log.Printf("Could not find file for definition.")
-		s.sendResponse(id, nil, nil)
+		s.logger.Printf("Could not find file for definition.")
+		s.sendResponse(id, method, nil, nil)
 		return
 	}
 
 	defUri, err := ParseURI(defNsURI)
 	if err != nil {
-		s.sendErrorResponse(id, InternalError, fmt.Sprintf("could not parse URI for definition: %s", defNsURI))
+		s.sendErrorResponse(id, InternalError, fmt.Sprintf("could not parse URI for definition: %s", defNsURI), method)
 		return
 	}
 
 	defSrcRunes, ok := s.checker.Sources()[defNsURI]
 	if !ok {
-		s.sendErrorResponse(id, InternalError, "could not find source for definition file")
+		s.sendErrorResponse(id, InternalError, "could not find source for definition file", method)
 		return
 	}
 
@@ -93,7 +96,7 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 	case *ast.BindingDecl:
 		defNameNode = d.Name
 	default:
-		s.sendResponse(id, nil, nil)
+		s.sendResponse(id, method, nil, nil)
 		return
 	}
 
@@ -105,6 +108,5 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 		},
 	}
 
-	s.sendResponse(id, location, nil)
-	s.log.Printf("sent definition: %s %s", filepath.Base(params.TextDocument.URI.Path), location.URI)
+	s.sendResponse(id, method, location, nil)
 }

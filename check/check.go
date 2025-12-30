@@ -3,27 +3,21 @@ package check
 import (
 	"fmt"
 	"grammar/ast"
-	"log"
+	"grammar/log"
 )
 
 // Checker holds the state for the type-checking process.
 type Checker struct {
 	cu  *CompilationUnit
-	log *log.Logger
+	log log.Logger
 }
 
-// NewChecker creates a new Checker with a default OS file loader.
-func NewChecker(opts ...Option) *Checker {
-	logger := log.Default()
-	c := &Checker{
-		cu:  NewCompilationUnit(&FileSystemFileLoader{}, logger),
+// NewChecker creates a new Checker.
+func NewChecker(cu *CompilationUnit, logger log.Logger) *Checker {
+	return &Checker{
+		cu:  cu,
 		log: logger,
 	}
-	for _, opt := range opts {
-		opt(c)
-	}
-	c.cu.log = c.log
-	return c
 }
 
 // CompilationUnit returns the checker's compilation unit.

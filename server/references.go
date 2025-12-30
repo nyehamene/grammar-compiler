@@ -3,30 +3,33 @@ package server
 import (
 	"encoding/json"
 	"grammar/ast"
-	"path/filepath"
 )
 
-func (s *Server) handleReferences(id int, msg map[string]any) {
+func (s *Server) handleReferences(id int, rawMsg map[string]any) {
+	method := "textDocument/references"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params ReferenceParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal references params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal references params")
-			return
-		}
-	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/references")
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/references", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal references params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal references params", method)
 		return
 	}
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.log.Printf("handleReferences: Document not open %s", params.TextDocument.URI.String())
-		s.sendResponse(id, nil, nil)
+		s.logger.Printf("handleReferences: Document not open %s", params.TextDocument.URI.String())
+		s.sendResponse(id, method, nil, nil)
 		return
 	}
 	srcRunes := []rune(content)
@@ -37,7 +40,7 @@ func (s *Server) handleReferences(id int, msg map[string]any) {
 	// Find all reference nodes
 	refNodes := s.checker.FindReferences(uriStr, pos)
 	if refNodes == nil {
-		s.sendResponse(id, []Location{}, nil) // Return empty list
+		s.sendResponse(id, method, []Location{}, nil) // Return empty list
 		return
 	}
 
@@ -80,6 +83,6 @@ func (s *Server) handleReferences(id int, msg map[string]any) {
 
 	// The `includeDeclaration` flag is handled because FindReferences naturally
 	// finds the declaration if it's an identifier.
-	s.sendResponse(id, locations, nil)
-	s.log.Printf("sent %d references for %s", len(locations), filepath.Base(params.TextDocument.URI.Path))
+	s.sendResponse(id, method, locations, nil)
+	// Logged by sendResponse: s.logger.Printf("sent %d references for %s", len(locations), filepath.Base(params.TextDocument.URI.Path))
 }

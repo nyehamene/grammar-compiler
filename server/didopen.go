@@ -11,21 +11,20 @@ type DidOpenTextDocumentParams struct {
 	TextDocument TextDocumentItem `json:"textDocument"`
 }
 
-func (s *Server) handleDidOpen(ctx context.Context, msg map[string]any) error {
+func (s *Server) handleDidOpen(ctx context.Context, rawMsg map[string]any) error {
 	var params DidOpenTextDocumentParams
-	if p, ok := msg["params"]; ok {
-		encodedParams, err := json.Marshal(p)
-		if err != nil {
-			return err
-		}
-		if err := json.Unmarshal(encodedParams, &params); err != nil {
-			return err
-		}
-	} else {
+	if rawMsg["params"] == nil {
 		return fmt.Errorf("missing params for textDocument/didOpen notification")
 	}
+	encodedParams, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(encodedParams, &params); err != nil {
+		return err
+	}
 
-	s.log.Printf("Opened and stored document: %s version %d", filepath.Base(params.TextDocument.URI.Path), params.TextDocument.Version)
+	s.logger.Printf("Opened and stored document: %s version %d", filepath.Base(params.TextDocument.URI.Path), params.TextDocument.Version)
 	s.documents[params.TextDocument.URI] = params.TextDocument.Text
 	s.publishDiagnostics(ctx, params.TextDocument.URI)
 	return nil

@@ -3,37 +3,40 @@ package server
 import (
 	"encoding/json"
 	"grammar/ast"
-	"path/filepath"
 )
 
-func (s *Server) handleDocumentSymbol(id int, msg map[string]any) {
+func (s *Server) handleDocumentSymbol(id int, rawMsg map[string]any) {
+	method := "textDocument/documentSymbol"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
 	var params DocumentSymbolParams
-	if p, ok := msg["params"]; ok {
-		encoded, err := json.Marshal(p)
-		if err != nil {
-			s.sendErrorResponse(id, InternalError, "could not marshal documentSymbol params")
-			return
-		}
-		if err := json.Unmarshal(encoded, &params); err != nil {
-			s.sendErrorResponse(id, InternalError, "could not unmarshal documentSymbol params")
-			return
-		}
-	} else {
-		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/documentSymbol")
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for textDocument/documentSymbol", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal documentSymbol params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal documentSymbol params", method)
 		return
 	}
 
 	uriStr := params.TextDocument.URI.String()
 	ns, ok := s.checker.CompilationUnit().Namespaces[uriStr]
 	if !ok || ns == nil || ns.File == nil {
-		s.log.Printf("handleDocumentSymbol: No AST available for %s.", uriStr)
-		s.sendResponse(id, nil, nil) // No AST available
+		s.logger.Printf("handleDocumentSymbol: No AST available for %s.", uriStr)
+		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
 	srcRunes, ok := s.checker.CompilationUnit().Sources[uriStr]
 	if !ok {
-		s.log.Printf("handleDocumentSymbol: No source available for %s.", uriStr)
-		s.sendResponse(id, nil, nil) // No source available
+		s.logger.Printf("handleDocumentSymbol: No source available for %s.", uriStr)
+		s.sendResponse(id, method, nil, nil) // No source available
 		return
 	}
 
@@ -75,6 +78,6 @@ func (s *Server) handleDocumentSymbol(id int, msg map[string]any) {
 		}
 	}
 
-	s.sendResponse(id, symbols, nil)
-	s.log.Printf("sent %d document symbols for %s", len(symbols), filepath.Base(params.TextDocument.URI.Path))
+	s.sendResponse(id, method, symbols, nil)
+	// Logged by sendResponse: s.logger.Printf("sent %d document symbols for %s", len(symbols), filepath.Base(params.TextDocument.URI.Path))
 }

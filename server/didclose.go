@@ -10,22 +10,21 @@ type DidCloseTextDocumentParams struct {
 	TextDocument TextDocumentIdentifier `json:"textDocument"`
 }
 
-func (s *Server) handleDidClose(ctx context.Context, msg map[string]any) error {
+func (s *Server) handleDidClose(ctx context.Context, rawMsg map[string]any) error {
 	var params DidCloseTextDocumentParams
-	if p, ok := msg["params"]; ok {
-		encodedParams, err := json.Marshal(p)
-		if err != nil {
-			return err
-		}
-		if err := json.Unmarshal(encodedParams, &params); err != nil {
-			return err
-		}
-	} else {
+	if rawMsg["params"] == nil {
 		return fmt.Errorf("missing params for textDocument/didClose notification")
+	}
+	encodedParams, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(encodedParams, &params); err != nil {
+		return err
 	}
 
 	delete(s.documents, params.TextDocument.URI)
-	s.log.Printf("Closed and removed document: %s", params.TextDocument.URI)
+	s.logger.Printf("Closed and removed document: %s", params.TextDocument.URI)
 
 	return nil
 }
