@@ -9,11 +9,10 @@ import (
 	printcmd "grammar/cmd/print"
 	"grammar/command"
 	"io"
-	"os"
 )
 
 // Run executes the main command-line interface.
-func Run(args []string, stdout, stderr io.Writer) int {
+func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		_, _ = fmt.Fprint(stdout, command.GrammarUsage)
 		return 1
@@ -24,7 +23,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 
 	switch subcommand {
 	case "fmt":
-		return fmtcmd.FmtCommand(subcommandArgs, os.Stdin, stdout, stderr)
+		return fmtcmd.FmtCommand(subcommandArgs, stdin, stdout, stderr)
 	case "check":
 		return checkcmd.CheckCommand(subcommandArgs, stdout, stderr)
 	case "print":
@@ -32,7 +31,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	case "diff":
 		return diffcmd.DiffCommand(subcommandArgs, stdout, stderr)
 	case "lsp":
-		return lspcmd.LspCommand(subcommandArgs, stdout, stderr)
+		return lspcmd.LspCommand(subcommandArgs, stdin, stdout, stderr)
 	case "help":
 		_, _ = fmt.Fprint(stdout, command.GrammarUsage)
 		return 0

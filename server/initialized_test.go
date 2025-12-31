@@ -23,8 +23,14 @@ func TestInitializedNotification(t *testing.T) {
 
 	var in bytes.Buffer
 	var out strings.Builder
+	var logOut bytes.Buffer
 
-	srv := server.NewServer(&in, &out)
+	srv := server.NewServer(&in, &out, &logOut)
+	defer func() {
+		if t.Failed() {
+			t.Log(logOut.String())
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()

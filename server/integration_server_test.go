@@ -28,7 +28,7 @@ func setupTestServer(t *testing.T, logOut io.Writer) *lspTestHarness {
 	serverRead, clientWrite := io.Pipe()
 	clientRead, serverWrite := io.Pipe()
 
-	serv := server.NewServerWithLogger(serverRead, serverWrite, logOut)
+	serv := server.NewServer(serverRead, serverWrite, logOut)
 
 	clientConn := &inMemoryConn{
 		Reader: clientRead,
@@ -987,4 +987,3 @@ func TestDocumentLinkRequest(t *testing.T) {
 		t.Errorf("Expected link target %v, got %v", bURI, link.Target)
 	}
 }
-

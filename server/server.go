@@ -8,9 +8,7 @@ import (
 	"grammar/check"
 	grammar_log "grammar/log"
 	"io"
-	stdlog "log"
 	"os"
-	"path/filepath"
 )
 
 type Server struct {
@@ -23,22 +21,7 @@ type Server struct {
 	fsFileLoader check.FileLoader
 }
 
-func NewServer(r io.Reader, w io.Writer) *Server {
-	logPath := filepath.Join(os.Getenv("HOME"), ".cache", "grammar")
-	if err := os.MkdirAll(filepath.Dir(logPath), 0755); err != nil {
-		stdlog.Printf("Failed to create log directory: %v", err)
-		return NewServerWithLogger(bufio.NewReader(r), w, os.Stderr)
-	}
-	logFilePath := filepath.Join(logPath, "lsp.log")
-	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		stdlog.Printf("Failed to open log file: %v", err)
-		return NewServerWithLogger(bufio.NewReader(r), w, os.Stderr)
-	}
-	return NewServerWithLogger(r, w, logFile)
-}
-
-func NewServerWithLogger(in io.Reader, out io.Writer, logOut io.Writer) *Server {
+func NewServer(in io.Reader, out io.Writer, logOut io.Writer) *Server {
 	logger := NewLineLogger(logOut) // Use our new line logger
 	srv := &Server{
 		reader:    bufio.NewReader(in),

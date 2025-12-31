@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"grammar/cmd"
 	"grammar/command"
+	"os"
 	"strings"
 	"testing"
 )
@@ -73,7 +74,8 @@ func TestRun(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
-			gotExitCode := cmd.Run(tt.args, &stdout, &stderr) // Call cmd.Run
+			var stdin = os.Stdin
+			gotExitCode := cmd.Run(tt.args, stdin, &stdout, &stderr) // Call cmd.Run
 
 			if gotExitCode != tt.exitCode {
 				t.Errorf("expected exit code %d, got %d", tt.exitCode, gotExitCode)
