@@ -39,7 +39,6 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 	fileLoader := &check.FileSystemFileLoader{}
 	cu := check.NewCompilationUnit(fileLoader, logger)
 	checker := check.NewChecker(cu, logger)
-	var finalErr error
 
 	if fromStdin {
 		content, err := io.ReadAll(os.Stdin)
@@ -49,7 +48,7 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 			}
 			return 1
 		}
-		finalErr = checker.CheckSource(content, "<stdin>")
+		checker.CheckSource(content, "<stdin>")
 	} else {
 		for _, path := range checkCmd.Args() {
 			info, err := os.Stat(path)
@@ -66,7 +65,7 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 						return err
 					}
 					if !fileInfo.IsDir() && strings.HasSuffix(fileInfo.Name(), ".grammar") {
-						finalErr = checker.Check(filePath)
+						checker.Check(filePath)
 					}
 					return nil
 				})
@@ -77,16 +76,14 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 					return 1
 				}
 			} else {
-				finalErr = checker.Check(path)
+				checker.Check(path)
 			}
 		}
 	}
 
-	if finalErr != nil {
-		if errs, ok := finalErr.(check.ErrorList); ok {
-			errs.Format(stderr, checker.Sources())
-		} else {
-			_, _ = fmt.Fprintln(stderr, finalErr)
+	if len(checker.CompilationUnit().Errors) > 0 {
+		for _, errList := range checker.CompilationUnit().Errors {
+			errList.Format(stderr, checker.Sources())
 		}
 		return 1
 	}

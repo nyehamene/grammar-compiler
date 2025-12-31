@@ -23,15 +23,16 @@ func setupTestChecker(t *testing.T) *Checker {
 
 func TestCheckSuccess(t *testing.T) {
 	checker := setupTestChecker(t)
-	err := checker.Check("../testdata/check/success/a.grammar")
-	if err != nil {
+	checker.Check("../testdata/check/success/a.grammar")
+	if err := checker.CompilationUnit().Err("../testdata/check/success/a.grammar"); err != nil {
 		t.Fatalf("Expected no error, but got: %v", err)
 	}
 }
 
 func TestCheckNonExistentImport(t *testing.T) {
 	checker := setupTestChecker(t)
-	err := checker.Check("../testdata/check/nonexistent_import/a.grammar")
+	checker.Check("../testdata/check/nonexistent_import/a.grammar")
+	err := checker.CompilationUnit().Err("../testdata/check/nonexistent_import/a.grammar")
 	if err == nil {
 		t.Fatal("Expected an error, but got none.")
 	}
@@ -43,7 +44,8 @@ func TestCheckNonExistentImport(t *testing.T) {
 
 func TestCheckImportCycle(t *testing.T) {
 	checker := setupTestChecker(t)
-	err := checker.Check("../testdata/check/cycle/a.grammar")
+	checker.Check("../testdata/check/cycle/a.grammar")
+	err := checker.CompilationUnit().Err("../testdata/check/cycle/a.grammar")
 	if err == nil {
 		t.Fatal("Expected an error for import cycle, but got none.")
 	}
@@ -55,7 +57,8 @@ func TestCheckImportCycle(t *testing.T) {
 
 func TestCheckRedeclaration(t *testing.T) {
 	checker := setupTestChecker(t)
-	err := checker.Check("../testdata/check/redeclaration/a.grammar")
+	checker.Check("../testdata/check/redeclaration/a.grammar")
+	err := checker.CompilationUnit().Err("../testdata/check/redeclaration/a.grammar")
 	if err == nil {
 		t.Fatal("Expected an error for redeclaration, but got none.")
 	}
@@ -67,7 +70,8 @@ func TestCheckRedeclaration(t *testing.T) {
 
 func TestCheckUndefinedMember(t *testing.T) {
 	checker := setupTestChecker(t)
-	err := checker.Check("../testdata/check/undefined_member/a.grammar")
+	checker.Check("../testdata/check/undefined_member/a.grammar")
+	err := checker.CompilationUnit().Err("../testdata/check/undefined_member/a.grammar")
 	if err == nil {
 		t.Fatal("Expected an error for undefined member, but got none.")
 	}

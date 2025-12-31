@@ -36,23 +36,19 @@ func (c *Checker) Sources() map[string][]rune {
 }
 
 // Check initiates the checking process for a given path.
-func (c *Checker) Check(path string) error {
+func (c *Checker) Check(path string) {
 	ns, _ := c.cu.LoadFile(path)
 	if ns != nil {
 		c.checkNode(ns.File, ns)
 	}
-	return c.cu.Err(path)
 }
 
 // CheckSource initiates the checking process for a given source content.
-func (c *Checker) CheckSource(content []byte, path string) error {
-	ns, err := c.cu.LoadSource(content, path)
-	// Errors are handled in LoadSource
-	_ = err
+func (c *Checker) CheckSource(content []byte, path string) {
+	ns := c.cu.LoadSource(content, path)
 	if ns != nil {
 		c.checkNode(ns.File, ns)
 	}
-	return c.cu.Err(path)
 }
 
 func (c *Checker) checkNode(node ast.Node, ns *Namespace) {

@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"grammar/check"
 	"grammar/token"
 )
 
@@ -20,17 +19,10 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 	s.checker.CompilationUnit().RemoveNamespace(documentUri)
 
 	// Run the checker. This will populate the checker's error list.
-	err := s.checker.CheckSource([]byte(content), documentUri)
+	s.checker.CheckSource([]byte(content), documentUri)
 
 	// Get the errors from the checker.
-	var errors []check.Error
-	if err != nil {
-		if list, ok := err.(check.ErrorList); ok {
-			errors = list
-		} else {
-			s.logger.Printf("unexpected error: '%s'", err)
-		}
-	}
+	errors, _ := s.checker.CompilationUnit().Errors[documentUri]
 
 	diagnostics := []Diagnostic{}
 	srcRunes := []rune(content)

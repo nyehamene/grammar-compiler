@@ -56,7 +56,7 @@ func (cu *CompilationUnit) LoadFile(path string) (*Namespace, error) {
 		return nil, fmt.Errorf("could not read file %s: %w", path, err)
 	}
 
-	return cu.LoadSource(content, path)
+	return cu.LoadSource(content, path), nil
 }
 
 func (cu *CompilationUnit) RemoveNamespace(path string) {
@@ -80,16 +80,16 @@ func resolveImport(base, imp string) (string, error) {
 }
 
 // LoadSource parses grammar source content and returns its namespace.
-func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, error) {
+func (cu *CompilationUnit) LoadSource(content []byte, path string) *Namespace {
 	if cu.loading[path] {
 		cu.AddError(path, token.NoPos, fmt.Sprintf("import cycle detected involving %s", path))
-		return cu.Namespaces[path], nil
+		return cu.Namespaces[path]
 	}
 	cu.loading[path] = true
 	defer func() { cu.loading[path] = false }()
 
 	if ns, found := cu.Namespaces[path]; found {
-		return ns, nil
+		return ns
 	}
 
 	srcRunes := []rune(string(content))
@@ -104,6 +104,8 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 			for _, e := range errs {
 				cu.AddError(path, e.Pos, e.Message)
 			}
+		} else {
+			cu.log.Printf("CheckSource: unexpected parser error type %T. (Error: %s)", parseErr, parseErr)
 		}
 		// Continue with partial file for completion/hover
 	}
@@ -153,5 +155,5 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) (*Namespace, 
 		}
 	}
 
-	return ns, parseErr
+	return ns
 }
