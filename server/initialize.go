@@ -102,7 +102,7 @@ func handleInitializeRequest(s *Server, id int, rawMsg map[string]any) {
 				InterFileDependencies: true,
 			},
 			DocumentLinkProvider: &DocumentLinkOptions{
-				ResolveProvider: false,
+				ResolveProvider: true,
 			},
 			DocumentHighlightProvider: &DocumentHighlightOptions{},
 		},

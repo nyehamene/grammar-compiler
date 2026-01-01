@@ -8,6 +8,11 @@ import (
 	"path/filepath"
 )
 
+type documentLinkData struct {
+	DocURI     DocumentUri `json:"docUri"`
+	ImportPath string      `json:"importPath"`
+}
+
 func (s *Server) handleDocumentLink(id int, rawMsg map[string]any) {
 	method := "textDocument/documentLink"
 	if m, ok := rawMsg["method"].(string); ok {
@@ -53,26 +58,68 @@ func (s *Server) handleDocumentLink(id int, rawMsg map[string]any) {
 				// Remove quotes
 				importPath := importPathLiteral[1 : len(importPathLiteral)-1]
 
-				// Resolve the import path to an absolute URI
-				targetURI, err := resolveImportPath(uriStr, importPath)
-				if err != nil {
-					s.logger.Printf("handleDocumentLink: failed to resolve import path '%s': %v", importPath, err)
-					return // Continue walking the AST, skip this link
-				}
-
 				links = append(links, DocumentLink{
 					Range: Range{
 						Start: PosToPosition(bindingDecl.Path.Pos(), srcRunes),
 						End:   PosToPosition(bindingDecl.Path.End(), srcRunes),
 					},
-					Target: targetURI,
+					Data: documentLinkData{
+						DocURI:     params.TextDocument.URI,
+						ImportPath: importPath,
+					},
 				})
 			}
 		}
 	})
 
 	s.sendResponse(id, method, links, nil)
-	// s.logger.Printf("sent %d document links for %s", len(links), params.TextDocument.URI.Path) // Logged by sendResponse
+}
+
+func (s *Server) handleDocumentLinkResolve(id int, rawMsg map[string]any) {
+	method := "documentLink/resolve"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
+	var link DocumentLink
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for documentLink/resolve", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal documentLink/resolve params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &link); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal documentLink/resolve params", method)
+		return
+	}
+
+	dataBytes, err := json.Marshal(link.Data)
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal link data", method)
+		return
+	}
+
+	var data documentLinkData
+	if err := json.Unmarshal(dataBytes, &data); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal link data", method)
+		return
+	}
+
+	targetURI, err := resolveImportPath(data.DocURI.String(), data.ImportPath)
+	if err != nil {
+		s.logger.Printf("handleDocumentLinkResolve: failed to resolve import path '%s': %v", data.ImportPath, err)
+		// Return the original link without a target if it fails to resolve
+		s.sendResponse(id, method, link, nil)
+		return
+	}
+
+	link.Target = targetURI
+	link.Tooltip = targetURI.String() // Set tooltip to the resolved path
+
+	s.sendResponse(id, method, link, nil)
 }
 
 // resolveImportPath resolves a relative import path to an absolute DocumentUri.

@@ -298,8 +298,10 @@ type DocumentLinkParams struct {
 
 // DocumentLink is a link to a document.
 type DocumentLink struct {
-	Range  Range       `json:"range"`
-	Target DocumentUri `json:"target,omitempty"`
+	Range   Range       `json:"range"`
+	Target  DocumentUri `json:"target,omitempty"`
+	Tooltip string      `json:"tooltip,omitempty"`
+	Data    any         `json:"data,omitempty"`
 }
 
 // DocumentHighlightOptions is the server capability for document highlight.

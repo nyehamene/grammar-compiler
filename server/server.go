@@ -123,6 +123,8 @@ func (s *Server) handleRequest(id int, rawMsg map[string]any) {
 		s.handleDocumentDiagnostic(id, rawMsg)
 	case "textDocument/documentLink":
 		s.handleDocumentLink(id, rawMsg)
+	case "documentLink/resolve":
+		s.handleDocumentLinkResolve(id, rawMsg)
 	case "textDocument/documentHighlight":
 		handleDocumentHighlight(s, id, rawMsg)
 	default:

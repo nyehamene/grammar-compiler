@@ -912,7 +912,7 @@ func TestDocumentDiagnosticRequest(t *testing.T) {
 	}
 }
 
-func TestDocumentLinkRequest(t *testing.T) {
+func TestDocumentLinkResolveRequest(t *testing.T) {
 	var logBuf bytes.Buffer
 	h := setupTestServer(t, &logBuf)
 	defer func() { _ = h.clientConn.Close() }()
@@ -951,7 +951,7 @@ func TestDocumentLinkRequest(t *testing.T) {
 	}
 	h.send(newRequest(id, "textDocument/documentLink", &linkParams))
 
-	// 3. Read and verify the response
+	// 3. Read and verify the unresolved response
 	msg := h.read()
 	assertResponseID(h, msg, id)
 
@@ -969,22 +969,38 @@ func TestDocumentLinkRequest(t *testing.T) {
 		t.Fatalf("Expected 1 document link, got %d", len(links))
 	}
 
-	link := links[0]
-	// Expected range for "b.grammar" in 'binding_b = @import("b.grammar");'
-	// The string "b.grammar" starts at character 19 (0-indexed) and ends at 29.
-	// Line is 0.
-	expectedStart := server.Position{Line: 0, Character: 20}
-	expectedEnd := server.Position{Line: 0, Character: 31} // 19 + len("b.grammar") + 1 (for quotes) - 1
-
-	if link.Range.Start != expectedStart {
-		t.Errorf("Expected link start %v, got %v", expectedStart, link.Range.Start)
+	unresolvedLink := links[0]
+	if unresolvedLink.Target != (server.DocumentUri{}) {
+		t.Errorf("Expected unresolved link target to be empty, got %s", unresolvedLink.Target)
 	}
-	if link.Range.End != expectedEnd {
-		t.Errorf("Expected link end %v, got %v", expectedEnd, link.Range.End)
+	if unresolvedLink.Data == nil {
+		t.Fatal("Expected unresolved link to have data, but it was nil")
 	}
 
-	if link.Target != bURI {
-		t.Errorf("Expected link target %v, got %v", bURI, link.Target)
+	// 4. Send documentLink/resolve request
+	id = 2
+	var resolveParams any = unresolvedLink
+	h.send(newRequest(id, "documentLink/resolve", &resolveParams))
+
+	// 5. Read and verify the resolved response
+	msg = h.read()
+	assertResponseID(h, msg, id)
+
+	resultData, err = json.Marshal(msg["result"])
+	if err != nil {
+		t.Fatalf("Failed to marshal resolved documentLink result: %v", err)
+	}
+
+	var resolvedLink server.DocumentLink
+	if err := json.Unmarshal(resultData, &resolvedLink); err != nil {
+		t.Fatalf("Failed to unmarshal resolved document link: %v", err)
+	}
+
+	if resolvedLink.Target != bURI {
+		t.Errorf("Expected resolved link target %v, got %v", bURI, resolvedLink.Target)
+	}
+	if resolvedLink.Tooltip != bURI.String() {
+		t.Errorf("Expected resolved link tooltip %v, got %v", bURI.String(), resolvedLink.Tooltip)
 	}
 }
 
