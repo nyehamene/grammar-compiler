@@ -54,16 +54,6 @@ func (s *Server) publishDiagnostics(ctx context.Context, uri DocumentUri) {
 		URI:         uri,
 		Diagnostics: diagnostics,
 	})
-	// Diagnostic logging is now part of generateDiagnosticsForURI, called before notify.
-	// The requirement is to log after sending, but `notify` sends to client.
-	// So, we log AFTER notify.
-	// Let's re-think: The requirement is "Log diagnostic messages, one per line, after they have been sent to the client"
-	// `notify` sends the entire PublishDiagnosticsParams. Individual diagnostics should be logged after that.
-	// This means generateDiagnosticsForURI should just return diagnostics, and the caller (publishDiagnostics)
-	// should log them after `s.notify`.
-	for _, diag := range diagnostics {
-		s.logger.Print(&diag)
-	}
 }
 
 func (s *Server) handleDocumentDiagnostic(id int, rawMsg map[string]any) {
@@ -95,10 +85,6 @@ func (s *Server) handleDocumentDiagnostic(id int, rawMsg map[string]any) {
 	}
 
 	s.sendResponse(id, method, report, nil)
-	// Log individual diagnostic here (new requirement), after sending.
-	for _, diag := range diagnostics {
-		s.logger.Print(&diag)
-	}
 }
 
 func (s *Server) handleWorkspaceDiagnostic(id int, rawMsg map[string]any) {
@@ -137,11 +123,6 @@ func (s *Server) handleWorkspaceDiagnostic(id int, rawMsg map[string]any) {
 			Items: diagnostics,
 		}
 		workspaceReport.Items = append(workspaceReport.Items, docReport)
-
-		// Log individual diagnostics after they are part of the report.
-		for _, diag := range diagnostics {
-			s.logger.Print(&diag)
-		}
 	}
 
 	s.sendResponse(id, method, workspaceReport, nil)

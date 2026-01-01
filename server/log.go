@@ -40,18 +40,35 @@ func (l *lineLogger) Print(v any) {
 
 	var msg string
 	switch t := v.(type) {
-	case RequestMessage: // Changed to pointer
-		msg = fmt.Sprintf("(->) Request %d-%s", t.ID, t.Method)
-	case ResponseMessage: // Changed to pointer
-		if t.Error != nil {
-			msg = fmt.Sprintf("(<-) Response %d (Error: %s)", t.ID, t.Error.Message)
+	case map[string]any:
+		if idVal, ok := t["id"]; ok {
+			// It's an incoming request
+			if id, ok := idVal.(float64); ok { // JSON numbers are float64
+				if method, ok := t["method"].(string); ok {
+					msg = fmt.Sprintf("(->) Request %d-%s", int(id), method)
+				}
+			}
+		} else if method, ok := t["method"].(string); ok {
+			// It's an incoming notification
+			msg = fmt.Sprintf("(->) Notification %s", method)
 		} else {
-			msg = fmt.Sprintf("(<-) Response %d", t.ID)
+			// Fallback for unexpected map structures, try to pretty print raw JSON
+			jsonBytes, err := json.MarshalIndent(t, "", "  ")
+			if err != nil {
+				msg = fmt.Sprintf("unhandled raw message (json marshal error): %v", t)
+			} else {
+				msg = fmt.Sprintf("unhandled raw message:\n%s", string(jsonBytes))
+			}
 		}
-	case NotificationMessage: // Changed to pointer
-		// Direction must be handled at the call site.
-		msg = fmt.Sprintf("(--) Notification %s", t.Method)
-	case InitializeParams: // Changed to pointer
+	case ResponseMessage:
+		if t.Error != nil {
+			msg = fmt.Sprintf("(<-) Response %d (Error: %s)", *t.ID, t.Error.Message)
+		} else {
+			msg = fmt.Sprintf("(<-) Response %d", *t.ID)
+		}
+	case NotificationMessage:
+		msg = fmt.Sprintf("(<-) Notification %s", t.Method)
+	case *InitializeParams:
 		// Pretty-print capabilities as indented JSON
 		caps, err := json.MarshalIndent(t.Capabilities, "", "  ")
 		if err != nil {
@@ -59,14 +76,20 @@ func (l *lineLogger) Print(v any) {
 		} else {
 			msg = fmt.Sprintf("Client capabilities:\n%s", string(caps))
 		}
-	case Diagnostic: // Changed to pointer
+	case *Diagnostic:
 		msg = fmt.Sprintf("     diagnostic: [%d:%d] %s", t.Range.Start.Line, t.Range.Start.Character, t.Message)
 	case string:
 		msg = t
 	case error:
 		msg = t.Error()
 	default:
-		msg = fmt.Sprintf("unhandled log type: %T", v)
+		// For any other unhandled type, try to marshal to indented JSON.
+		jsonBytes, err := json.MarshalIndent(v, "", "  ")
+		if err != nil {
+			msg = fmt.Sprintf("unhandled log type: %T (json marshal error): %v", v, v)
+		} else {
+			msg = fmt.Sprintf("unhandled log type: %T:\n%s", v, string(jsonBytes))
+		}
 	}
 
 	_, _ = fmt.Fprintln(l.out, msg)

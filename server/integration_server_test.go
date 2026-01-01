@@ -185,7 +185,18 @@ func TestDidOpenPublishDiagnostics(t *testing.T) {
 	if diag.Range.Start.Line != 0 || diag.Range.Start.Character != 4 {
 		t.Errorf("Expected diagnostic to start at line 0, char 4, but got line %d, char %d", diag.Range.Start.Line, diag.Range.Start.Character)
 	}
+
+	assertNoUnhandledMessages(h, &logBuf)
 }
+
+// assertNoUnhandledMessages checks the log output for any unhandled log type messages.
+func assertNoUnhandledMessages(h *lspTestHarness, logBuf *bytes.Buffer) {
+	logContent := logBuf.String()
+	if strings.Contains(logContent, "unhandled log type") || strings.Contains(logContent, "unhandled raw message") {
+		h.t.Errorf("Found unhandled log messages in server output:\n%s", logContent)
+	}
+}
+
 
 func TestImportedNamespaceLoading(t *testing.T) {
 	// Create test files on disk
@@ -227,6 +238,8 @@ func TestImportedNamespaceLoading(t *testing.T) {
 	if len(diags) != 0 {
 		t.Errorf("Expected no diagnostics, but got %d: %v", len(diags), diags)
 	}
+
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestHover(t *testing.T) {
@@ -307,6 +320,7 @@ prod_c = b.rule_b;
 			idCounter++
 		})
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestDefinition(t *testing.T) {
@@ -373,6 +387,7 @@ func TestDefinition(t *testing.T) {
 	if location.Range.Start.Line != 1 || location.Range.Start.Character != 0 {
 		t.Errorf("Expected range start at 1:0, got %d:%d", location.Range.Start.Line, location.Range.Start.Character)
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestReferences(t *testing.T) {
@@ -445,6 +460,7 @@ func TestReferences(t *testing.T) {
 	if len(locationsFromUsage) != 3 {
 		t.Fatalf("Expected 3 references from usage, got %d", len(locationsFromUsage))
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestDocumentSymbol(t *testing.T) {
@@ -505,6 +521,7 @@ rule_a = "hello";
 	if ruleSymbol.SelectionRange.Start.Line != 5 { // Line numbers are 0-indexed
 		t.Errorf("Expected rule selection range to start on line 5, got %d", ruleSymbol.SelectionRange.Start.Line)
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestWorkspaceSymbol(t *testing.T) {
@@ -562,6 +579,7 @@ func TestWorkspaceSymbol(t *testing.T) {
 	if !foundA || !foundB {
 		t.Errorf("Did not find expected symbols. Found A: %t, Found B: %t", foundA, foundB)
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestRename(t *testing.T) {
@@ -638,6 +656,7 @@ func TestRename(t *testing.T) {
 	if userEdits[0].NewText != newName {
 		t.Errorf("Wrong new name in user.grammar: got %s, want %s", userEdits[0].NewText, newName)
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestCompletion(t *testing.T) {
@@ -782,6 +801,7 @@ prod_b = ;
 
 		idCounter++
 	})
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 // --- Test Helpers ---
@@ -910,6 +930,7 @@ func TestDocumentDiagnosticRequest(t *testing.T) {
 	if !strings.Contains(diag.Message, "undefined identifier: b") {
 		t.Errorf("Expected diagnostic message to contain 'undefined identifier: b', got: '%s'", diag.Message)
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestDocumentLinkResolveRequest(t *testing.T) {
@@ -1002,6 +1023,7 @@ func TestDocumentLinkResolveRequest(t *testing.T) {
 	if resolvedLink.Tooltip != bURI.String() {
 		t.Errorf("Expected resolved link tooltip %v, got %v", bURI.String(), resolvedLink.Tooltip)
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestDocumentHighlight(t *testing.T) {
@@ -1080,6 +1102,7 @@ ref2 = highlight_rule;
 		})
 		idCounter++
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
 
 func TestWorkspaceDiagnosticRequest(t *testing.T) {
@@ -1172,4 +1195,5 @@ func TestWorkspaceDiagnosticRequest(t *testing.T) {
 	if len(bReport.Items) != 0 {
 		t.Fatalf("Expected 0 diagnostics for b.grammar, got %d", len(bReport.Items))
 	}
+	assertNoUnhandledMessages(h, &logBuf)
 }
