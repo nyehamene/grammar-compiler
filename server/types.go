@@ -327,3 +327,24 @@ const (
 	// Write is a write-access.
 	Write DocumentHighlightKind = 3
 )
+
+// WorkspaceDiagnosticParams represents the parameters of a `workspace/diagnostic` request.
+type WorkspaceDiagnosticParams struct {
+	Identifier    string                         `json:"identifier,omitempty"`
+	PreviousResultIds []WorkspaceDocumentDiagnosticReport `json:"previousResultIds,omitempty"`
+}
+
+// WorkspaceDiagnosticReport is the response for a `workspace/diagnostic` request.
+type WorkspaceDiagnosticReport struct {
+	Items []WorkspaceDocumentDiagnosticReport `json:"items"`
+}
+
+// WorkspaceDocumentDiagnosticReport represents a diagnostic report for a single document
+// within a workspace diagnostic report.
+type WorkspaceDocumentDiagnosticReport struct {
+	URI        DocumentUri                `json:"uri"`
+	Version    *int                       `json:"version,omitempty"`
+	Kind       DocumentDiagnosticReportKind `json:"kind"` // "full" or "unchanged"
+	ResultID   string                     `json:"resultId,omitempty"`
+	Items      []Diagnostic               `json:"items,omitempty"`
+}

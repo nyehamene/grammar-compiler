@@ -100,3 +100,49 @@ func (s *Server) handleDocumentDiagnostic(id int, rawMsg map[string]any) {
 		s.logger.Print(&diag)
 	}
 }
+
+func (s *Server) handleWorkspaceDiagnostic(id int, rawMsg map[string]any) {
+	method := "workspace/diagnostic"
+	if m, ok := rawMsg["method"].(string); ok {
+		method = m
+	}
+
+	var params WorkspaceDiagnosticParams
+	if rawMsg["params"] == nil {
+		s.sendErrorResponse(id, InvalidRequest, "missing params for workspace/diagnostic", method)
+		return
+	}
+	encoded, err := json.Marshal(rawMsg["params"])
+	if err != nil {
+		s.sendErrorResponse(id, InternalError, "could not marshal workspaceDiagnostic params", method)
+		return
+	}
+	if err := json.Unmarshal(encoded, &params); err != nil {
+		s.sendErrorResponse(id, InternalError, "could not unmarshal workspaceDiagnostic params", method)
+		return
+	}
+
+	workspaceReport := WorkspaceDiagnosticReport{
+		Items: make([]WorkspaceDocumentDiagnosticReport, 0, len(s.documents)),
+	}
+
+	// For each document the server knows about, generate diagnostics
+	for uri := range s.documents {
+		diagnostics := s.generateDiagnosticsForURI(uri)
+
+		// For now, we always send a full report. Version and ResultID are not used yet.
+		docReport := WorkspaceDocumentDiagnosticReport{
+			URI:   uri,
+			Kind:  DocumentDiagnosticReportKindFull,
+			Items: diagnostics,
+		}
+		workspaceReport.Items = append(workspaceReport.Items, docReport)
+
+		// Log individual diagnostics after they are part of the report.
+		for _, diag := range diagnostics {
+			s.logger.Print(&diag)
+		}
+	}
+
+	s.sendResponse(id, method, workspaceReport, nil)
+}

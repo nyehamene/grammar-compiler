@@ -1081,3 +1081,95 @@ ref2 = highlight_rule;
 		idCounter++
 	}
 }
+
+func TestWorkspaceDiagnosticRequest(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer func() { _ = h.clientConn.Close() }()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	// Create test files on disk
+	testDir := t.TempDir()
+	aPath := filepath.Join(testDir, "a.grammar")
+	bPath := filepath.Join(testDir, "b.grammar")
+
+	// a.grammar with an error (undefined identifier 'b')
+	aContent := `rule_a = b;`
+	if err := os.WriteFile(aPath, []byte(aContent), 0644); err != nil {
+		t.Fatalf("Failed to write a.grammar: %v", err)
+	}
+
+	// b.grammar without errors
+	bContent := `rule_b = "hello";`
+	if err := os.WriteFile(bPath, []byte(bContent), 0644); err != nil {
+		t.Fatalf("Failed to write b.grammar: %v", err)
+	}
+
+	aURI, _ := server.ParseURI("file://" + aPath)
+	bURI, _ := server.ParseURI("file://" + bPath)
+
+	// 1. Open both documents
+	h.send(newDidOpenNotification(aURI, aContent, 1))
+	consumeDiagnostics(h) // Consume initial diagnostics for a.grammar
+
+	h.send(newDidOpenNotification(bURI, bContent, 1))
+	consumeDiagnostics(h) // Consume initial diagnostics for b.grammar
+
+	// 2. Send workspace/diagnostic request
+	id := 1
+	var wsDiagParams any = server.WorkspaceDiagnosticParams{}
+	h.send(newRequest(id, "workspace/diagnostic", &wsDiagParams))
+
+	// 3. Read and verify the response
+	msg := h.read()
+	assertResponseID(h, msg, id)
+
+	resultData, err := json.Marshal(msg["result"])
+	if err != nil {
+		t.Fatalf("Failed to marshal workspace diagnostic result: %v", err)
+	}
+
+	var report server.WorkspaceDiagnosticReport
+	if err := json.Unmarshal(resultData, &report); err != nil {
+		t.Fatalf("Failed to unmarshal workspace diagnostic report: %v", err)
+	}
+
+	if len(report.Items) != 2 {
+		t.Fatalf("Expected 2 document reports, got %d", len(report.Items))
+	}
+
+	// Helper to find report for a specific URI
+	findDocReport := func(uri server.DocumentUri) *server.WorkspaceDocumentDiagnosticReport {
+		for i := range report.Items {
+			if report.Items[i].URI == uri {
+				return &report.Items[i]
+			}
+		}
+		return nil
+	}
+
+	// Verify a.grammar report
+	aReport := findDocReport(aURI)
+	if aReport == nil {
+		t.Fatalf("Expected report for a.grammar, but not found")
+	}
+	if len(aReport.Items) != 1 {
+		t.Fatalf("Expected 1 diagnostic for a.grammar, got %d", len(aReport.Items))
+	}
+	if !strings.Contains(aReport.Items[0].Message, "undefined identifier: b") {
+		t.Errorf("Expected diagnostic message for a.grammar to contain 'undefined identifier: b', got: '%s'", aReport.Items[0].Message)
+	}
+
+	// Verify b.grammar report
+	bReport := findDocReport(bURI)
+	if bReport == nil {
+		t.Fatalf("Expected report for b.grammar, but not found")
+	}
+	if len(bReport.Items) != 0 {
+		t.Fatalf("Expected 0 diagnostics for b.grammar, got %d", len(bReport.Items))
+	}
+}
