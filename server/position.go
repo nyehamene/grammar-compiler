@@ -30,3 +30,10 @@ func PositionToPos(pos Position, srcRunes []rune) token.Pos {
 	}
 	return token.Pos(lineStart + pos.Character)
 }
+
+func TokenRangeToLSPRange(startPos, endPos token.Pos, text []rune) (Range, error) {
+	start := PosToPosition(startPos, text)
+	end := PosToPosition(endPos, text)
+
+	return Range{Start: start, End: end}, nil
+}

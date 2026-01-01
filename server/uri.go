@@ -61,3 +61,12 @@ func (d *DocumentUri) UnmarshalJSON(data []byte) error {
 	*d = uri
 	return nil
 }
+
+// PathToURI converts a file path to a DocumentUri.
+func PathToURI(path string) (DocumentUri, error) {
+	u := url.URL{
+		Scheme: "file",
+		Path:   path,
+	}
+	return ParseURI(u.String())
+}

@@ -25,7 +25,10 @@ func (s *Server) handleDidOpen(ctx context.Context, rawMsg map[string]any) error
 	}
 
 	s.logger.Printf("Opened and stored document: %s version %d", filepath.Base(params.TextDocument.URI.Path), params.TextDocument.Version)
-	s.documents[params.TextDocument.URI] = params.TextDocument.Text
+	doc := &document{
+		text: []rune(params.TextDocument.Text),
+	}
+	s.documents[params.TextDocument.URI] = doc
 	s.publishDiagnostics(ctx, params.TextDocument.URI)
 	return nil
 }

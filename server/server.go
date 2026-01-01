@@ -16,9 +16,14 @@ type Server struct {
 	writer       io.Writer
 	logger       grammar_log.Logger
 	shutdown     bool
-	documents    map[DocumentUri]string
+	documents    map[DocumentUri]*document
 	checker      *check.Checker
 	fsFileLoader check.FileLoader
+}
+
+// document is an in-memory representation of a document.
+type document struct {
+	text []rune
 }
 
 func NewServer(in io.Reader, out io.Writer, logOut io.Writer) *Server {
@@ -28,7 +33,7 @@ func NewServer(in io.Reader, out io.Writer, logOut io.Writer) *Server {
 		writer:    out,
 		logger:    logger,
 		shutdown:  false,
-		documents: make(map[DocumentUri]string),
+		documents: make(map[DocumentUri]*document),
 	}
 
 	cu := check.NewCompilationUnit(srv, logger)
@@ -40,8 +45,11 @@ func NewServer(in io.Reader, out io.Writer, logOut io.Writer) *Server {
 }
 
 func (s *Server) GetDocumentContent(uri DocumentUri) (string, bool) {
-	content, ok := s.documents[uri]
-	return content, ok
+	doc, ok := s.documents[uri]
+	if !ok {
+		return "", false
+	}
+	return string(doc.text), true
 }
 
 func (s *Server) Start() {
@@ -115,6 +123,8 @@ func (s *Server) handleRequest(id int, rawMsg map[string]any) {
 		s.handleDocumentDiagnostic(id, rawMsg)
 	case "textDocument/documentLink":
 		s.handleDocumentLink(id, rawMsg)
+	case "textDocument/documentHighlight":
+		handleDocumentHighlight(s, id, rawMsg)
 	default:
 		s.sendErrorResponse(id, MethodNotFound, fmt.Sprintf("unexpected method: %s", method), method)
 	}

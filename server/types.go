@@ -301,3 +301,27 @@ type DocumentLink struct {
 	Range  Range       `json:"range"`
 	Target DocumentUri `json:"target,omitempty"`
 }
+
+// DocumentHighlightOptions is the server capability for document highlight.
+type DocumentHighlightOptions struct{}
+
+// DocumentHighlightParams is the parameter for `textDocument/documentHighlight`.
+type DocumentHighlightParams = TextDocumentPositionParams
+
+// DocumentHighlight is a highlight of a symbol in a document.
+type DocumentHighlight struct {
+	Range Range                  `json:"range"`
+	Kind  *DocumentHighlightKind `json:"kind,omitempty"`
+}
+
+// DocumentHighlightKind is the kind of a document highlight.
+type DocumentHighlightKind int
+
+const (
+	// Text is a textual occurrence.
+	Text DocumentHighlightKind = 1
+	// Read is a read-access.
+	Read DocumentHighlightKind = 2
+	// Write is a write-access.
+	Write DocumentHighlightKind = 3
+)

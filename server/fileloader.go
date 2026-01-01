@@ -7,7 +7,7 @@ func (s *Server) Load(path string) ([]byte, error) {
 		return nil, err
 	}
 
-	content, ok := s.documents[uri]
+	doc, ok := s.documents[uri]
 	if !ok {
 		pathAbsLocal := uri.String()
 		if uri.Scheme == "file" {
@@ -17,5 +17,5 @@ func (s *Server) Load(path string) ([]byte, error) {
 		return s.fsFileLoader.Load(pathAbsLocal)
 	}
 	s.logger.Printf("file(mem): %s", uri.Path)
-	return []byte(content), nil
+	return []byte(string(doc.text)), nil
 }

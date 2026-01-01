@@ -36,6 +36,7 @@ type ServerCapabilities struct {
 	RenameProvider          bool                     `json:"renameProvider,omitempty"`
 	DiagnosticProvider      *DiagnosticOptions       `json:"diagnosticProvider,omitempty"`
 	DocumentLinkProvider    *DocumentLinkOptions     `json:"documentLinkProvider,omitempty"`
+	DocumentHighlightProvider *DocumentHighlightOptions `json:"documentHighlightProvider,omitempty"`
 	// ... other server capabilities
 }
 
@@ -103,6 +104,7 @@ func handleInitializeRequest(s *Server, id int, rawMsg map[string]any) {
 			DocumentLinkProvider: &DocumentLinkOptions{
 				ResolveProvider: false,
 			},
+			DocumentHighlightProvider: &DocumentHighlightOptions{},
 		},
 		ServerInfo: &ServerInfo{
 			Name:    "grammar-lsp",

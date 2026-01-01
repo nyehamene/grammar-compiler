@@ -44,7 +44,10 @@ func (s *Server) handleDidChange(ctx context.Context, rawMsg map[string]any) err
 
 	// For full sync, the new text is the first and only content change.
 	s.checker.CompilationUnit().RemoveNamespace(documentUri)
-	s.documents[params.TextDocument.URI] = params.ContentChanges[0].Text
+	newText := []rune(params.ContentChanges[0].Text)
+	s.documents[params.TextDocument.URI] = &document{
+		text: newText,
+	}
 	s.publishDiagnostics(ctx, params.TextDocument.URI)
 	return nil
 }
