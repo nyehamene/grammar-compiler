@@ -238,7 +238,7 @@ func (t *Tokenizer) scanRegex() Token {
 		case '\\':
 			t.nextChar() // Consume the backslash
 			switch t.ch {
-			case '/', 'n', 't', 'r', 'd', 's', 'c', '\\', '.', '(', ')', '{', '}', '[', ']':
+			case '/', 'n', 't', 'r', 'd', 's', 'c', '\\', '.', '(', ')', '{', '}', '[', ']', '*', '+', '?':
 				t.nextChar() // Consume the valid escaped character
 			default:
 				// Invalid escape sequence

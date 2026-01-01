@@ -79,6 +79,12 @@ func TestScanRegex(t *testing.T) {
 			wantVal: `/abc\\/`,
 		},
 		{
+			name:    "valid star plus question",
+			input:   `/a\*b\+c\?/`,
+			valid:   true,
+			wantVal: `/a\*b\+c\?/`,
+		},
+		{
 			name:    "invalid escape sequence",
 			input:   `/\a/`,
 			valid:   false,
