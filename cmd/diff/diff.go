@@ -66,7 +66,7 @@ func diffAST(path1, path2 string, stdout, stderr io.Writer) error {
 	if err != nil {
 		if errs, ok := err.(ast.ErrorList); ok {
 			for _, e := range errs {
-				line, col := token.FindLineAndCol(int(e.Pos), srcRunes1)
+				line, col := token.FindLineAndCol(e.Pos, srcRunes1)
 				fmt.Fprintf(stderr, "%s:%d:%d: %s\n", path1, line, col, e.Message)
 			}
 		} else {
@@ -88,7 +88,7 @@ func diffAST(path1, path2 string, stdout, stderr io.Writer) error {
 	if err != nil {
 		if errs, ok := err.(ast.ErrorList); ok {
 			for _, e := range errs {
-				line, col := token.FindLineAndCol(int(e.Pos), srcRunes2)
+				line, col := token.FindLineAndCol(e.Pos, srcRunes2)
 				fmt.Fprintf(stderr, "%s:%d:%d: %s\n", path2, line, col, e.Message)
 			}
 		} else {
@@ -311,7 +311,7 @@ func printToken(w io.Writer, prefix rune, tok token.Token, srcRunes []rune) {
 		lineColWidth = 10
 		kindWidth    = 15
 	)
-	line, col := token.FindLineAndCol(tok.Start, srcRunes)
+	line, col := token.FindLineAndCol(token.Pos(tok.Start), srcRunes)
 	lineCol := fmt.Sprintf("%d:%d", line, col)
 	lexeme := token.EscapeLexeme(token.Literal(tok, srcRunes))
 	if tok.Kind == token.String {

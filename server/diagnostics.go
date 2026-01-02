@@ -33,7 +33,7 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 			severity = SeverityWarning
 		}
 
-		line, col := token.FindLineAndCol(int(e.Pos), srcRunes)
+		line, col := token.FindLineAndCol(e.Pos, srcRunes)
 		diagnostic := Diagnostic{
 			Range: Range{
 				Start: Position{Line: line - 1, Character: col - 1},

@@ -71,7 +71,7 @@ func formatSource(srcRunes []rune, sourceName string, stderr io.Writer) (string,
 	if err != nil {
 		if errs, ok := err.(ast.ErrorList); ok {
 			for _, e := range errs {
-				line, col := token.FindLineAndCol(int(e.Pos), srcRunes)
+				line, col := token.FindLineAndCol(e.Pos, srcRunes)
 				fmt.Fprintf(stderr, "%s:%d:%d: %s\n", sourceName, line, col, e.Message)
 			}
 		} else {

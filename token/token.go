@@ -117,19 +117,18 @@ func Literal(tok Token, src []rune) string {
 }
 
 // FindLineAndCol finds the line and column number for a given offset in the source.
-func FindLineAndCol(offset int, srcRunes []rune) (int, int) {
+func FindLineAndCol(offset Pos, srcRunes []rune) (int, int) {
 	lineNum := 1
-	lineStartOffset := 0
-	for i, r := range srcRunes {
-		if i == offset {
-			break
-		}
-		if r == '\n' {
+	col := 1
+	for i := 0; i < int(offset) && i < len(srcRunes); i++ {
+		if srcRunes[i] == '\n' {
 			lineNum++
-			lineStartOffset = i + 1
+			col = 1
+		} else {
+			col++
 		}
 	}
-	return lineNum, offset - lineStartOffset + 1
+	return lineNum, col
 }
 
 // EscapeLexeme escapes a string for display, handling special characters.

@@ -41,7 +41,7 @@ func (p *Printer) PrintFile(file *File) error {
 
 // PrintDecl prints a declaration node.
 func (p *Printer) PrintDecl(decl Decl) error {
-	line, col := token.FindLineAndCol(int(decl.Pos()), p.srcRunes)
+	line, col := token.FindLineAndCol(decl.Pos(), p.srcRunes)
 	if _, err := fmt.Fprintf(p.output, "%d:%-4d", line, col); err != nil { // Print line/col with padding
 		return err
 	}
@@ -85,7 +85,7 @@ func (p *Printer) PrintDecl(decl Decl) error {
 
 // PrintExpr prints an expression node.
 func (p *Printer) PrintExpr(expr Expr) error {
-	line, col := token.FindLineAndCol(int(expr.Pos()), p.srcRunes)
+	line, col := token.FindLineAndCol(expr.Pos(), p.srcRunes)
 	if _, err := fmt.Fprintf(p.output, "%d:%-4d", line, col); err != nil { // Print line/col with padding
 		return err
 	}

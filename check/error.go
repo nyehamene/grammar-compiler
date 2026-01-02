@@ -71,7 +71,7 @@ func (p ErrorList) Format(w io.Writer, sources map[string][]rune) {
 			fmt.Fprintf(w, "%s: %s\n", e.Path, e.Message)
 			continue
 		}
-		line, col := token.FindLineAndCol(int(e.Pos), src)
+		line, col := token.FindLineAndCol(e.Pos, src)
 		fmt.Fprintf(w, "%s:%d:%d: %s\n", e.Path, line, col, e.Message)
 	}
 }

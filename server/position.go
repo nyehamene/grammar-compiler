@@ -3,7 +3,7 @@ package server
 import "grammar/token"
 
 func PosToPosition(offset token.Pos, srcRunes []rune) Position {
-	line, col := token.FindLineAndCol(int(offset), srcRunes)
+	line, col := token.FindLineAndCol(offset, srcRunes)
 	return Position{Line: line - 1, Character: col - 1}
 }
 

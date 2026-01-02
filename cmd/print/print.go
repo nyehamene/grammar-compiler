@@ -82,7 +82,7 @@ func printTokens(path string, stdout io.Writer) error {
 	}
 
 	for _, tok := range tokens {
-		line, col := token.FindLineAndCol(tok.Start, srcRunes)
+		line, col := token.FindLineAndCol(token.Pos(tok.Start), srcRunes)
 		lineCol := fmt.Sprintf("%d:%d", line, col)
 
 		lexeme := token.Literal(tok, srcRunes)
