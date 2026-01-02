@@ -1,0 +1,4 @@
+
+privateRule = "hello";
+
+PublicRule = privateRule;

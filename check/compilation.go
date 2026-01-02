@@ -41,6 +41,16 @@ func (cu *CompilationUnit) AddError(path string, pos token.Pos, message string) 
 	cu.Errors[path] = errlist
 }
 
+// AddWarning adds a new warning to the compilation unit.
+func (cu *CompilationUnit) AddWarning(path string, pos token.Pos, message string) {
+	errlist, ok := cu.Errors[path]
+	if !ok {
+		errlist = make(ErrorList, 0, 10)
+	}
+	errlist.AddWarning(path, pos, message)
+	cu.Errors[path] = errlist
+}
+
 // Err returns the collected errors, or nil if there are none.
 func (cu *CompilationUnit) Err(path string) error {
 	if len(cu.Errors) == 0 {

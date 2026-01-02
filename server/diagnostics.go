@@ -28,6 +28,10 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 	srcRunes := []rune(content)
 
 	for _, e := range errors {
+		severity := SeverityError
+		if e.Warning {
+			severity = SeverityWarning
+		}
 
 		line, col := token.FindLineAndCol(int(e.Pos), srcRunes)
 		diagnostic := Diagnostic{
@@ -35,7 +39,7 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 				Start: Position{Line: line - 1, Character: col - 1},
 				End:   Position{Line: line - 1, Character: col},
 			},
-			Severity: SeverityError,
+			Severity: severity,
 			Source:   "checker",
 			Message:  e.Message,
 		}

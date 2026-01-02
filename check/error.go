@@ -12,6 +12,7 @@ type Error struct {
 	Path    string
 	Pos     token.Pos
 	Message string
+	Warning bool
 }
 
 func (e Error) Error() string {
@@ -22,9 +23,19 @@ func (e Error) Error() string {
 // ErrorList is a slice of errors, sorted by position.
 type ErrorList []Error
 
+// add adds a new error to the list.
+func (p *ErrorList) add(path string, pos token.Pos, msg string, isWarning bool) {
+	*p = append(*p, Error{Path: path, Pos: pos, Message: msg, Warning: isWarning})
+}
+
 // Add adds a new error to the list.
 func (p *ErrorList) Add(path string, pos token.Pos, msg string) {
-	*p = append(*p, Error{Path: path, Pos: pos, Message: msg})
+	p.add(path, pos, msg, false)
+}
+
+// AddWarning adds a new warning to the list.
+func (p *ErrorList) AddWarning(path string, pos token.Pos, msg string) {
+	p.add(path, pos, msg, true)
 }
 
 // Len is the number of elements in the collection.

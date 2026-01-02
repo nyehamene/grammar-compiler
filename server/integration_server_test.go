@@ -123,7 +123,7 @@ func TestDidOpenPublishDiagnostics(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	content := "a = b.c;"
+	content := "A = b.c;"
 	didOpenParams := server.DidOpenTextDocumentParams{
 		TextDocument: server.TextDocumentItem{
 			URI:        server.DocumentUri(textDocumentId),
@@ -197,19 +197,18 @@ func assertNoUnhandledMessages(h *lspTestHarness, logBuf *bytes.Buffer) {
 	}
 }
 
-
 func TestImportedNamespaceLoading(t *testing.T) {
 	// Create test files on disk
 	testDir := t.TempDir()
 	bPath := filepath.Join(testDir, "b.grammar")
 	aPath := filepath.Join(testDir, "a.grammar")
 
-	bContent := `rule_b = "from b";`
+	bContent := `Rule_b = "from b";`
 	if err := os.WriteFile(bPath, []byte(bContent), 0644); err != nil {
 		t.Fatalf("Failed to write b.grammar: %v", err)
 	}
 
-	aContent := `b = @import("b.grammar"); a = b.rule_b;` // relative import
+	aContent := `b = @import("b.grammar"); A = b.Rule_b;` // relative import
 	if err := os.WriteFile(aPath, []byte(aContent), 0644); err != nil {
 		t.Fatalf("Failed to write a.grammar: %v", err)
 	}
@@ -890,7 +889,7 @@ func TestDocumentDiagnosticRequest(t *testing.T) {
 	}()
 
 	// 1. Open document with an error
-	content := "a = b;" // 'b' is undefined
+	content := "A = b;" // 'b' is undefined
 	uri, _ := server.ParseURI("file:///test_diagnostic.grammar")
 	h.send(newDidOpenNotification(uri, content, 1))
 
@@ -1048,9 +1047,9 @@ ref2 = highlight_rule;
 
 	// Positions to test (declaration, ref1, ref2)
 	testPositions := []server.Position{
-		{Line: 1, Character: 5},  // on 'highlight_rule' declaration
-		{Line: 2, Character: 8},  // on 'highlight_rule' first reference
-		{Line: 3, Character: 8},  // on 'highlight_rule' second reference
+		{Line: 1, Character: 5}, // on 'highlight_rule' declaration
+		{Line: 2, Character: 8}, // on 'highlight_rule' first reference
+		{Line: 3, Character: 8}, // on 'highlight_rule' second reference
 	}
 
 	idCounter := 1
@@ -1121,13 +1120,13 @@ func TestWorkspaceDiagnosticRequest(t *testing.T) {
 	bPath := filepath.Join(testDir, "b.grammar")
 
 	// a.grammar with an error (undefined identifier 'b')
-	aContent := `rule_a = b;`
+	aContent := `Rule_a = b;`
 	if err := os.WriteFile(aPath, []byte(aContent), 0644); err != nil {
 		t.Fatalf("Failed to write a.grammar: %v", err)
 	}
 
 	// b.grammar without errors
-	bContent := `rule_b = "hello";`
+	bContent := `Rule_b = "hello";`
 	if err := os.WriteFile(bPath, []byte(bContent), 0644); err != nil {
 		t.Fatalf("Failed to write b.grammar: %v", err)
 	}

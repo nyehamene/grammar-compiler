@@ -4,19 +4,22 @@ import (
 	"fmt"
 	"grammar/ast"
 	"grammar/log"
+	"unicode"
 )
 
 // Checker holds the state for the type-checking process.
 type Checker struct {
-	cu  *CompilationUnit
-	log log.Logger
+	cu      *CompilationUnit
+	log     log.Logger
+	symbols map[string]*SymbolTable
 }
 
 // NewChecker creates a new Checker.
 func NewChecker(cu *CompilationUnit, logger log.Logger) *Checker {
 	return &Checker{
-		cu:  cu,
-		log: logger,
+		cu:      cu,
+		log:     logger,
+		symbols: make(map[string]*SymbolTable),
 	}
 }
 
@@ -39,6 +42,8 @@ func (c *Checker) Sources() map[string][]rune {
 func (c *Checker) Check(path string) {
 	ns, _ := c.cu.LoadFile(path)
 	if ns != nil {
+		c.symbols[path] = NewSymbolTable(path)
+		c.collectSymbols(ns.File, c.symbols[path])
 		c.checkNode(ns.File, ns)
 	}
 }
@@ -47,8 +52,43 @@ func (c *Checker) Check(path string) {
 func (c *Checker) CheckSource(content []byte, path string) {
 	ns := c.cu.LoadSource(content, path)
 	if ns != nil {
+		c.symbols[path] = NewSymbolTable(path)
+		c.collectSymbols(ns.File, c.symbols[path])
 		c.checkNode(ns.File, ns)
 	}
+}
+
+func (c *Checker) collectSymbols(node ast.Node, st *SymbolTable) {
+	if node == nil {
+		return
+	}
+	ast.Walk(node, func(n, parent ast.Node) { // Changed signature here
+		switch decl := n.(type) {
+		case *ast.RuleDecl:
+			if decl.Name != nil {
+				isPublic := unicode.IsUpper(rune(decl.Name.Name[0]))
+				symbol := &Symbol{
+					Name:     decl.Name.Name,
+					Kind:     RuleSymbol,
+					IsPublic: isPublic,
+					Pos:      decl.Name.Pos(),
+					IsUsed:   false, // Private rules are not used by default
+				}
+				st.Add(symbol)
+			}
+		case *ast.BindingDecl:
+			if decl.Name != nil {
+				symbol := &Symbol{
+					Name:     decl.Name.Name,
+					Kind:     BindingSymbol,
+					IsPublic: false,
+					Pos:      decl.Name.Pos(),
+					IsUsed:   false,
+				}
+				st.Add(symbol)
+			}
+		}
+	})
 }
 
 func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
@@ -58,10 +98,35 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 
 	switch n := node.(type) {
 	case *ast.File:
+		st, ok := c.symbols[ns.Name]
+		if !ok {
+			c.log.Printf("UNREACHABLE")
+			return // Should not happen
+		}
+
 		for _, decl := range n.Decls {
 			c.checkNode(decl, ns)
 		}
+
+		// After checking all nodes, analyze the symbol table for unused symbols.
+		for _, symbol := range st.Symbols {
+			if !symbol.IsUsed {
+				c.cu.AddWarning(ns.Name, symbol.Pos, fmt.Sprintf("unused symbol: %s", symbol.Name))
+			}
+		}
+
+		if len(st.PublicRules) > 1 {
+			for _, symbol := range st.PublicRules {
+				c.cu.AddWarning(ns.Name, symbol.Pos, fmt.Sprintf("more than one public rule in file: %s", symbol.Name))
+			}
+		}
+
 	case *ast.RuleDecl:
+		if st, ok := c.symbols[ns.Name]; ok {
+			if symbol, found := st.Find(n.Name.Name); found && symbol.IsPublic {
+				symbol.IsUsed = true
+			}
+		}
 		if n.Body != nil {
 			for _, expr := range n.Body {
 				c.checkNode(expr, ns)
@@ -86,8 +151,24 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 	case *ast.Ident:
 		if _, found := ns.Members[n.Name]; !found {
 			c.cu.AddError(ns.Name, n.Pos(), fmt.Sprintf("undefined identifier: %s", n.Name))
+		} else {
+			// Mark symbol as used
+			if st, ok := c.symbols[ns.Name]; ok {
+				if symbol, found := st.Find(n.Name); found {
+					symbol.IsUsed = true
+				}
+			}
 		}
 	case *ast.MemberExpr:
+		// Mark the object of the member expression as used.
+		if ident, isIdent := n.Object.(*ast.Ident); isIdent {
+			if st, ok := c.symbols[ns.Name]; ok {
+				if symbol, found := st.Find(ident.Name); found {
+					symbol.IsUsed = true
+				}
+			}
+		}
+
 		receiverType := c.typeOf(n.Object, ns)
 		if receiverType == nil {
 			return // Error already reported
@@ -104,6 +185,9 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 		}
 		if _, found := importedNs.Members[n.Member.Name]; !found {
 			c.cu.AddError(ns.Name, n.Member.Pos(), fmt.Sprintf("undefined member '%s' in namespace '%s'", n.Member.Name, nsType.Name))
+		} else {
+			// This is a reference to a symbol in another file, so we don't mark it as used in the current file.
+			_ = n
 		}
 	}
 }

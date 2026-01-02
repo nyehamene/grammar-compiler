@@ -32,15 +32,24 @@ func TestCheckSuccess(t *testing.T) {
 func TestCheckNonExistentImport(t *testing.T) {
 	checker := setupTestChecker(t)
 	checker.Check("../testdata/check/nonexistent_import/a.grammar")
-	err := checker.CompilationUnit().Err("../testdata/check/nonexistent_import/a.grammar")
-	if err == nil {
-		t.Fatal("Expected an error, but got none.")
+	errList, ok := checker.CompilationUnit().Errors["../testdata/check/nonexistent_import/a.grammar"]
+	if !ok || len(errList) == 0 {
+		t.Fatal("Expected errors, but got none.")
 	}
 
-	if !strings.Contains(err.Error(), "could not load imported namespace") {
-		t.Errorf("Expected error to contain 'could not load imported namespace', but got: %v", err)
+	foundExpectedError := false
+	for _, e := range errList {
+		if strings.Contains(e.Message, "could not load imported namespace") && !e.Warning {
+			foundExpectedError = true
+			break
+		}
+	}
+
+	if !foundExpectedError {
+		t.Errorf("Expected error to contain 'could not load imported namespace', but got: %v", errList)
 	}
 }
+
 
 func TestCheckImportCycle(t *testing.T) {
 	checker := setupTestChecker(t)
@@ -71,12 +80,20 @@ func TestCheckRedeclaration(t *testing.T) {
 func TestCheckUndefinedMember(t *testing.T) {
 	checker := setupTestChecker(t)
 	checker.Check("../testdata/check/undefined_member/a.grammar")
-	err := checker.CompilationUnit().Err("../testdata/check/undefined_member/a.grammar")
-	if err == nil {
-		t.Fatal("Expected an error for undefined member, but got none.")
+	errList, ok := checker.CompilationUnit().Errors["../testdata/check/undefined_member/a.grammar"]
+	if !ok || len(errList) == 0 {
+		t.Fatal("Expected errors, but got none.")
 	}
 
-	if !strings.Contains(err.Error(), "undefined member") {
-		t.Errorf("Expected error to contain 'undefined member', but got: %v", err)
+	foundExpectedError := false
+	for _, e := range errList {
+		if strings.Contains(e.Message, "undefined member") && !e.Warning {
+			foundExpectedError = true
+			break
+		}
+	}
+
+	if !foundExpectedError {
+		t.Errorf("Expected error to contain 'undefined member', but got: %v", errList)
 	}
 }

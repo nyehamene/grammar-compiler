@@ -1,0 +1,3 @@
+b = @import("b.grammar");
+
+PublicRule = "world";
