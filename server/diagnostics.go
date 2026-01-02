@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"grammar/token"
 )
 
 func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
@@ -25,7 +24,6 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 	errors, _ := s.checker.CompilationUnit().Errors[documentUri]
 
 	diagnostics := []Diagnostic{}
-	srcRunes := []rune(content)
 
 	for _, e := range errors {
 		severity := SeverityError
@@ -33,11 +31,11 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 			severity = SeverityWarning
 		}
 
-		line, col := token.FindLineAndCol(e.Pos, srcRunes)
+		// Directly use e.Line and e.Col
 		diagnostic := Diagnostic{
 			Range: Range{
-				Start: Position{Line: line - 1, Character: col - 1},
-				End:   Position{Line: line - 1, Character: col},
+				Start: Position{Line: e.Line - 1, Character: e.Col - 1},
+				End:   Position{Line: e.Line - 1, Character: e.Col}, // Assuming single character for simplicity, adjust if needed
 			},
 			Severity: severity,
 			Source:   "checker",

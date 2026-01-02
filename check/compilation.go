@@ -32,22 +32,22 @@ func NewCompilationUnit(loader FileLoader, logger log.Logger) *CompilationUnit {
 }
 
 // AddError adds a new error to the compilation unit.
-func (cu *CompilationUnit) AddError(path string, pos token.Pos, message string) {
+func (cu *CompilationUnit) AddError(path string, line, col int, message string) {
 	errlist, ok := cu.Errors[path]
 	if !ok {
 		errlist = make(ErrorList, 0, 10)
 	}
-	errlist.Add(path, pos, message)
+	errlist.add(path, line, col, message, false)
 	cu.Errors[path] = errlist
 }
 
 // AddWarning adds a new warning to the compilation unit.
-func (cu *CompilationUnit) AddWarning(path string, pos token.Pos, message string) {
+func (cu *CompilationUnit) AddWarning(path string, line, col int, message string) {
 	errlist, ok := cu.Errors[path]
 	if !ok {
 		errlist = make(ErrorList, 0, 10)
 	}
-	errlist.AddWarning(path, pos, message)
+	errlist.add(path, line, col, message, true)
 	cu.Errors[path] = errlist
 }
 
@@ -91,8 +91,13 @@ func resolveImport(base, imp string) (string, error) {
 
 // LoadSource parses grammar source content and returns its namespace.
 func (cu *CompilationUnit) LoadSource(content []byte, path string) *Namespace {
+	srcRunes := []rune(string(content)) // Moved declaration here
+	cu.Sources[path] = srcRunes        // And assignment here
+
 	if cu.loading[path] {
-		cu.AddError(path, token.NoPos, fmt.Sprintf("import cycle detected involving %s", path))
+		// Calculate line and col for token.NoPos
+		line, col := token.FindLineAndCol(token.NoPos, srcRunes) // Now srcRunes is in scope
+		cu.AddError(path, line, col, fmt.Sprintf("import cycle detected involving %s", path))
 		return cu.Namespaces[path]
 	}
 	cu.loading[path] = true
@@ -102,9 +107,6 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) *Namespace {
 		return ns
 	}
 
-	srcRunes := []rune(string(content))
-	cu.Sources[path] = srcRunes
-
 	tokenizer := token.NewTokenizer(srcRunes, false, false)
 	tokens := tokenizer.Scan()
 	parser := ast.NewParser(tokens, srcRunes)
@@ -112,7 +114,8 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) *Namespace {
 	if parseErr != nil {
 		if errs, ok := parseErr.(ast.ErrorList); ok {
 			for _, e := range errs {
-				cu.AddError(path, e.Pos, e.Message)
+				line, col := token.FindLineAndCol(e.Pos, srcRunes)
+				cu.AddError(path, line, col, e.Message)
 			}
 		} else {
 			cu.log.Printf("CheckSource: unexpected parser error type %T. (Error: %s)", parseErr, parseErr)
@@ -128,11 +131,13 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) *Namespace {
 		switch d := decl.(type) {
 		case *ast.BindingDecl:
 			if _, found := ns.Members[d.Name.Name]; found {
-				cu.AddError(path, d.Pos(), fmt.Sprintf("identifier '%s' redeclared in this namespace", d.Name.Name))
+				line, col := token.FindLineAndCol(d.Pos(), srcRunes)
+				cu.AddError(path, line, col, fmt.Sprintf("identifier '%s' redeclared in this namespace", d.Name.Name))
 				continue
 			}
 			if d.Path == nil {
-				cu.AddError(path, d.Pos(), "missing import path")
+				line, col := token.FindLineAndCol(d.Pos(), srcRunes)
+				cu.AddError(path, line, col, "missing import path")
 				continue
 			}
 			importPathLiteral := d.Path.Value
@@ -140,13 +145,15 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) *Namespace {
 
 			importedPath, resolveErr := resolveImport(path, importPath)
 			if resolveErr != nil {
-				cu.AddError(path, d.Path.Pos(), resolveErr.Error())
+				line, col := token.FindLineAndCol(d.Path.Pos(), srcRunes)
+				cu.AddError(path, line, col, resolveErr.Error())
 				continue
 			}
 
 			importedNs, loadErr := cu.LoadFile(importedPath)
 			if loadErr != nil {
-				cu.AddError(path, d.Path.Pos(), fmt.Sprintf("could not load imported namespace '%s'", importPath))
+				line, col := token.FindLineAndCol(d.Path.Pos(), srcRunes)
+				cu.AddError(path, line, col, fmt.Sprintf("could not load imported namespace '%s'", importPath))
 				continue
 			}
 			ns.Members[d.Name.Name] = d
@@ -154,7 +161,8 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) *Namespace {
 
 		case *ast.RuleDecl:
 			if _, found := ns.Members[d.Name.Name]; found {
-				cu.AddError(path, d.Pos(), fmt.Sprintf("identifier '%s' redeclared in this namespace", d.Name.Name))
+				line, col := token.FindLineAndCol(d.Pos(), srcRunes)
+				cu.AddError(path, line, col, fmt.Sprintf("identifier '%s' redeclared in this namespace", d.Name.Name))
 				continue
 			}
 			ns.Members[d.Name.Name] = d

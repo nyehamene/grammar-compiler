@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"grammar/ast"
 	"grammar/log"
+	"grammar/token" // Added import
 	"unicode"
 )
 
@@ -111,13 +112,15 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 		// After checking all nodes, analyze the symbol table for unused symbols.
 		for _, symbol := range st.Symbols {
 			if !symbol.IsUsed {
-				c.cu.AddWarning(ns.Name, symbol.Pos, fmt.Sprintf("unused symbol: %s", symbol.Name))
+				line, col := token.FindLineAndCol(symbol.Pos, c.cu.Sources[ns.Name])
+				c.cu.AddWarning(ns.Name, line, col, fmt.Sprintf("unused symbol: %s", symbol.Name))
 			}
 		}
 
 		if len(st.PublicRules) > 1 {
 			for _, symbol := range st.PublicRules {
-				c.cu.AddWarning(ns.Name, symbol.Pos, fmt.Sprintf("more than one public rule in file: %s", symbol.Name))
+				line, col := token.FindLineAndCol(symbol.Pos, c.cu.Sources[ns.Name])
+				c.cu.AddWarning(ns.Name, line, col, fmt.Sprintf("more than one public rule in file: %s", symbol.Name))
 			}
 		}
 
@@ -150,7 +153,8 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 		// No children to check.
 	case *ast.Ident:
 		if _, found := ns.Members[n.Name]; !found {
-			c.cu.AddError(ns.Name, n.Pos(), fmt.Sprintf("undefined identifier: %s", n.Name))
+			line, col := token.FindLineAndCol(n.Pos(), c.cu.Sources[ns.Name])
+			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("undefined identifier: %s", n.Name))
 		} else {
 			// Mark symbol as used
 			if st, ok := c.symbols[ns.Name]; ok {
@@ -175,16 +179,19 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 		}
 		nsType, ok := receiverType.(*NamespaceType)
 		if !ok {
-			c.cu.AddError(ns.Name, n.Object.Pos(), fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
+			line, col := token.FindLineAndCol(n.Object.Pos(), c.cu.Sources[ns.Name])
+			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
 			return
 		}
 		importedNs, found := c.cu.Namespaces[nsType.Name]
 		if !found {
-			c.cu.AddError(ns.Name, n.Object.Pos(), fmt.Sprintf("internal error: could not find namespace %s", nsType.Name))
+			line, col := token.FindLineAndCol(n.Object.Pos(), c.cu.Sources[ns.Name])
+			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("internal error: could not find namespace %s", nsType.Name))
 			return
 		}
 		if _, found := importedNs.Members[n.Member.Name]; !found {
-			c.cu.AddError(ns.Name, n.Member.Pos(), fmt.Sprintf("undefined member '%s' in namespace '%s'", n.Member.Name, nsType.Name))
+			line, col := token.FindLineAndCol(n.Member.Pos(), c.cu.Sources[ns.Name])
+			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("undefined member '%s' in namespace '%s'", n.Member.Name, nsType.Name))
 		} else {
 			// This is a reference to a symbol in another file, so we don't mark it as used in the current file.
 			_ = n
@@ -198,7 +205,8 @@ func (c *Checker) typeOf(expr ast.Expr, ns *Namespace) Type {
 		if typ, found := ns.Types[e.Name]; found {
 			return typ
 		}
-		c.cu.AddError(ns.Name, e.Pos(), fmt.Sprintf("undefined identifier: %s", e.Name))
+		line, col := token.FindLineAndCol(e.Pos(), c.cu.Sources[ns.Name])
+		c.cu.AddError(ns.Name, line, col, fmt.Sprintf("undefined identifier: %s", e.Name))
 		return nil
 	case *ast.StringLit:
 		return String
@@ -213,14 +221,16 @@ func (c *Checker) typeOf(expr ast.Expr, ns *Namespace) Type {
 		}
 		nsType, ok := receiverType.(*NamespaceType)
 		if !ok {
-			c.cu.AddError(ns.Name, e.Object.Pos(), fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
+			line, col := token.FindLineAndCol(e.Object.Pos(), c.cu.Sources[ns.Name])
+			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
 			return nil
 		}
 		importedNs := c.cu.Namespaces[nsType.Name]
 		if memberType, found := importedNs.Types[e.Member.Name]; found {
 			return memberType
 		}
-		c.cu.AddError(ns.Name, e.Member.Pos(), fmt.Sprintf("undefined member '%s' in namespace '%s'", e.Member.Name, nsType.Name))
+		line, col := token.FindLineAndCol(e.Member.Pos(), c.cu.Sources[ns.Name])
+		c.cu.AddError(ns.Name, line, col, fmt.Sprintf("undefined member '%s' in namespace '%s'", e.Member.Name, nsType.Name))
 		return nil
 	default:
 		return nil
