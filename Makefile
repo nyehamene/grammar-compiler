@@ -8,7 +8,7 @@ build:
 	go build -o $(BINARY_NAME) .
 
 test:
-	go test ./...
+	go test ./... $(ARGS)
 
 run: build
 	./$(BINARY_NAME) $(ARGS)
