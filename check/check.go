@@ -117,13 +117,6 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 			}
 		}
 
-		if len(st.PublicRules) > 1 {
-			for _, symbol := range st.PublicRules {
-				line, col := token.FindLineAndCol(symbol.Pos, c.cu.Sources[ns.Name])
-				c.cu.AddWarning(ns.Name, line, col, fmt.Sprintf("more than one public rule in file: %s", symbol.Name))
-			}
-		}
-
 	case *ast.RuleDecl:
 		if st, ok := c.symbols[ns.Name]; ok {
 			if symbol, found := st.Find(n.Name.Name); found && symbol.IsPublic {

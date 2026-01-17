@@ -22,25 +22,20 @@ type Symbol struct {
 // SymbolTable holds the symbols for a single file.
 type SymbolTable struct {
 	Symbols     map[string]*Symbol
-	PublicRules []*Symbol
 	Filepath    string
 }
 
 // NewSymbolTable creates a new symbol table for a file.
 func NewSymbolTable(filepath string) *SymbolTable {
 	return &SymbolTable{
-		Symbols:     make(map[string]*Symbol),
-		PublicRules: []*Symbol{},
-		Filepath:    filepath,
+		Symbols:  make(map[string]*Symbol),
+		Filepath: filepath,
 	}
 }
 
 // Add adds a symbol to the table.
 func (st *SymbolTable) Add(symbol *Symbol) {
 	st.Symbols[symbol.Name] = symbol
-	if symbol.Kind == RuleSymbol && symbol.IsPublic {
-		st.PublicRules = append(st.PublicRules, symbol)
-	}
 }
 
 // Find returns the symbol with the given name.
