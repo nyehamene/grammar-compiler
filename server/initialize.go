@@ -13,11 +13,6 @@ type InitializeParams struct {
 	// ... other fields
 }
 
-// ClientCapabilities represents the capabilities of the client.
-type ClientCapabilities struct {
-	// For now, we don't need to parse the client capabilities in detail.
-}
-
 // InitializeResult represents the result of an `initialize` request.
 type InitializeResult struct {
 	Capabilities ServerCapabilities `json:"capabilities"`
@@ -80,6 +75,11 @@ func handleInitializeRequest(s *Server, id int, rawMsg map[string]any) {
 	}
 
 	s.logger.Print(&params) // Log the InitializeParams struct directly for special handling
+
+	// Check if client supports pull diagnostics
+	if params.Capabilities.TextDocument != nil && params.Capabilities.TextDocument.Diagnostic != nil {
+		s.clientHasDiagnosticSupport = true
+	}
 
 	// Respond with server capabilities
 	result := InitializeResult{

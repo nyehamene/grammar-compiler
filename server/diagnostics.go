@@ -51,6 +51,10 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 }
 
 func (s *Server) publishDiagnostics(ctx context.Context, uri DocumentUri) {
+	// If the client supports pull diagnostics, don't push diagnostics.
+	if s.clientHasDiagnosticSupport {
+		return
+	}
 	diagnostics := s.generateDiagnosticsForURI(uri)
 	s.notify(ctx, "textDocument/publishDiagnostics", PublishDiagnosticsParams{
 		URI:         uri,

@@ -12,13 +12,14 @@ import (
 )
 
 type Server struct {
-	reader       *bufio.Reader
-	writer       io.Writer
-	logger       grammar_log.Logger
-	shutdown     bool
-	documents    map[DocumentUri]*document
-	checker      *check.Checker
-	fsFileLoader check.FileLoader
+	reader                     *bufio.Reader
+	writer                     io.Writer
+	logger                     grammar_log.Logger
+	shutdown                   bool
+	documents                  map[DocumentUri]*document
+	checker                    *check.Checker
+	fsFileLoader               check.FileLoader
+	clientHasDiagnosticSupport bool
 }
 
 // document is an in-memory representation of a document.

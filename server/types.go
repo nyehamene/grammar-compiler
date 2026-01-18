@@ -348,3 +348,18 @@ type WorkspaceDocumentDiagnosticReport struct {
 	ResultID   string                     `json:"resultId,omitempty"`
 	Items      []Diagnostic               `json:"items,omitempty"`
 }
+
+// ClientCapabilities represents the capabilities of the client.
+type ClientCapabilities struct {
+	TextDocument *TextDocumentClientCapabilities `json:"textDocument,omitempty"`
+}
+
+// TextDocumentClientCapabilities represents the capabilities of the client's text document features.
+type TextDocumentClientCapabilities struct {
+	Diagnostic *DiagnosticClientCapabilities `json:"diagnostic,omitempty"`
+}
+
+// DiagnosticClientCapabilities represents the capabilities of the client's diagnostic features.
+type DiagnosticClientCapabilities struct {
+	// We only care about the presence of this struct, not its fields.
+}

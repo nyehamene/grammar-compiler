@@ -1196,3 +1196,108 @@ func TestWorkspaceDiagnosticRequest(t *testing.T) {
 	}
 	assertNoUnhandledMessages(h, &logBuf)
 }
+
+func newInitializeRequest(id int, capabilities server.ClientCapabilities) server.RequestMessage {
+	params := server.InitializeParams{
+		Capabilities: capabilities,
+	}
+	var p any = params
+	return newRequest(id, "initialize", &p)
+}
+
+func TestConditionalPublishDiagnostics(t *testing.T) {
+	t.Run("ClientWithPullSupport", func(t *testing.T) {
+		var logBuf bytes.Buffer
+		h := setupTestServer(t, &logBuf)
+		defer func() { _ = h.clientConn.Close() }()
+		defer func() {
+			if t.Failed() {
+				t.Log(logBuf.String())
+			}
+		}()
+
+		// 1. Initialize with pull diagnostic support
+		id := 1
+		caps := server.ClientCapabilities{
+			TextDocument: &server.TextDocumentClientCapabilities{
+				Diagnostic: &server.DiagnosticClientCapabilities{},
+			},
+		}
+		h.send(newInitializeRequest(id, caps))
+		// consume the initialize response
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		// 2. Open document with an error
+		content := "A = b;" // 'b' is undefined
+		uri, _ := server.ParseURI("file:///test.grammar")
+		h.send(newDidOpenNotification(uri, content, 1))
+
+		// 3. Assert that NO publishDiagnostics is received.
+		// The read will time out if no message is sent, which is the desired outcome.
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+
+		readChan := make(chan map[string]any)
+		go func() {
+			readChan <- h.read()
+		}()
+
+		select {
+		case msg := <-readChan:
+			if msg != nil && msg["method"] == "textDocument/publishDiagnostics" {
+				t.Fatal("Received unexpected publishDiagnostics notification")
+			}
+			// Another message is not expected, but if one arrives and it's not a diagnostic,
+			// it's not a failure for this specific test. A nil message means connection closed.
+		case <-ctx.Done():
+			// This is the success case. The read timed out, meaning no message was sent.
+		}
+	})
+
+	t.Run("ClientWithoutPullSupport", func(t *testing.T) {
+		var logBuf bytes.Buffer
+		h := setupTestServer(t, &logBuf)
+		defer func() { _ = h.clientConn.Close() }()
+		defer func() {
+			if t.Failed() {
+				t.Log(logBuf.String())
+			}
+		}()
+
+		// 1. Initialize without pull diagnostic support
+		id := 1
+		h.send(newInitializeRequest(id, server.ClientCapabilities{}))
+		// consume the initialize response
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		// 2. Open document with an error
+		content := "A = b;" // 'b' is undefined
+		uri, _ := server.ParseURI("file:///test.grammar")
+		h.send(newDidOpenNotification(uri, content, 1))
+
+		// 3. Assert that a publishDiagnostics notification IS received.
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		var diagMsg map[string]any
+		readChan := make(chan map[string]any)
+		go func() {
+			readChan <- h.read()
+		}()
+
+		select {
+		case <-ctx.Done():
+			t.Fatal("Test timed out waiting for publishDiagnostics notification")
+		case diagMsg = <-readChan:
+			if diagMsg == nil {
+				t.Fatal("Did not receive a message from the server")
+			}
+		}
+
+		if diagMsg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics notification, but got: %v", diagMsg)
+		}
+	})
+}
