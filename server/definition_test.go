@@ -1,0 +1,75 @@
+package server_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"grammar/server"
+	"testing"
+)
+
+func TestDefinition(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer func() { _ = h.clientConn.Close() }()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	// 1. Open documents
+	bContent := "rule_b = \"from b\";"
+	bURI, _ := server.ParseURI("file:///b.grammar")
+	h.send(newDidOpenNotification(bURI, bContent, 1))
+	consumeDiagnostics(h)
+
+	aContent := "b = @import(\"b.grammar\");\nlocal_rule = b.rule_b;\nfinal_rule = local_rule;"
+	aURI, _ := server.ParseURI("file:///a.grammar")
+	h.send(newDidOpenNotification(aURI, aContent, 1))
+	consumeDiagnostics(h)
+
+	// 2. Test cross-file definition
+	id := 1
+	var definitionParams any = server.DefinitionParams{
+		TextDocument: server.TextDocumentIdentifier{URI: aURI},
+		Position:     server.Position{Line: 1, Character: 15}, // on 'rule_b'
+	}
+	h.send(newRequest(id, "textDocument/definition", &definitionParams))
+
+	msg := h.read()
+	assertResponseID(h, msg, id)
+
+	var location server.Location
+	if err := json.Unmarshal(mustMarshal(h, msg["result"]), &location); err != nil {
+		t.Fatalf("Failed to unmarshal location: %v", err)
+	}
+
+	if location.URI != bURI {
+		t.Errorf("Expected URI %s, got %s", bURI, location.URI)
+	}
+	if location.Range.Start.Line != 0 || location.Range.Start.Character != 0 {
+		t.Errorf("Expected range start at 0:0, got %d:%d", location.Range.Start.Line, location.Range.Start.Character)
+	}
+
+	// 3. Test same-file definition
+	id = 2
+	var localDefinitionParams any = server.DefinitionParams{
+		TextDocument: server.TextDocumentIdentifier{URI: aURI},
+		Position:     server.Position{Line: 2, Character: 15}, // on 'local_rule'
+	}
+	h.send(newRequest(id, "textDocument/definition", &localDefinitionParams))
+
+	msg = h.read()
+	assertResponseID(h, msg, id)
+	if err := json.Unmarshal(mustMarshal(h, msg["result"]), &location); err != nil {
+		t.Fatalf("Failed to unmarshal location: %v", err)
+	}
+
+	if location.URI != aURI {
+		t.Errorf("Expected URI %s, got %s", aURI, location.URI)
+	}
+	if location.Range.Start.Line != 1 || location.Range.Start.Character != 0 {
+		t.Errorf("Expected range start at 1:0, got %d:%d", location.Range.Start.Line, location.Range.Start.Character)
+	}
+	assertNoUnhandledMessages(h, &logBuf)
+}
