@@ -74,6 +74,9 @@ func handleInitializeRequest(s *Server, id int, rawMsg map[string]any) {
 		return
 	}
 
+	jsonBytes, _ := json.MarshalIndent(rawMsg, "", "    ")
+	s.logger.Printf("%s", jsonBytes)
+
 	s.logger.Print(&params) // Log the InitializeParams struct directly for special handling
 
 	// Check if client supports pull diagnostics
