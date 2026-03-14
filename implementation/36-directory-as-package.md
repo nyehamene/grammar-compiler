@@ -272,6 +272,32 @@ bb :: @package("foo").B.b;  // can still use @package to get package reference
     - [ ] Add test files for new package system in `testdata/`
     - [ ] Update existing tests for backward compatibility or document breaking changes
 
+- [ ] **19. LSP Server Test Updates**
+    - [ ] **Completion Tests** (`server/completion_test.go`):
+        - Add tests for package member completion (`pkg.Module.`)
+        - Add tests for package directory completion in @import
+    - [ ] **Diagnostics Tests** (`server/diagnostics_test.go`):
+        - Add tests for package name mismatch errors
+        - Add tests for deprecation warnings on file imports
+        - Add tests for invalid module/rule access errors
+    - [ ] **Definition Tests** (`server/definition_test.go`):
+        - Add tests for definition resolution in same package
+        - Add tests for definition resolution across packages
+    - [ ] **References Tests** (`server/references_test.go`):
+        - Add tests for finding references across packages
+    - [ ] **Hover Tests** (`server/hover_test.go`):
+        - Add tests for hovering on @package directive
+        - Add tests for hovering on package/module accesses
+    - [ ] **Rename Tests** (`server/rename_test.go`):
+        - Add tests for renaming rules in same package
+        - Add tests for renaming modules (updates member accesses)
+        - Add tests for renaming across packages
+    - [ ] **Document Symbol Tests** (`server/document_symbol_test.go`):
+        - Add tests showing "Module" instead of "Namespace"
+    - [ ] **Document Link Tests** (`server/document_link_test.go`):
+        - Add tests for package directory links (@package and @import)
+        - Add tests for deprecated file import links
+
 ## Backward Compatibility
 
 - Legacy `@import("file.grammar")` continues to work but shows deprecation warning
