@@ -166,6 +166,22 @@ func (l *JSONLogger) Log(level Level, msg string, fields Fields) {
 	fmt.Fprintln(l.out, mustMarshalJSON(fields))
 }
 
+func (l *JSONLogger) Debug(msg string, fields Fields) {
+	l.Log(DEBUG, msg, fields)
+}
+
+func (l *JSONLogger) Info(msg string, fields Fields) {
+	l.Log(INFO, msg, fields)
+}
+
+func (l *JSONLogger) Warn(msg string, fields Fields) {
+	l.Log(WARN, msg, fields)
+}
+
+func (l *JSONLogger) Error(msg string, fields Fields) {
+	l.Log(ERROR, msg, fields)
+}
+
 // --- Console Logger ---
 
 // ConsoleLogger outputs structured logs in a human-readable format.
@@ -202,6 +218,22 @@ func (l *ConsoleLogger) Log(level Level, msg string, fields Fields) {
 	}
 
 	fmt.Fprintln(l.out, output)
+}
+
+func (l *ConsoleLogger) Debug(msg string, fields Fields) {
+	l.Log(DEBUG, msg, fields)
+}
+
+func (l *ConsoleLogger) Info(msg string, fields Fields) {
+	l.Log(INFO, msg, fields)
+}
+
+func (l *ConsoleLogger) Warn(msg string, fields Fields) {
+	l.Log(WARN, msg, fields)
+}
+
+func (l *ConsoleLogger) Error(msg string, fields Fields) {
+	l.Log(ERROR, msg, fields)
 }
 
 // --- Multi Logger ---
