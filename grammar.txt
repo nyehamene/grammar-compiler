@@ -1,11 +1,11 @@
 Source = { declaration };
 
-declaration = binding | package_directive | Rule | comment;
-binding     = ident "=" directive ";";
+declaration       = binding | package_directive | Rule | comment;
+binding           = ident "=" directive ";";
 package_directive = "@package" "(" string ")";
-directive   = "@import" "(" string ")" | "@package" "(" string ")";
-Rule        = ident "=" production ";";
-comment     = "/" "/" /[^\n]*/ [ "\n" ];
+directive         = "@import" "(" string ")" | "@package" "(" string ")";
+Rule              = ident "=" production ";";
+comment           = "/" "/" /[^\n]*/ [ "\n" ];
 
 production  = sequence | alternative;
 alternative = sequence { "|" production };

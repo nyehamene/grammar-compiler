@@ -11,6 +11,29 @@ import (
 	"testing"
 )
 
+// testLogger implements server.Logger for testing
+type testLogger struct {
+	out io.Writer
+}
+
+func newTestLogger(out io.Writer) *testLogger {
+	return &testLogger{out: out}
+}
+
+func (l *testLogger) Print(v any) {
+	if l.out == nil {
+		return
+	}
+	fmt.Fprintln(l.out, v)
+}
+
+func (l *testLogger) Printf(format string, v ...any) {
+	if l.out == nil {
+		return
+	}
+	_, _ = fmt.Fprintf(l.out, format+"\n", v...)
+}
+
 // lspTestHarness holds the client and server for an integration test.
 type lspTestHarness struct {
 	clientConn io.ReadWriteCloser
@@ -23,7 +46,9 @@ func setupTestServer(t *testing.T, logOut io.Writer) *lspTestHarness {
 	serverRead, clientWrite := io.Pipe()
 	clientRead, serverWrite := io.Pipe()
 
-	serv := server.NewServer(serverRead, serverWrite, logOut)
+	logger := server.NewWriterLogger(logOut)
+
+	serv := server.NewServer(serverRead, serverWrite, logger)
 
 	clientConn := &inMemoryConn{
 		Reader: clientRead,

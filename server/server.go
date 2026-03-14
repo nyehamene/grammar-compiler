@@ -9,6 +9,7 @@ import (
 	grammar_log "grammar/log"
 	"io"
 	"os"
+	"time"
 )
 
 type Server struct {
@@ -20,6 +21,7 @@ type Server struct {
 	checker                    *check.Checker
 	fsFileLoader               check.FileLoader
 	clientHasDiagnosticSupport bool
+	requestTimes               map[int]time.Time
 }
 
 // document is an in-memory representation of a document.
@@ -27,14 +29,14 @@ type document struct {
 	text []rune
 }
 
-func NewServer(in io.Reader, out io.Writer, logOut io.Writer) *Server {
-	logger := NewLineLogger(logOut) // Use our new line logger
+func NewServer(in io.Reader, out io.Writer, logger grammar_log.Logger) *Server {
 	srv := &Server{
-		reader:    bufio.NewReader(in),
-		writer:    out,
-		logger:    logger,
-		shutdown:  false,
-		documents: make(map[DocumentUri]*document),
+		reader:       bufio.NewReader(in),
+		writer:       out,
+		logger:       logger,
+		shutdown:     false,
+		documents:    make(map[DocumentUri]*document),
+		requestTimes: make(map[int]time.Time),
 	}
 
 	cu := check.NewCompilationUnit(srv, logger)
@@ -91,9 +93,28 @@ func (s *Server) Start() {
 }
 
 func (s *Server) handleRequest(id int, rawMsg map[string]any) {
-	s.logger.Print(rawMsg) // Log the full request message struct
+	// Log request with structured fields
+	startTime := time.Now()
+	s.requestTimes[id] = startTime
+
 	method, ok := rawMsg["method"].(string)
 	if !ok {
+		method = "unknown"
+	}
+
+	// Log the request
+	if sl, ok := s.logger.(interface {
+		Debug(msg string, fields map[string]any)
+	}); ok {
+		sl.Debug("received request", map[string]any{
+			"request_id": id,
+			"method":     method,
+		})
+	} else {
+		s.logger.Printf("-> Request %d: %s", id, method)
+	}
+
+	if method == "unknown" {
 		s.sendErrorResponse(id, InvalidRequest, "method not found", "unknown")
 		return
 	}
@@ -191,7 +212,36 @@ func (s *Server) sendResponse(id int, method string, result any, errResp *Respon
 		Result:  &result,
 		Error:   errResp,
 	}
-	s.logger.Print(resp) // Log the full response message struct
+
+	// Calculate request duration
+	var duration time.Duration
+	if startTime, ok := s.requestTimes[id]; ok {
+		duration = time.Since(startTime)
+		delete(s.requestTimes, id)
+	}
+
+	// Log response with structured fields
+	if sl, ok := s.logger.(interface {
+		Debug(msg string, fields map[string]any)
+	}); ok {
+		fields := map[string]any{
+			"request_id":  id,
+			"method":      method,
+			"duration_ms": duration.Milliseconds(),
+		}
+		if errResp != nil {
+			fields["error"] = errResp.Message
+			sl.Debug("sent error response", fields)
+		} else {
+			sl.Debug("sent response", fields)
+		}
+	} else {
+		if errResp != nil {
+			s.logger.Printf("<- Response %d (%s): Error - %s (%dms)", id, method, errResp.Message, duration.Milliseconds())
+		} else {
+			s.logger.Printf("<- Response %d (%s): (%dms)", id, method, duration.Milliseconds())
+		}
+	}
 
 	encoded, err := s.EncodeMessage(resp)
 	if err != nil {
@@ -219,7 +269,17 @@ func (s *Server) notify(_ context.Context, method string, params any) {
 		Method:  method,
 		Params:  &params,
 	}
-	s.logger.Print(note) // Log the full notification struct
+
+	// Log notification with structured fields
+	if sl, ok := s.logger.(interface {
+		Debug(msg string, fields map[string]any)
+	}); ok {
+		sl.Debug("sent notification", map[string]any{
+			"method": method,
+		})
+	} else {
+		s.logger.Print(note) // Log the full notification struct
+	}
 
 	encoded, err := s.EncodeMessage(note)
 	if err != nil {

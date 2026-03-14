@@ -19,6 +19,47 @@ func NewSilentLogger() log.Logger {
 	return &silentLogger{}
 }
 
+// --- Writer Logger ---
+
+// writerLogger wraps an io.Writer to satisfy the Logger interface.
+type writerLogger struct {
+	out io.Writer
+}
+
+// NewWriterLogger creates a logger that writes to the given writer.
+func NewWriterLogger(out io.Writer) log.Logger {
+	if out == nil {
+		out = io.Discard
+	}
+	return &writerLogger{out: out}
+}
+
+func (l *writerLogger) Print(v any) {
+	if l.out == nil {
+		return
+	}
+	fmt.Fprintln(l.out, v)
+}
+
+func (l *writerLogger) Printf(format string, v ...any) {
+	if l.out == nil {
+		return
+	}
+	_, _ = fmt.Fprintf(l.out, format+"\n", v...)
+}
+
+// --- Test Logger (exported for use in tests) ---
+
+// TestLogger wraps an io.Writer to satisfy the Logger interface for testing.
+type TestLogger struct {
+	out io.Writer
+}
+
+// NewTestLogger creates a logger that writes to the given writer for testing.
+func NewTestLogger(out io.Writer) log.Logger {
+	return NewWriterLogger(out)
+}
+
 // --- Line Logger ---
 
 type lineLogger struct {

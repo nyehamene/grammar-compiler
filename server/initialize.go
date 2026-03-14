@@ -21,16 +21,16 @@ type InitializeResult struct {
 
 // ServerCapabilities represents the capabilities of the server.
 type ServerCapabilities struct {
-	TextDocumentSync        *TextDocumentSyncOptions `json:"textDocumentSync,omitempty"`
-	CompletionProvider      *CompletionOptions       `json:"completionProvider,omitempty"`
-	HoverProvider           bool                     `json:"hoverProvider,omitempty"`
-	DefinitionProvider      bool                     `json:"definitionProvider,omitempty"`
-	ReferencesProvider      bool                     `json:"referencesProvider,omitempty"`
-	DocumentSymbolProvider  bool                     `json:"documentSymbolProvider,omitempty"`
-	WorkspaceSymbolProvider bool                     `json:"workspaceSymbolProvider,omitempty"`
-	RenameProvider          bool                     `json:"renameProvider,omitempty"`
-	DiagnosticProvider      *DiagnosticOptions       `json:"diagnosticProvider,omitempty"`
-	DocumentLinkProvider    *DocumentLinkOptions     `json:"documentLinkProvider,omitempty"`
+	TextDocumentSync          *TextDocumentSyncOptions  `json:"textDocumentSync,omitempty"`
+	CompletionProvider        *CompletionOptions        `json:"completionProvider,omitempty"`
+	HoverProvider             bool                      `json:"hoverProvider,omitempty"`
+	DefinitionProvider        bool                      `json:"definitionProvider,omitempty"`
+	ReferencesProvider        bool                      `json:"referencesProvider,omitempty"`
+	DocumentSymbolProvider    bool                      `json:"documentSymbolProvider,omitempty"`
+	WorkspaceSymbolProvider   bool                      `json:"workspaceSymbolProvider,omitempty"`
+	RenameProvider            bool                      `json:"renameProvider,omitempty"`
+	DiagnosticProvider        *DiagnosticOptions        `json:"diagnosticProvider,omitempty"`
+	DocumentLinkProvider      *DocumentLinkOptions      `json:"documentLinkProvider,omitempty"`
 	DocumentHighlightProvider *DocumentHighlightOptions `json:"documentHighlightProvider,omitempty"`
 	// ... other server capabilities
 }
@@ -111,7 +111,7 @@ func handleInitializeRequest(s *Server, id int, rawMsg map[string]any) {
 		},
 		ServerInfo: &ServerInfo{
 			Name:    "grammar-lsp",
-			Version: "0.1.0",
+			Version: "0.3.0",
 		},
 	}
 	s.sendResponse(id, method, result, nil)

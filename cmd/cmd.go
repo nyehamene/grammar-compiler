@@ -11,7 +11,7 @@ import (
 	"io"
 )
 
-const VERSION = "0.2.0"
+const VERSION = "0.3.0"
 
 // Run executes the main command-line interface.
 func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {

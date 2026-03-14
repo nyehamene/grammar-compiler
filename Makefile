@@ -8,7 +8,7 @@ build:
 	go build -o $(BINARY_NAME) .
 
 test:
-	go test ./... $(ARGS)
+	go test -timeout=10s ./... $(ARGS)
 
 run: build
 	./$(BINARY_NAME) $(ARGS)
