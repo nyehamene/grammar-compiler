@@ -121,45 +121,45 @@ A member access expression has a receiver and an object: `receiver.object`.
 
 ## Todos
 
-- [x] **1. Foundational Data Structures**
-    - [x] Create `check/types.go` to define the type system (e.g., `Type` interface, `StringType`, `RegexpType`, `ProductionType`, `NamespaceType`).
-    - [x] Create `check/namespace.go` to define the `Namespace` struct. It should hold mappings from identifiers to their declarations and types.
-    - [x] Create `check/compilation.go` to define the `CompilationUnit` struct. It will manage a cache of loaded namespaces (mapping file paths to `Namespace` objects) and handle file loading logic.
+- [ ] **1. Foundational Data Structures**
+    - [ ] Create `check/types.go` to define the type system (e.g., `Type` interface, `StringType`, `RegexpType`, `ProductionType`, `NamespaceType`).
+    - [ ] Create `check/namespace.go` to define the `Namespace` struct. It should hold mappings from identifiers to their declarations and types.
+    - [ ] Create `check/compilation.go` to define the `CompilationUnit` struct. It will manage a cache of loaded namespaces (mapping file paths to `Namespace` objects) and handle file loading logic.
 
-- [x] **2. CLI and Entrypoint**
-    - [x] Update `cmd/check/check.go` to properly handle `PATH` arguments (distinguishing between files and directories) and the `--stdin` flag.
-    - [x] In `cmd/check/check.go`, create a new `checker.Checker` instance and invoke its main checking method.
+- [ ] **2. CLI and Entrypoint**
+    - [ ] Update `cmd/check/check.go` to properly handle `PATH` arguments (distinguishing between files and directories) and the `--stdin` flag.
+    - [ ] In `cmd/check/check.go`, create a new `checker.Checker` instance and invoke its main checking method.
 
-- [x] **3. Namespace Loading and Resolution**
-    - [x] Implement the `CompilationUnit.LoadFile(path)` method. This method should:
+- [ ] **3. Namespace Loading and Resolution**
+    - [ ] Implement the `CompilationUnit.LoadFile(path)` method. This method should:
         - Check the cache for the file first.
         - If not cached, read and parse the file to get the AST.
         - Create a new `Namespace` for the file.
         - Add the new `Namespace` to the cache *before* processing imports to allow for cycle detection.
-    - [x] In `LoadFile`, iterate through the AST declarations to populate the `Namespace`.
+    - [ ] In `LoadFile`, iterate through the AST declarations to populate the `Namespace`.
         - For `@import` declarations, recursively call `LoadFile` for the imported path. The import path must be resolved relative to the current file's directory.
         - Handle and report errors for non-existent files.
 
-- [x] **4. Semantic Validation: Name Resolution**
-    - [x] While populating the `Namespace` in `LoadFile`, detect and report errors for redeclared identifiers (rules or binding variables with the same name in the same file).
-    - [x] Implement import cycle detection within the `CompilationUnit`. `LoadFile` can use a map of files currently in the loading stack to detect a cycle.
+- [ ] **4. Semantic Validation: Name Resolution**
+    - [ ] While populating the `Namespace` in `LoadFile`, detect and report errors for redeclared identifiers (rules or binding variables with the same name in the same file).
+    - [ ] Implement import cycle detection within the `CompilationUnit`. `LoadFile` can use a map of files currently in the loading stack to detect a cycle.
 
-- [x] **5. Semantic Validation: Type Checking**
-    - [x] Implement a `check(node ast.Node)` method on the checker that traverses the AST.
-    - [x] Implement type checking for `MemberExpr` (`receiver.object`):
+- [ ] **5. Semantic Validation: Type Checking**
+    - [ ] Implement a `check(node ast.Node)` method on the checker that traverses the AST.
+    - [ ] Implement type checking for `MemberExpr` (`receiver.object`):
         - Verify the `receiver` resolves to a `Namespace` type.
         - Verify the `object` exists within that `Namespace` and is a `Production`.
         - Report errors for undefined member access.
 
-- [x] **6. Diagnostics and Error Reporting**
-    - [x] Ensure all semantic errors (redeclaration, import cycles, file not found, invalid member access) are collected.
-    - [x] In `cmd/check/check.go`, after the check is complete, iterate through the collected errors and print them to `stderr` in the format `path:line:col: message`.
-    - [x] Ensure the command exits with a non-zero status code if any errors are found.
+- [ ] **6. Diagnostics and Error Reporting**
+    - [ ] Ensure all semantic errors (redeclaration, import cycles, file not found, invalid member access) are collected.
+    - [ ] In `cmd/check/check.go`, after the check is complete, iterate through the collected errors and print them to `stderr` in the format `path:line:col: message`.
+    - [ ] Ensure the command exits with a non-zero status code if any errors are found.
 
-- [x] **7. Integration with Language Server**
-    - [x] Create a function in the `check` package that can be called from the language server. This function will take the document content and URI.
-    - [x] When a document is opened or changed (`didOpen`, `didChange`), call this checker function.
-    - [x] Convert the checker's errors into LSP `Diagnostic` messages and send them to the client via a `textDocument/publishDiagnostics` notification.
+- [ ] **7. Integration with Language Server**
+    - [ ] Create a function in the `check` package that can be called from the language server. This function will take the document content and URI.
+    - [ ] When a document is opened or changed (`didOpen`, `didChange`), call this checker function.
+    - [ ] Convert the checker's errors into LSP `Diagnostic` messages and send them to the client via a `textDocument/publishDiagnostics` notification.
 
 ## Todos (Phase 2)
 

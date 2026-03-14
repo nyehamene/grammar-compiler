@@ -46,51 +46,51 @@ To implement a flexible, structured, and configurable logging system for the LSP
 
 ## Todos
 
-- [x] **Part 1: Define Logger Abstraction (`log/logger.go`)**
-    - [x] Create `log/` directory.
-    - [x] Define `Logger` interface with `Print(v any)` and `Printf(format string, v ...any)` methods.
+- [ ] **Part 1: Define Logger Abstraction (`log/logger.go`)**
+    - [ ] Create `log/` directory.
+    - [ ] Define `Logger` interface with `Print(v any)` and `Printf(format string, v ...any)` methods.
 
-- [x] **Part 2: Implement `Logger` Variations in `server/lsp_loggers.go`**
-    - [x] Create `server/lsp_loggers.go` file.
-    - [x] Implement `silentLogger` struct with empty `Print` and `Printf` methods.
-    - [x] Implement `NewLineLogger` function returning `log.Logger` (an instance of `lineLogger`).
-    - [x] Implement `lineLogger` struct.
-    - [x] Implement `lineLogger.Printf` method (using `fmt.Fprintf`).
-    - [x] Implement `lineLogger.Print(v any)` method with a type switch for:
-        - [x] `string`
-        - [x] `error`
-        - [x] `*RequestMessage` (and handle its `ID` and `Method`)
-        - [x] `*ResponseMessage` (and handle its `ID`, `Error`)
-        - [x] `*NotificationMessage` (and handle its `Method`)
-        - [x] `*InitializeParams` (for capabilities as indented JSON)
-        - [x] `*Diagnostic` (for diagnostic logging)
+- [ ] **Part 2: Implement `Logger` Variations in `server/lsp_loggers.go`**
+    - [ ] Create `server/lsp_loggers.go` file.
+    - [ ] Implement `silentLogger` struct with empty `Print` and `Printf` methods.
+    - [ ] Implement `NewLineLogger` function returning `log.Logger` (an instance of `lineLogger`).
+    - [ ] Implement `lineLogger` struct.
+    - [ ] Implement `lineLogger.Printf` method (using `fmt.Fprintf`).
+    - [ ] Implement `lineLogger.Print(v any)` method with a type switch for:
+        - [ ] `string`
+        - [ ] `error`
+        - [ ] `*RequestMessage` (and handle its `ID` and `Method`)
+        - [ ] `*ResponseMessage` (and handle its `ID`, `Error`)
+        - [ ] `*NotificationMessage` (and handle its `Method`)
+        - [ ] `*InitializeParams` (for capabilities as indented JSON)
+        - [ ] `*Diagnostic` (for diagnostic logging)
 
-- [x] **Part 3: Refactor `check` Package**
-    - [x] Update `check/option.go`: Modify `SetLogger` to accept `grammar/log.Logger`.
-    - [x] Update `check/compilation.go`:
-        - [x] Update import: replace `stdlog "log"` with `"grammar/log"`.
-        - [x] Change `log` field type from `*stdlog.Logger` to `grammar/log.Logger`.
-        - [x] Update `NewCompilationUnit` function signature to accept `grammar/log.Logger`.
-        - [x] Replace `cu.log.Printf(...)` calls (if any) with `cu.log.Print(fmt.Sprintf(...))`.
-    - [x] Update `check/check.go`:
-        - [x] Update imports: add `"grammar/log"`, `"io/ioutil"`.
-        - [x] Change `log` field type from `*stdlog.Logger` to `grammar/log.Logger`.
-        - [x] Update `NewChecker` to initialize logger defaults and apply options.
-        - [x] Replace `c.log.Printf(...)` calls (if any) with `c.log.Print(fmt.Sprintf(...))`.
+- [ ] **Part 3: Refactor `check` Package**
+    - [ ] Update `check/option.go`: Modify `SetLogger` to accept `grammar/log.Logger`.
+    - [ ] Update `check/compilation.go`:
+        - [ ] Update import: replace `stdlog "log"` with `"grammar/log"`.
+        - [ ] Change `log` field type from `*stdlog.Logger` to `grammar/log.Logger`.
+        - [ ] Update `NewCompilationUnit` function signature to accept `grammar/log.Logger`.
+        - [ ] Replace `cu.log.Printf(...)` calls (if any) with `cu.log.Print(fmt.Sprintf(...))`.
+    - [ ] Update `check/check.go`:
+        - [ ] Update imports: add `"grammar/log"`, `"io/ioutil"`.
+        - [ ] Change `log` field type from `*stdlog.Logger` to `grammar/log.Logger`.
+        - [ ] Update `NewChecker` to initialize logger defaults and apply options.
+        - [ ] Replace `c.log.Printf(...)` calls (if any) with `c.log.Print(fmt.Sprintf(...))`.
 
-- [x] **Part 4: Refactor `server` Package**
-    - [x] Update `server/server.go`:
-        - [x] Update imports: `stdlog "log"` and `"grammar/log"`.
-        - [x] Change `logger` field type from `*stdlog.Logger` to `grammar/log.Logger`.
-        - [x] Update `NewServer` and `NewServerWithLogger` to instantiate and inject the new logger.
-        - [x] Replace all existing `s.log.Printf` and `s.log.Println` calls with `s.logger.Printf` or `s.logger.Print`.
-        - [x] Adjust `sendErrorResponse` and `sendResponse` arguments for structured logging.
-        - [x] Adjust `notify` to use structured logging.
-    - [x] Update all handler files (`server/*.go`):
-        - [x] Update imports: add `"grammar/log"`, ensure `fmt` is present.
-        - [x] Replace `s.log.Printf` calls with `s.logger.Printf(...)`.
-        - [x] Update calls to `s.sendErrorResponse` to pass LSP method.
-        - [x] Update calls to `s.sendResponse` to pass LSP method.
+- [ ] **Part 4: Refactor `server` Package**
+    - [ ] Update `server/server.go`:
+        - [ ] Update imports: `stdlog "log"` and `"grammar/log"`.
+        - [ ] Change `logger` field type from `*stdlog.Logger` to `grammar/log.Logger`.
+        - [ ] Update `NewServer` and `NewServerWithLogger` to instantiate and inject the new logger.
+        - [ ] Replace all existing `s.log.Printf` and `s.log.Println` calls with `s.logger.Printf` or `s.logger.Print`.
+        - [ ] Adjust `sendErrorResponse` and `sendResponse` arguments for structured logging.
+        - [ ] Adjust `notify` to use structured logging.
+    - [ ] Update all handler files (`server/*.go`):
+        - [ ] Update imports: add `"grammar/log"`, ensure `fmt` is present.
+        - [ ] Replace `s.log.Printf` calls with `s.logger.Printf(...)`.
+        - [ ] Update calls to `s.sendErrorResponse` to pass LSP method.
+        - [ ] Update calls to `s.sendResponse` to pass LSP method.
 
-- [x] **Part 5: Final Verification**
-    - [x] Run `make test` to ensure all tests pass.
+- [ ] **Part 5: Final Verification**
+    - [ ] Run `make test` to ensure all tests pass.

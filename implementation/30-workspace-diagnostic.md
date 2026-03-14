@@ -13,13 +13,13 @@ The server is already configured to announce `WorkspaceDiagnostics: true` in its
 ### 1. Update Server Capabilities
 The server already announces its support for workspace diagnostics. No changes are needed in `server/initialize.go`.
 
-- [x] **`server/initialize.go`**:
+- [ ] **`server/initialize.go`**:
     - The `DiagnosticProvider` already has `WorkspaceDiagnostics: true`.
 
 ### 2. Add LSP Types
 New LSP types are required to handle the request/response cycle for workspace diagnostics.
 
-- [x] **`server/types.go`**:
+- [ ] **`server/types.go`**:
     - Define `WorkspaceDiagnosticParams`: Parameters for the `workspace/diagnostic` request. It typically includes an `identifier` and a list of `previousResultIds`.
     - Define `WorkspaceDiagnosticReport`: The main response container for workspace diagnostics. It contains an array of `WorkspaceDocumentDiagnosticReport`.
     - Define `WorkspaceDocumentDiagnosticReport`: Represents diagnostics for a single document within the workspace report. It includes `uri`, `kind`, `version` (optional), `resultId` (optional), and `items` (an array of `Diagnostic`).
@@ -27,7 +27,7 @@ New LSP types are required to handle the request/response cycle for workspace di
 ### 3. Implement the Request Handler
 A new handler will process `workspace/diagnostic` requests.
 
-- [x] **`server/diagnostics.go`**:
+- [ ] **`server/diagnostics.go`**:
     - Create a new function `handleWorkspaceDiagnostic(s *Server, id int, msg map[string]any)`.
     - **Logic**:
         1.  Unmarshal the `WorkspaceDiagnosticParams`.
@@ -45,14 +45,14 @@ A new handler will process `workspace/diagnostic` requests.
 ### 4. Update Server Dispatcher
 The main request router needs to know about the new method.
 
-- [x] **`server/server.go`**:
+- [ ] **`server/server.go`**:
     - In the `handleRequest` method's `switch` statement, add a new case for `"workspace/diagnostic"`.
     - This case should call the new `handleWorkspaceDiagnostic` handler.
 
 ### 5. Add Integration Test
 Verify the implementation with a new end-to-end test.
 
-- [x] **`server/integration_server_test.go`**:
+- [ ] **`server/integration_server_test.go`**:
     - Create a new test function, `TestWorkspaceDiagnosticRequest`.
     - **Setup**: Create a temporary directory with two grammar files (e.g., `a.grammar` with an error, `b.grammar` without).
     - **Test Steps**:

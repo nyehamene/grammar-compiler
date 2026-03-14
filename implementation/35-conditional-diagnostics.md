@@ -8,17 +8,17 @@ The Language Server Protocol (LSP) 3.17 introduced a "pull diagnostics" model wh
 
 ## Implementation Plan
 
-- [x] **1. Track Client Capabilities (`server/server.go`)**
-    - [x] Add a new boolean field `clientHasDiagnosticSupport` to the `Server` struct. This field will track whether the connected client supports pull diagnostics.
+- [ ] **1. Track Client Capabilities (`server/server.go`)**
+    - [ ] Add a new boolean field `clientHasDiagnosticSupport` to the `Server` struct. This field will track whether the connected client supports pull diagnostics.
 
-- [x] **2. Process Client Capabilities on Initialization (`server/initialize.go`)**
-    - [x] In the `handleInitializeRequest` function, inspect the `params.Capabilities.TextDocument.Diagnostic` from the client.
-    - [x] Safely check for the presence of this capability. If it exists, set `s.clientHasDiagnosticSupport = true`.
+- [ ] **2. Process Client Capabilities on Initialization (`server/initialize.go`)**
+    - [ ] In the `handleInitializeRequest` function, inspect the `params.Capabilities.TextDocument.Diagnostic` from the client.
+    - [ ] Safely check for the presence of this capability. If it exists, set `s.clientHasDiagnosticSupport = true`.
 
-- [x] **3. Conditionally Publish Diagnostics (`server/diagnostics.go`)**
-    - [x] In the `publishDiagnostics` function, add a check at the beginning. If `s.clientHasDiagnosticSupport` is true, return immediately without sending the `textDocument/publishDiagnostics` notification.
+- [ ] **3. Conditionally Publish Diagnostics (`server/diagnostics.go`)**
+    - [ ] In the `publishDiagnostics` function, add a check at the beginning. If `s.clientHasDiagnosticSupport` is true, return immediately without sending the `textDocument/publishDiagnostics` notification.
 
-- [x] **4. Update Integration Tests (`server/integration_server_test.go`)**
-    - [x] Add a new test to verify the conditional logic.
-    - [x] **Scenario 1 (With Pull Support):** Initialize the server with client capabilities that include pull diagnostics, open a file with an error, and assert that **no** `publishDiagnostics` notification is received.
-    - [x] **Scenario 2 (Without Pull Support):** Initialize the server with capabilities that lack pull diagnostics, open a file with an error, and assert that a `publishDiagnostics` notification **is** received.
+- [ ] **4. Update Integration Tests (`server/integration_server_test.go`)**
+    - [ ] Add a new test to verify the conditional logic.
+    - [ ] **Scenario 1 (With Pull Support):** Initialize the server with client capabilities that include pull diagnostics, open a file with an error, and assert that **no** `publishDiagnostics` notification is received.
+    - [ ] **Scenario 2 (Without Pull Support):** Initialize the server with capabilities that lack pull diagnostics, open a file with an error, and assert that a `publishDiagnostics` notification **is** received.

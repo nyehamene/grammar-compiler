@@ -13,21 +13,21 @@ This implementation will update the existing `documentLink` feature to support t
 ### 1. Update Server Capabilities
 The server must announce its support for resolving document links.
 
-- [x] **`server/initialize.go`**:
+- [ ] **`server/initialize.go`**:
     - In `handleInitializeRequest`, find the `DocumentLinkProvider` options.
     - Set `ResolveProvider: true`.
 
 ### 2. Update LSP Types
 The `DocumentLink` struct needs to be updated to support the `resolve` flow.
 
-- [x] **`server/types.go`**:
+- [ ] **`server/types.go`**:
     - Add a `Data any `json:"data,omitempty"` field to the `DocumentLink` struct. This field will be used to carry the necessary information from the `documentLink` request to the `documentLink/resolve` request.
     - Add a `Tooltip string `json:"tooltip,omitempty"` field to the `DocumentLink` struct. This will be populated by the resolve handler.
 
 ### 3. Update `textDocument/documentLink` Handler
 The existing `documentLink` handler must be modified to return unresolved links.
 
-- [x] **`server/documentlink.go`**:
+- [ ] **`server/documentlink.go`**:
     - Create a new struct (e.g., `documentLinkData`) to hold the information needed for resolution. It should contain the URI of the document containing the link and the raw import path string.
     - In `handleDocumentLink`, instead of resolving the path and setting the `Target`, do the following for each import:
         1. Create an instance of `documentLinkData` with the current document's URI and the import path.
@@ -40,7 +40,7 @@ The existing `documentLink` handler must be modified to return unresolved links.
 ### 4. Implement `documentLink/resolve` Handler
 A new handler is needed to process the `documentLink/resolve` request.
 
-- [x] **`server/documentlink.go`**:
+- [ ] **`server/documentlink.go`**:
     - Create a new function `handleDocumentLinkResolve(s *Server, id int, msg map[string]any)`.
     - **Logic**:
         1.  Parse the `DocumentLink` object from the request parameters. This is the unresolved link that was sent in the `documentLink` response.
@@ -54,13 +54,13 @@ A new handler is needed to process the `documentLink/resolve` request.
 ### 5. Update Server Dispatcher
 The main request router needs to know about the new `documentLink/resolve` method.
 
-- [x] **`server/server.go`**:
+- [ ] **`server/server.go`**:
     - In the `handleRequest` switch statement, add a new case for `"documentLink/resolve"` that calls the new `handleDocumentLinkResolve` handler.
 
 ### 6. Add/Update Integration Test
 The tests must be updated to validate the new resolve-based workflow.
 
-- [x] **`server/integration_server_test.go`**:
+- [ ] **`server/integration_server_test.go`**:
     - Modify the existing `TestDocumentLinkRequest` to become `TestDocumentLinkResolve`.
     - **Test Steps**:
         1.  Send a `textDocument/documentLink` request as before.
