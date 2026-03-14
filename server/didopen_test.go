@@ -49,7 +49,7 @@ func TestDidOpenNotification(t *testing.T) {
 		}
 	}()
 
-	srv := server.NewServer(&in, &out, &logOut)
+	srv := server.NewServer(&in, &out, server.NewWriterLogger(&logOut))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()

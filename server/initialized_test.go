@@ -25,7 +25,7 @@ func TestInitializedNotification(t *testing.T) {
 	var out strings.Builder
 	var logOut bytes.Buffer
 
-	srv := server.NewServer(&in, &out, &logOut)
+	srv := server.NewServer(&in, &out, server.NewWriterLogger(&logOut))
 	defer func() {
 		if t.Failed() {
 			t.Log(logOut.String())
