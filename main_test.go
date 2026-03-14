@@ -67,7 +67,7 @@ func TestRun(t *testing.T) {
 		{
 			name:   "version command",
 			args:   []string{"version"},
-			stdout: "0.3.0\n",
+			stdout: cmd.VERSION,
 		},
 	}
 
