@@ -16,9 +16,13 @@ type Error struct {
 	Warning bool
 }
 
+func (e Error) String() string {
+	return fmt.Sprintf("%s:%d:%d: %s\n", e.Path, e.Line, e.Col, e.Message)
+}
+
 func (e Error) Error() string {
 	// The format method on ErrorList should be used for user-facing output.
-	return e.Message
+	return fmt.Sprintf("error: %s:%d:%d: %s\n", e.Path, e.Line, e.Col, e.Message)
 }
 
 // ErrorList is a slice of errors, sorted by position.
@@ -44,7 +48,6 @@ func (p *ErrorList) AddWarning(path string, pos token.Pos, msg string) {
 	*p = append(*p, Error{Path: path, Line: 0, Col: 0, Message: msg, Warning: true}) // Placeholder
 }
 
-
 // Len is the number of elements in the collection.
 func (p ErrorList) Len() int { return len(p) }
 
@@ -69,7 +72,7 @@ func (p ErrorList) Error() string {
 		return ""
 	}
 	sort.Sort(p)
-	return p[0].Message
+	return p[0].Error()
 }
 
 // Format prints the error list to the writer in a standard format.
@@ -77,6 +80,6 @@ func (p ErrorList) Format(w io.Writer, sources map[string][]rune) {
 	sort.Sort(p)
 	for _, e := range p {
 		// Sources map is no longer needed to find line/col, as they are stored in the Error struct
-		fmt.Fprintf(w, "%s:%d:%d: %s\n", e.Path, e.Line, e.Col, e.Message)
+		io.WriteString(w, e.Error())
 	}
 }
