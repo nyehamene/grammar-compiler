@@ -1,0 +1,2 @@
+@package("sub");
+rule_c = "c";

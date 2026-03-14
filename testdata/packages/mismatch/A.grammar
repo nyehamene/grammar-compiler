@@ -1,0 +1,2 @@
+@package("foo");
+rule_a = "a";

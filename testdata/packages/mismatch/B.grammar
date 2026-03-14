@@ -1,0 +1,2 @@
+@package("bar");
+rule_b = "b";
