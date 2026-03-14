@@ -2,6 +2,7 @@ package server
 
 import (
 	"grammar/check"
+	"grammar/log"
 	"os"
 	"path/filepath"
 )
@@ -9,7 +10,7 @@ import (
 func (s *Server) Load(path string) ([]byte, error) {
 	uri, err := ParseURI(path)
 	if err != nil {
-		s.logger.Printf("failed to parse uri: '%s'", path)
+		s.logger.Debug("failed to parse uri", log.Fields{"path": path, "error": err})
 		return nil, err
 	}
 
@@ -19,10 +20,10 @@ func (s *Server) Load(path string) ([]byte, error) {
 		if uri.Scheme == "file" {
 			pathAbsLocal = uri.Path
 		}
-		s.logger.Printf("file(fs): %s", path)
+		s.logger.Debug("file(fs)", log.Fields{"path": path})
 		return s.fsFileLoader.Load(pathAbsLocal)
 	}
-	s.logger.Printf("file(mem): %s", uri.Path)
+	s.logger.Debug("file(mem)", log.Fields{"path": uri.Path})
 	return []byte(string(doc.text)), nil
 }
 

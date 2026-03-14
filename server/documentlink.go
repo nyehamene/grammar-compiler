@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grammar/ast"
+	"grammar/log"
 	"net/url"
 	"path/filepath"
 )
@@ -37,13 +38,13 @@ func (s *Server) handleDocumentLink(id int, rawMsg map[string]any) {
 	uriStr := params.TextDocument.URI.String()
 	ns, ok := s.checker.CompilationUnit().Namespaces[uriStr]
 	if !ok || ns == nil || ns.File == nil {
-		s.logger.Printf("handleDocumentLink: No AST available for %s.", uriStr)
+		s.logger.Debug("handleDocumentLink: No AST available", log.Fields{"uri": uriStr})
 		s.sendResponse(id, method, []DocumentLink{}, nil) // No AST available, return empty list
 		return
 	}
 	srcRunes, ok := s.checker.CompilationUnit().Sources[uriStr]
 	if !ok {
-		s.logger.Printf("handleDocumentLink: No source available for %s.", uriStr)
+		s.logger.Debug("handleDocumentLink: No source available", log.Fields{"uri": uriStr})
 		s.sendResponse(id, method, []DocumentLink{}, nil) // No source available, return empty list
 		return
 	}
@@ -110,7 +111,7 @@ func (s *Server) handleDocumentLinkResolve(id int, rawMsg map[string]any) {
 
 	targetURI, err := resolveImportPath(data.DocURI.String(), data.ImportPath)
 	if err != nil {
-		s.logger.Printf("handleDocumentLinkResolve: failed to resolve import path '%s': %v", data.ImportPath, err)
+		s.logger.Debug("handleDocumentLinkResolve: failed to resolve import path", log.Fields{"importPath": data.ImportPath, "error": err})
 		// Return the original link without a target if it fails to resolve
 		s.sendResponse(id, method, link, nil)
 		return

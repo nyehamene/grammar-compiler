@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"grammar/log"
 )
 
 // InitializeParams represents the parameters of an `initialize` request.
@@ -69,15 +70,15 @@ func handleInitializeRequest(s *Server, id int, rawMsg map[string]any) {
 		return
 	}
 	if err := json.Unmarshal(paramsBytes, &params); err != nil {
-		s.logger.Printf("Invalid initialize params: %v", err)
+		s.logger.Error("Invalid initialize params", log.Fields{"error": err})
 		s.sendErrorResponse(id, InvalidParams, "Invalid initialize params", method)
 		return
 	}
 
 	jsonBytes, _ := json.MarshalIndent(rawMsg, "", "    ")
-	s.logger.Printf("%s", jsonBytes)
+	s.logger.Debug(string(jsonBytes), nil)
 
-	s.logger.Print(&params) // Log the InitializeParams struct directly for special handling
+	s.logger.Debug("InitializeParams", log.Fields{"params": fmt.Sprintf("%+v", params)})
 
 	// Check if client supports pull diagnostics
 	if params.Capabilities.TextDocument != nil && params.Capabilities.TextDocument.Diagnostic != nil {

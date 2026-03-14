@@ -3,12 +3,14 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"grammar/log"
 )
 
 func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 	content, ok := s.GetDocumentContent(uri)
 	if !ok {
-		s.logger.Printf("no content for diagnostic generation: %s", uri.Path)
+		s.logger.Debug("no content for diagnostic generation", log.Fields{"path": uri.Path})
 		return []Diagnostic{}
 	}
 
@@ -45,7 +47,7 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 		diagnostics = append(diagnostics, diagnostic)
 
 		// Log individual diagnostic here (new requirement)
-		s.logger.Print(&diagnostic) // Pass Diagnostic struct for structured logging
+		s.logger.Debug(fmt.Sprintf("%v", &diagnostic), nil)
 	}
 	return diagnostics
 }

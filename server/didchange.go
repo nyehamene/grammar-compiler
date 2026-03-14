@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"grammar/log"
 	"path/filepath"
 )
 
@@ -40,7 +41,7 @@ func (s *Server) handleDidChange(ctx context.Context, rawMsg map[string]any) err
 		return fmt.Errorf("no content changes found for textDocument/didChange")
 	}
 	documentUri := params.TextDocument.URI.String()
-	s.logger.Printf("Updated document via didChange: %d %s", params.TextDocument.Version, filepath.Base(documentUri))
+	s.logger.Debug("Updated document via didChange", log.Fields{"version": params.TextDocument.Version, "file": filepath.Base(documentUri)})
 
 	// For full sync, the new text is the first and only content change.
 	s.checker.CompilationUnit().RemoveNamespace(documentUri)

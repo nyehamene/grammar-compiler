@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"grammar/ast"
+	"grammar/log"
 )
 
 func (s *Server) handleReferences(id int, rawMsg map[string]any) {
@@ -28,7 +29,7 @@ func (s *Server) handleReferences(id int, rawMsg map[string]any) {
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.logger.Printf("handleReferences: Document not open %s", params.TextDocument.URI.String())
+		s.logger.Debug("handleReferences: Document not open", log.Fields{"uri": params.TextDocument.URI.String()})
 		s.sendResponse(id, method, nil, nil)
 		return
 	}

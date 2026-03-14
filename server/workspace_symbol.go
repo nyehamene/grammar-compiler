@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"grammar/ast"
+	"grammar/log"
 	"path/filepath"
 	"strings"
 )
@@ -31,7 +32,7 @@ func (s *Server) handleWorkspaceSymbol(id int, rawMsg map[string]any) {
 	query := strings.ToLower(params.Query)
 	symbols := []SymbolInformation{}
 
-	s.logger.Printf("handling workspace symbol request with query: '%s'", query)
+	s.logger.Debug("handling workspace symbol request", log.Fields{"query": query})
 
 	for uriStr, ns := range s.checker.CompilationUnit().Namespaces {
 		if ns == nil || ns.File == nil {
@@ -39,7 +40,7 @@ func (s *Server) handleWorkspaceSymbol(id int, rawMsg map[string]any) {
 		}
 		srcRunes, ok := s.checker.CompilationUnit().Sources[uriStr]
 		if !ok {
-			s.logger.Printf("handleWorkspaceSymbol: no source available for '%s'", filepath.Base(uriStr))
+			s.logger.Debug("handleWorkspaceSymbol: no source available", log.Fields{"file": filepath.Base(uriStr)})
 			continue
 		}
 		uri, err := ParseURI(uriStr)

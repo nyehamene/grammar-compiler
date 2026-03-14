@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"grammar/log"
 )
 
 type DidCloseTextDocumentParams struct {
@@ -24,7 +25,7 @@ func (s *Server) handleDidClose(ctx context.Context, rawMsg map[string]any) erro
 	}
 
 	delete(s.documents, params.TextDocument.URI)
-	s.logger.Printf("Closed and removed document: %s", params.TextDocument.URI)
+	s.logger.Info("Closed and removed document", log.Fields{"uri": params.TextDocument.URI.String()})
 
 	return nil
 }

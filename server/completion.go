@@ -2,10 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"grammar/ast"
 	"grammar/check"
+	"grammar/log"
 	"grammar/token"
-	"unicode" // Import unicode package
+	"unicode"
 )
 
 func (s *Server) handleCompletion(id int, rawMsg map[string]any) {
@@ -31,7 +33,7 @@ func (s *Server) handleCompletion(id int, rawMsg map[string]any) {
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.logger.Printf("handleCompletion: Document not open %s", params.TextDocument.URI.String())
+		s.logger.Debug("handleCompletion: Document not open", log.Fields{"uri": params.TextDocument.URI.String()})
 		s.sendResponse(id, method, nil, nil) // Document not open
 		return
 	}
@@ -46,7 +48,7 @@ func (s *Server) handleCompletion(id int, rawMsg map[string]any) {
 		}
 	}
 	if !ok || mod == nil || mod.File == nil {
-		s.logger.Printf("handleCompletion: No AST available for %s. ok: %t", params.TextDocument.URI.String(), ok)
+		s.logger.Debug("handleCompletion: No AST available", log.Fields{"uri": params.TextDocument.URI.String(), "ok": ok})
 		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
@@ -54,7 +56,7 @@ func (s *Server) handleCompletion(id int, rawMsg map[string]any) {
 	pos := PositionToPos(params.Position, srcRunes)
 	node, parent := ast.FindNodeAt(mod.File, pos)
 
-	s.logger.Printf("Completion node at position: %#v %#v", node, parent)
+	s.logger.Debug("Completion node at position", log.Fields{"node": fmt.Sprintf("%#v", node), "parent": fmt.Sprintf("%#v", parent)})
 
 	items := s.getCompletiomod(node, parent, mod, s.checker.CompilationUnit(), params.Position, srcRunes)
 
@@ -85,26 +87,26 @@ func (s *Server) getCompletiomod(node, parent ast.Node, mod *check.Module, cu *c
 
 		if identStart < identEnd { // If an identifier was found before the dot
 			identName := string(srcRunes[identStart:identEnd])
-			s.logger.Printf("Completion: Identified receiver: %s", identName)
+			s.logger.Debug("Completion: Identified receiver", log.Fields{"identName": identName})
 
 			// Create a dummy Ident node for type checking. Position doesn't matter much here.
 			dummyIdent := &ast.Ident{NamePos: token.NoPos, Name: identName}
 			typ := s.checker.TypeOf(dummyIdent, mod)
-			s.logger.Printf("Completion: Type of receiver (%s): %T", identName, typ)
+			s.logger.Debug("Completion: Type of receiver", log.Fields{"identName": identName, "type": fmt.Sprintf("%T", typ)})
 
 			// Handle NamespaceType (deprecated), ModuleType, or PackageType
 			switch rt := typ.(type) {
 			case *check.NamespaceType:
-				s.logger.Printf("Completion: Receiver is NamespaceType: %s", rt.Name)
+				s.logger.Debug("Completion: Receiver is NamespaceType", log.Fields{"name": rt.Name})
 				importedNs, found := cu.Namespaces[rt.Name]
 				if !found {
-					s.logger.Printf("Completion: Imported namespace %s not found in CU", rt.Name)
+					s.logger.Debug("Completion: Imported namespace not found in CU", log.Fields{"name": rt.Name})
 					return nil
 				}
-				s.logger.Printf("Completion: Found imported namespace: %s. Members: %v", rt.Name, importedNs.Members)
+				s.logger.Debug("Completion: Found imported namespace", log.Fields{"name": rt.Name, "members": importedNs.Members})
 				for name, decl := range importedNs.Members {
 					if _, isRule := decl.(*ast.RuleDecl); isRule {
-						s.logger.Printf("Completion: Adding member: %s", name)
+						s.logger.Debug("Completion: Adding member", log.Fields{"name": name})
 						items = append(items, CompletionItem{
 							Label: name,
 							Kind:  FunctionCompletion,
@@ -112,16 +114,16 @@ func (s *Server) getCompletiomod(node, parent ast.Node, mod *check.Module, cu *c
 					}
 				}
 			case *check.ModuleType:
-				s.logger.Printf("Completion: Receiver is ModuleType: %s", rt.Name)
+				s.logger.Debug("Completion: Receiver is ModuleType", log.Fields{"name": rt.Name})
 				importedMod, found := cu.Modules[rt.Name]
 				if !found {
-					s.logger.Printf("Completion: Imported module %s not found in CU", rt.Name)
+					s.logger.Debug("Completion: Imported module not found in CU", log.Fields{"name": rt.Name})
 					return nil
 				}
-				s.logger.Printf("Completion: Found imported module: %s. Members: %v", rt.Name, importedMod.Members)
+				s.logger.Debug("Completion: Found imported module", log.Fields{"name": rt.Name, "members": importedMod.Members})
 				for name, decl := range importedMod.Members {
 					if _, isRule := decl.(*ast.RuleDecl); isRule {
-						s.logger.Printf("Completion: Adding member: %s", name)
+						s.logger.Debug("Completion: Adding member", log.Fields{"name": name})
 						items = append(items, CompletionItem{
 							Label: name,
 							Kind:  FunctionCompletion,
@@ -129,22 +131,22 @@ func (s *Server) getCompletiomod(node, parent ast.Node, mod *check.Module, cu *c
 					}
 				}
 			case *check.PackageType:
-				s.logger.Printf("Completion: Receiver is PackageType: %s", rt.Name)
+				s.logger.Debug("Completion: Receiver is PackageType", log.Fields{"name": rt.Name})
 				pkg, found := cu.Packages[rt.Path]
 				if !found {
-					s.logger.Printf("Completion: Package %s not found in CU", rt.Name)
+					s.logger.Debug("Completion: Package not found in CU", log.Fields{"name": rt.Name})
 					return nil
 				}
-				s.logger.Printf("Completion: Found package: %s. Modules: %v", rt.Name, pkg.Modules)
+				s.logger.Debug("Completion: Found package", log.Fields{"name": rt.Name, "modules": pkg.Modules})
 				for name := range pkg.Modules {
-					s.logger.Printf("Completion: Adding module: %s", name)
+					s.logger.Debug("Completion: Adding module", log.Fields{"name": name})
 					items = append(items, CompletionItem{
 						Label: name,
 						Kind:  ClassCompletion,
 					})
 				}
 			default:
-				s.logger.Printf("Completion: Receiver %s is not a known type, got %T", identName, typ)
+				s.logger.Debug("Completion: Receiver is not a known type", log.Fields{"identName": identName, "type": fmt.Sprintf("%T", typ)})
 				return nil
 			}
 
@@ -152,11 +154,11 @@ func (s *Server) getCompletiomod(node, parent ast.Node, mod *check.Module, cu *c
 
 		}
 
-		s.logger.Printf("Completion: No identifier found before the dot.")
+		s.logger.Debug("Completion: No identifier found before the dot.", nil)
 	}
 
-	s.logger.Printf("Completion: Falling back to rule body/top-level for %s", mod.Name)
-	s.logger.Printf("Completion: Namespace members: %v", mod.Members)
+	s.logger.Debug("Completion: Falling back to rule body/top-level", log.Fields{"modName": mod.Name})
+	s.logger.Debug("Completion: Namespace members", log.Fields{"members": mod.Members})
 
 	for name, decl := range mod.Members {
 		if _, isRule := decl.(*ast.RuleDecl); isRule {

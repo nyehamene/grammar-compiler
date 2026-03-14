@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"grammar/ast"
 	"grammar/check"
+	"grammar/log"
 	"grammar/token"
 )
 
@@ -31,7 +32,7 @@ func (s *Server) handleHover(id int, rawMsg map[string]any) {
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.logger.Printf("handleHover: Document not open %s", params.TextDocument.URI.String())
+		s.logger.Debug("handleHover: Document not open", log.Fields{"uri": params.TextDocument.URI.String()})
 		s.sendResponse(id, method, nil, nil) // Document not open
 		return
 	}
@@ -39,7 +40,7 @@ func (s *Server) handleHover(id int, rawMsg map[string]any) {
 
 	ns, ok := s.checker.CompilationUnit().Namespaces[params.TextDocument.URI.String()]
 	if !ok || ns == nil || ns.File == nil {
-		s.logger.Printf("handleHover: No AST available for %s. ok: %t", params.TextDocument.URI.String(), ok)
+		s.logger.Debug("handleHover: No AST available", log.Fields{"uri": params.TextDocument.URI.String(), "ok": ok})
 		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
@@ -47,11 +48,11 @@ func (s *Server) handleHover(id int, rawMsg map[string]any) {
 	pos := PositionToPos(params.Position, srcRunes)
 	node, parent := ast.FindNodeAt(ns.File, pos)
 	if node == nil {
-		s.logger.Printf("handleHover: No node found at position %d", pos)
+		s.logger.Debug("handleHover: No node found at position", log.Fields{"position": pos})
 		s.sendResponse(id, method, nil, nil)
 		return
 	}
-	s.logger.Printf("handleHover: Found node: %+v, Parent: %+v", node, parent)
+	s.logger.Debug("handleHover: Found node", log.Fields{"node": fmt.Sprintf("%+v", node), "parent": fmt.Sprintf("%+v", parent)})
 
 	var typ string
 	var value string

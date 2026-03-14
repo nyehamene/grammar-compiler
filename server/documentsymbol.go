@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"grammar/ast"
+	"grammar/log"
 )
 
 func (s *Server) handleDocumentSymbol(id int, rawMsg map[string]any) {
@@ -29,13 +30,13 @@ func (s *Server) handleDocumentSymbol(id int, rawMsg map[string]any) {
 	uriStr := params.TextDocument.URI.String()
 	ns, ok := s.checker.CompilationUnit().Namespaces[uriStr]
 	if !ok || ns == nil || ns.File == nil {
-		s.logger.Printf("handleDocumentSymbol: No AST available for %s.", uriStr)
+		s.logger.Debug("handleDocumentSymbol: No AST available", log.Fields{"uri": uriStr})
 		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
 	srcRunes, ok := s.checker.CompilationUnit().Sources[uriStr]
 	if !ok {
-		s.logger.Printf("handleDocumentSymbol: No source available for %s.", uriStr)
+		s.logger.Debug("handleDocumentSymbol: No source available", log.Fields{"uri": uriStr})
 		s.sendResponse(id, method, nil, nil) // No source available
 		return
 	}

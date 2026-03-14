@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grammar/ast"
+	"grammar/log"
 	"grammar/token"
 )
 
@@ -72,7 +73,7 @@ func handleDocumentHighlight(s *Server, id int, msg map[string]any) {
 	for _, useIdent := range uses {
 		rng, err := TokenRangeToLSPRange(useIdent.Pos(), useIdent.End(), doc.text)
 		if err != nil {
-			s.logger.Printf("failed to convert token range to LSP range: %v", err)
+			s.logger.Debug("failed to convert token range to LSP range", log.Fields{"error": err})
 			continue
 		}
 

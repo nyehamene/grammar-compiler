@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"grammar/log"
 	"path/filepath"
 )
 
@@ -24,7 +25,10 @@ func (s *Server) handleDidOpen(ctx context.Context, rawMsg map[string]any) error
 		return err
 	}
 
-	s.logger.Printf("Opened and stored document: %s version %d", filepath.Base(params.TextDocument.URI.Path), params.TextDocument.Version)
+	s.logger.Info("Opened and stored document", log.Fields{
+		"document": filepath.Base(params.TextDocument.URI.Path),
+		"version":  params.TextDocument.Version,
+	})
 	doc := &document{
 		text: []rune(params.TextDocument.Text),
 	}

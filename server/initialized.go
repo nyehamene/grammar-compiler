@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"grammar/log"
 )
 
 type InitializedParams struct {
@@ -21,7 +22,7 @@ func (s *Server) handleInitialized(ctx context.Context, rawMsg map[string]any) e
 		}
 	}
 
-	s.logger.Print("Initialized notification received. Client is ready.")
+	s.logger.Info("Initialized notification received. Client is ready.", log.Fields{})
 	// In a real LSP server, you might trigger initial workspace scans,
 	// send initial diagnostics, or register capabilities here.
 

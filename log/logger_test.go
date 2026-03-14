@@ -168,22 +168,6 @@ func TestMultiLoggerEmpty(t *testing.T) {
 	multi.Info("test", nil)
 }
 
-func TestStructuredToBasic(t *testing.T) {
-	buf := &bytes.Buffer{}
-	structured := NewJSONLogger(buf, DEBUG, false)
-	basic := NewStructuredToBasic(structured)
-
-	basic.Print("test print")
-	basic.Printf("test %s", "printf")
-
-	output := strings.TrimSpace(buf.String())
-	lines := strings.Split(output, "\n")
-
-	if len(lines) != 2 {
-		t.Errorf("Expected 2 lines, got %d", len(lines))
-	}
-}
-
 func TestJSONLoggerPrettyPrint(t *testing.T) {
 	buf := &bytes.Buffer{}
 	logger := NewJSONLogger(buf, DEBUG, true)

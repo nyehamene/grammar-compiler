@@ -15,7 +15,7 @@ import (
 type Server struct {
 	reader                     *bufio.Reader
 	writer                     io.Writer
-	logger                     grammar_log.Logger
+	logger                     grammar_log.StructuredLogger
 	shutdown                   bool
 	documents                  map[DocumentUri]*document
 	checker                    *check.Checker
@@ -33,7 +33,7 @@ func NewServer(in io.Reader, out io.Writer, logger grammar_log.StructuredLogger)
 	srv := &Server{
 		reader:       bufio.NewReader(in),
 		writer:       out,
-		logger:       grammar_log.NewStructuredToBasic(logger),
+		logger:       logger,
 		shutdown:     false,
 		documents:    make(map[DocumentUri]*document),
 		requestTimes: make(map[int]time.Time),
@@ -56,22 +56,22 @@ func (s *Server) GetDocumentContent(uri DocumentUri) (string, bool) {
 }
 
 func (s *Server) Start() {
-	s.logger.Print("LSP Server started")
+	s.logger.Info("LSP Server started", nil)
 	for {
 		content, err := s.DecodeMessage(s.reader)
 		if err == io.EOF {
-			s.logger.Print("client disconnected!")
+			s.logger.Info("client disconnected!", nil)
 			return
 		}
 		if err != nil {
-			s.logger.Printf("Failed to decode message: %v", err)
+			s.logger.Error("Failed to decode message", grammar_log.Fields{"error": err})
 			continue
 		}
 
 		// Parse the raw JSON content into a generic map first to determine if it's a request or notification.
 		var msg map[string]any
 		if err := json.Unmarshal(content, &msg); err != nil {
-			s.logger.Printf("Failed to unmarshal message: %v\n%s\n", err, content)
+			s.logger.Error("Failed to unmarshal message", grammar_log.Fields{"error": err, "content": string(content)})
 			// This is a parse error of the raw JSON, so we can't send a proper response.
 			continue
 		}
@@ -79,7 +79,7 @@ func (s *Server) Start() {
 		// Now, try to unmarshal it into our specific RequestMessage for structured logging and handling.
 		var reqMsg RequestMessage
 		if err := json.Unmarshal(content, &reqMsg); err != nil {
-			s.logger.Printf("Failed to unmarshal into RequestMessage: %v\n%s\n", err, content)
+			s.logger.Error("Failed to unmarshal into RequestMessage", grammar_log.Fields{"error": err, "content": string(content)})
 			// This should not happen if the first unmarshal succeeded and content is valid JSON.
 			continue
 		}
@@ -103,16 +103,10 @@ func (s *Server) handleRequest(id int, rawMsg map[string]any) {
 	}
 
 	// Log the request
-	if sl, ok := s.logger.(interface {
-		Debug(msg string, fields map[string]any)
-	}); ok {
-		sl.Debug("received request", map[string]any{
-			"request_id": id,
-			"method":     method,
-		})
-	} else {
-		s.logger.Printf("-> Request %d: %s", id, method)
-	}
+	s.logger.Debug("received request", grammar_log.Fields{
+		"request_id": id,
+		"method":     method,
+	})
 
 	if method == "unknown" {
 		s.sendErrorResponse(id, InvalidRequest, "method not found", "unknown")
@@ -163,14 +157,14 @@ func (s *Server) handleShutdown(id int, rawMsg map[string]any) {
 		method = m
 	}
 	s.sendResponse(id, method, nil, nil)
-	s.logger.Printf("Shutdown request received. Server state: shutdown=%t", s.shutdown)
+	s.logger.Info("Shutdown request received", grammar_log.Fields{"shutdown": s.shutdown})
 }
 
 func (s *Server) handleNotification(rawMsg map[string]any) {
-	s.logger.Print(rawMsg) // Log the full notification message struct
+	s.logger.Debug("received notification", grammar_log.Fields{"message": fmt.Sprintf("%v", rawMsg)})
 	method, ok := rawMsg["method"].(string)
 	if !ok {
-		s.logger.Printf("Notification method not found in raw message: %#v", rawMsg)
+		s.logger.Warn("Notification method not found in raw message", grammar_log.Fields{"rawMsg": fmt.Sprintf("%v", rawMsg)})
 		return
 	}
 
@@ -179,19 +173,19 @@ func (s *Server) handleNotification(rawMsg map[string]any) {
 	switch method {
 	case "initialized":
 		if err := s.handleInitialized(ctx, rawMsg); err != nil {
-			s.logger.Printf("Failed to handle initialized: %v", err)
+			s.logger.Error("Failed to handle initialized", grammar_log.Fields{"error": err})
 		}
 	case "textDocument/didOpen":
 		if err := s.handleDidOpen(ctx, rawMsg); err != nil {
-			s.logger.Printf("Failed to handle textDocument/didOpen: %v", err)
+			s.logger.Error("Failed to handle textDocument/didOpen", grammar_log.Fields{"error": err})
 		}
 	case "textDocument/didChange":
 		if err := s.handleDidChange(ctx, rawMsg); err != nil {
-			s.logger.Printf("Failed to handle textDocument/didChange: %v", err)
+			s.logger.Error("Failed to handle textDocument/didChange", grammar_log.Fields{"error": err})
 		}
 	case "textDocument/didClose":
 		if err := s.handleDidClose(ctx, rawMsg); err != nil {
-			s.logger.Printf("Failed to handle textDocument/didClose: %v", err)
+			s.logger.Error("Failed to handle textDocument/didClose", grammar_log.Fields{"error": err})
 		}
 	case "exit":
 		s.handleExit()
@@ -221,36 +215,26 @@ func (s *Server) sendResponse(id int, method string, result any, errResp *Respon
 	}
 
 	// Log response with structured fields
-	if sl, ok := s.logger.(interface {
-		Debug(msg string, fields map[string]any)
-	}); ok {
-		fields := map[string]any{
-			"request_id":  id,
-			"method":      method,
-			"duration_ms": duration.Milliseconds(),
-		}
-		if errResp != nil {
-			fields["error"] = errResp.Message
-			sl.Debug("sent error response", fields)
-		} else {
-			sl.Debug("sent response", fields)
-		}
+	fields := grammar_log.Fields{
+		"request_id":  id,
+		"method":      method,
+		"duration_ms": duration.Milliseconds(),
+	}
+	if errResp != nil {
+		fields["error"] = errResp.Message
+		s.logger.Debug("sent error response", fields)
 	} else {
-		if errResp != nil {
-			s.logger.Printf("<- Response %d (%s): Error - %s (%dms)", id, method, errResp.Message, duration.Milliseconds())
-		} else {
-			s.logger.Printf("<- Response %d (%s): (%dms)", id, method, duration.Milliseconds())
-		}
+		s.logger.Debug("sent response", fields)
 	}
 
 	encoded, err := s.EncodeMessage(resp)
 	if err != nil {
-		s.logger.Printf("Failed to encode response: %v", err)
+		s.logger.Error("Failed to encode response", grammar_log.Fields{"error": err})
 		return
 	}
 	_, err = s.writer.Write([]byte(encoded))
 	if err != nil {
-		s.logger.Printf("Failed to write response: %v", err)
+		s.logger.Error("Failed to write response", grammar_log.Fields{"error": err})
 	}
 }
 
@@ -271,23 +255,15 @@ func (s *Server) notify(_ context.Context, method string, params any) {
 	}
 
 	// Log notification with structured fields
-	if sl, ok := s.logger.(interface {
-		Debug(msg string, fields map[string]any)
-	}); ok {
-		sl.Debug("sent notification", map[string]any{
-			"method": method,
-		})
-	} else {
-		s.logger.Print(note) // Log the full notification struct
-	}
+	s.logger.Debug("sent notification", grammar_log.Fields{"method": method})
 
 	encoded, err := s.EncodeMessage(note)
 	if err != nil {
-		s.logger.Printf("Failed to encode notification: %v", err)
+		s.logger.Error("Failed to encode notification", grammar_log.Fields{"error": err})
 		return
 	}
 	_, err = s.writer.Write([]byte(encoded))
 	if err != nil {
-		s.logger.Printf("Failed to write notification: %v", err)
+		s.logger.Error("Failed to write notification", grammar_log.Fields{"error": err})
 	}
 }

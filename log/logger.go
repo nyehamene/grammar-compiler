@@ -247,35 +247,6 @@ func (l *MultiLogger) Error(msg string, fields Fields) {
 	}
 }
 
-// --- Compatibility Wrapper ---
-
-// Logger is an interface for basic logging (deprecated, use StructuredLogger).
-// Kept for backward compatibility with existing code.
-type Logger interface {
-	Print(v any)
-	Printf(format string, v ...any)
-}
-
-// StructuredToBasic wraps a StructuredLogger to also satisfy the basic Logger interface.
-type StructuredToBasic struct {
-	StructuredLogger
-}
-
-// Print satisfies the Logger interface.
-func (s *StructuredToBasic) Print(v any) {
-	s.Info(fmt.Sprintf("%v", v), nil)
-}
-
-// Printf satisfies the Logger interface.
-func (s *StructuredToBasic) Printf(format string, v ...any) {
-	s.Info(fmt.Sprintf(format, v...), nil)
-}
-
-// NewStructuredToBasic wraps a StructuredLogger to satisfy Logger.
-func NewStructuredToBasic(logger StructuredLogger) Logger {
-	return &StructuredToBasic{StructuredLogger: logger}
-}
-
 // mustMarshalJSON marshals fields to JSON. Panics on error.
 func mustMarshalJSON(v any) string {
 	bytes, err := json.Marshal(v)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grammar/ast"
+	"grammar/log"
 )
 
 func (s *Server) handleDefinition(id int, msg map[string]any) {
@@ -29,7 +30,7 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 
 	content, ok := s.GetDocumentContent(params.TextDocument.URI)
 	if !ok {
-		s.logger.Printf("handleDefinition: Document not open %s", params.TextDocument.URI.String())
+		s.logger.Debug("handleDefinition: Document not open", log.Fields{"uri": params.TextDocument.URI.String()})
 		s.sendResponse(id, method, nil, nil) // Document not open
 		return
 	}
@@ -48,7 +49,7 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 	}
 
 	if !nsOk || ns == nil || ns.File == nil {
-		s.logger.Printf("handleDefinition: No AST available for %s.", uriStr)
+		s.logger.Debug("handleDefinition: No AST available", log.Fields{"uri": uriStr})
 		s.sendResponse(id, method, nil, nil) // No AST available
 		return
 	}
@@ -100,7 +101,7 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 	}
 
 	if defNsURI == "" {
-		s.logger.Printf("Could not find file for definition.")
+		s.logger.Debug("Could not find file for definition.", nil)
 		s.sendResponse(id, method, nil, nil)
 		return
 	}

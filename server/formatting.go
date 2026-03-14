@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grammar/ast"
+	"grammar/log"
 	"grammar/token"
 	"path/filepath"
 	"strings"
@@ -56,7 +57,7 @@ func (s *Server) handleTextDocumentFormatting(id int, msg map[string]any) {
 	if err != nil {
 		// In case of a formatting error, we can return no edits.
 		// Or we could send a notification to the user.
-		s.logger.Printf("error formatting document %s: %v", params.TextDocument.URI, err)
+		s.logger.Error("error formatting document", log.Fields{"uri": params.TextDocument.URI, "error": err})
 		s.sendResponse(id, method, nil, nil) // No edits
 		return
 	}
@@ -76,7 +77,7 @@ func (s *Server) handleTextDocumentFormatting(id int, msg map[string]any) {
 	}
 
 	s.sendResponse(id, method, []TextEdit{textEdit}, nil)
-	s.logger.Printf("text-formatting result %s", filepath.Base(params.TextDocument.URI.Path))
+	s.logger.Debug("text-formatting result", log.Fields{"file": filepath.Base(params.TextDocument.URI.Path)})
 }
 
 func formatContent(content string) (string, error) {
