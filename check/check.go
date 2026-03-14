@@ -24,38 +24,44 @@ func NewChecker(cu *CompilationUnit, logger log.Logger) *Checker {
 	}
 }
 
-// CompilationUnit returns the checker's compilation unit.
+// CompilationUnit returmod the checker's compilation unit.
 func (c *Checker) CompilationUnit() *CompilationUnit {
 	return c.cu
 }
 
-// TypeOf returns the type of an expression in a given namespace.
-func (c *Checker) TypeOf(expr ast.Expr, ns *Namespace) Type {
-	return c.typeOf(expr, ns)
+// TypeOf returmod the type of an expression in a given module.
+func (c *Checker) TypeOf(expr ast.Expr, mod *Module) Type {
+	return c.typeOf(expr, mod)
 }
 
-// Sources returns the source code of all files processed by the checker.
+// Sources returmod the source code of all files processed by the checker.
 func (c *Checker) Sources() map[string][]rune {
 	return c.cu.Sources
 }
 
 // Check initiates the checking process for a given path.
 func (c *Checker) Check(path string) {
-	ns, _ := c.cu.LoadFile(path)
-	if ns != nil {
+	mod, _ := c.cu.LoadFile(path)
+	if mod != nil {
 		c.symbols[path] = NewSymbolTable(path)
-		c.collectSymbols(ns.File, c.symbols[path])
-		c.checkNode(ns.File, ns)
+		c.collectSymbols(mod.File, c.symbols[path])
+		// Use the Namespaces map for backward compatibility
+		if modLegacy, ok := c.cu.Namespaces[path]; ok {
+			c.checkNode(mod.File, modLegacy)
+		}
 	}
 }
 
 // CheckSource initiates the checking process for a given source content.
 func (c *Checker) CheckSource(content []byte, path string) {
-	ns := c.cu.LoadSource(content, path)
-	if ns != nil {
+	mod := c.cu.LoadSource(content, path)
+	if mod != nil {
 		c.symbols[path] = NewSymbolTable(path)
-		c.collectSymbols(ns.File, c.symbols[path])
-		c.checkNode(ns.File, ns)
+		c.collectSymbols(mod.File, c.symbols[path])
+		// Use the Namespaces map for backward compatibility
+		if modLegacy, ok := c.cu.Namespaces[path]; ok {
+			c.checkNode(mod.File, modLegacy)
+		}
 	}
 }
 
@@ -92,65 +98,65 @@ func (c *Checker) collectSymbols(node ast.Node, st *SymbolTable) {
 	})
 }
 
-func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
+func (c *Checker) checkNode(node ast.Node, mod *Module) {
 	if node == nil {
 		return
 	}
 
 	switch n := node.(type) {
 	case *ast.File:
-		st, ok := c.symbols[ns.Name]
+		st, ok := c.symbols[mod.Name]
 		if !ok {
 			c.log.Printf("UNREACHABLE")
 			return // Should not happen
 		}
 
 		for _, decl := range n.Decls {
-			c.checkNode(decl, ns)
+			c.checkNode(decl, mod)
 		}
 
 		// After checking all nodes, analyze the symbol table for unused symbols.
 		for _, symbol := range st.Symbols {
 			if !symbol.IsUsed {
-				line, col := token.FindLineAndCol(symbol.Pos, c.cu.Sources[ns.Name])
-				c.cu.AddWarning(ns.Name, line, col, fmt.Sprintf("unused symbol: %s", symbol.Name))
+				line, col := token.FindLineAndCol(symbol.Pos, c.cu.Sources[mod.Name])
+				c.cu.AddWarning(mod.Name, line, col, fmt.Sprintf("unused symbol: %s", symbol.Name))
 			}
 		}
 
 	case *ast.RuleDecl:
-		if st, ok := c.symbols[ns.Name]; ok {
+		if st, ok := c.symbols[mod.Name]; ok {
 			if symbol, found := st.Find(n.Name.Name); found && symbol.IsPublic {
 				symbol.IsUsed = true
 			}
 		}
 		if n.Body != nil {
 			for _, expr := range n.Body {
-				c.checkNode(expr, ns)
+				c.checkNode(expr, mod)
 			}
 		}
 	case *ast.SequenceExpr:
 		for _, expr := range n.Exprs {
-			c.checkNode(expr, ns)
+			c.checkNode(expr, mod)
 		}
 	case *ast.AlternativeExpr:
 		for _, expr := range n.Exprs {
-			c.checkNode(expr, ns)
+			c.checkNode(expr, mod)
 		}
 	case *ast.OptionalExpr:
-		c.checkNode(n.Expr, ns)
+		c.checkNode(n.Expr, mod)
 	case *ast.RepetitionExpr:
-		c.checkNode(n.Expr, ns)
+		c.checkNode(n.Expr, mod)
 	case *ast.GroupExpr:
-		c.checkNode(n.Expr, ns)
+		c.checkNode(n.Expr, mod)
 	case *ast.ExternalValue:
 		// No children to check.
 	case *ast.Ident:
-		if _, found := ns.Members[n.Name]; !found {
-			line, col := token.FindLineAndCol(n.Pos(), c.cu.Sources[ns.Name])
-			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("undefined identifier: %s", n.Name))
+		if _, found := mod.Members[n.Name]; !found {
+			line, col := token.FindLineAndCol(n.Pos(), c.cu.Sources[mod.Name])
+			c.cu.AddError(mod.Name, line, col, fmt.Sprintf("undefined identifier: %s", n.Name))
 		} else {
 			// Mark symbol as used
-			if st, ok := c.symbols[ns.Name]; ok {
+			if st, ok := c.symbols[mod.Name]; ok {
 				if symbol, found := st.Find(n.Name); found {
 					symbol.IsUsed = true
 				}
@@ -159,47 +165,75 @@ func (c *Checker) checkNode(node ast.Node, ns *Namespace) {
 	case *ast.MemberExpr:
 		// Mark the object of the member expression as used.
 		if ident, isIdent := n.Object.(*ast.Ident); isIdent {
-			if st, ok := c.symbols[ns.Name]; ok {
+			if st, ok := c.symbols[mod.Name]; ok {
 				if symbol, found := st.Find(ident.Name); found {
 					symbol.IsUsed = true
 				}
 			}
 		}
 
-		receiverType := c.typeOf(n.Object, ns)
+		receiverType := c.typeOf(n.Object, mod)
 		if receiverType == nil {
 			return // Error already reported
 		}
-		nsType, ok := receiverType.(*NamespaceType)
-		if !ok {
-			line, col := token.FindLineAndCol(n.Object.Pos(), c.cu.Sources[ns.Name])
-			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
-			return
-		}
-		importedNs, found := c.cu.Namespaces[nsType.Name]
-		if !found {
-			line, col := token.FindLineAndCol(n.Object.Pos(), c.cu.Sources[ns.Name])
-			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("internal error: could not find namespace %s", nsType.Name))
-			return
-		}
-		if _, found := importedNs.Members[n.Member.Name]; !found {
-			line, col := token.FindLineAndCol(n.Member.Pos(), c.cu.Sources[ns.Name])
-			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("undefined member '%s' in namespace '%s'", n.Member.Name, nsType.Name))
-		} else {
-			// This is a reference to a symbol in another file, so we don't mark it as used in the current file.
-			_ = n
+
+		// Handle different types: NamespaceType (deprecated), ModuleType, PackageType
+		switch rt := receiverType.(type) {
+		case *NamespaceType:
+			// Legacy namespace-based import
+			importedNs, found := c.cu.Namespaces[rt.Name]
+			if !found {
+				line, col := token.FindLineAndCol(n.Object.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("internal error: could not find namespace %s", rt.Name))
+				return
+			}
+			if _, found := importedNs.Members[n.Member.Name]; !found {
+				line, col := token.FindLineAndCol(n.Member.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("undefined member '%s' in namespace '%s'", n.Member.Name, rt.Name))
+			}
+		case *ModuleType:
+			// Module-based import (file-based)
+			importedMod, found := c.cu.Modules[rt.Name]
+			if !found {
+				line, col := token.FindLineAndCol(n.Object.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("internal error: could not find module %s", rt.Name))
+				return
+			}
+			if _, found := importedMod.Members[n.Member.Name]; !found {
+				line, col := token.FindLineAndCol(n.Member.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("undefined member '%s' in module '%s'", n.Member.Name, rt.Name))
+			}
+		case *PackageType:
+			// Package-based import (directory)
+			pkg, found := c.cu.Packages[rt.Path]
+			if !found {
+				line, col := token.FindLineAndCol(n.Object.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("internal error: could not find package %s", rt.Name))
+				return
+			}
+			module, found := pkg.Modules[n.Member.Name]
+			if !found {
+				line, col := token.FindLineAndCol(n.Member.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("undefined module '%s' in package '%s'", n.Member.Name, rt.Name))
+				return
+			}
+			// Now check for the rule in the module
+			_ = module // Module found, rule lookup would be next level (e.g., pkg.Module.rule)
+		default:
+			line, col := token.FindLineAndCol(n.Object.Pos(), c.cu.Sources[mod.Name])
+			c.cu.AddError(mod.Name, line, col, fmt.Sprintf("expected a namespace, module, or package, but got %s", receiverType.String()))
 		}
 	}
 }
 
-func (c *Checker) typeOf(expr ast.Expr, ns *Namespace) Type {
+func (c *Checker) typeOf(expr ast.Expr, mod *Module) Type {
 	switch e := expr.(type) {
 	case *ast.Ident:
-		if typ, found := ns.Types[e.Name]; found {
+		if typ, found := mod.Types[e.Name]; found {
 			return typ
 		}
-		line, col := token.FindLineAndCol(e.Pos(), c.cu.Sources[ns.Name])
-		c.cu.AddError(ns.Name, line, col, fmt.Sprintf("undefined identifier: %s", e.Name))
+		line, col := token.FindLineAndCol(e.Pos(), c.cu.Sources[mod.Name])
+		c.cu.AddError(mod.Name, line, col, fmt.Sprintf("undefined identifier: %s", e.Name))
 		return nil
 	case *ast.StringLit:
 		return String
@@ -208,23 +242,64 @@ func (c *Checker) typeOf(expr ast.Expr, ns *Namespace) Type {
 	case *ast.ExternalValue:
 		return External
 	case *ast.MemberExpr:
-		receiverType := c.typeOf(e.Object, ns)
+		receiverType := c.typeOf(e.Object, mod)
 		if receiverType == nil {
 			return nil
 		}
-		nsType, ok := receiverType.(*NamespaceType)
-		if !ok {
-			line, col := token.FindLineAndCol(e.Object.Pos(), c.cu.Sources[ns.Name])
-			c.cu.AddError(ns.Name, line, col, fmt.Sprintf("expected a namespace, but got %s", receiverType.String()))
+
+		// Handle different receiver types
+		switch rt := receiverType.(type) {
+		case *NamespaceType:
+			importedNs := c.cu.Namespaces[rt.Name]
+			if importedNs == nil {
+				line, col := token.FindLineAndCol(e.Object.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("internal error: could not find namespace '%s'", rt.Name))
+				return nil
+			}
+			if memberType, found := importedNs.Types[e.Member.Name]; found {
+				return memberType
+			}
+			line, col := token.FindLineAndCol(e.Member.Pos(), c.cu.Sources[mod.Name])
+			c.cu.AddError(mod.Name, line, col, fmt.Sprintf("undefined member '%s' in namespace '%s'", e.Member.Name, rt.Name))
+			return nil
+
+		case *ModuleType:
+			importedMod := c.cu.Modules[rt.Name]
+			if importedMod == nil {
+				line, col := token.FindLineAndCol(e.Object.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("internal error: could not find module '%s'", rt.Name))
+				return nil
+			}
+			if memberType, found := importedMod.Types[e.Member.Name]; found {
+				return memberType
+			}
+			line, col := token.FindLineAndCol(e.Member.Pos(), c.cu.Sources[mod.Name])
+			c.cu.AddError(mod.Name, line, col, fmt.Sprintf("undefined member '%s' in module '%s'", e.Member.Name, rt.Name))
+			return nil
+
+		case *PackageType:
+			// Accessing a module in a package: pkg.Module
+			pkg := c.cu.Packages[rt.Path]
+			if pkg == nil {
+				line, col := token.FindLineAndCol(e.Object.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("internal error: could not find package '%s'", rt.Name))
+				return nil
+			}
+			module, found := pkg.Modules[e.Member.Name]
+			if !found {
+				line, col := token.FindLineAndCol(e.Member.Pos(), c.cu.Sources[mod.Name])
+				c.cu.AddError(mod.Name, line, col, fmt.Sprintf("undefined module '%s' in package '%s'", e.Member.Name, rt.Name))
+				return nil
+			}
+			// Return the module's types - the next MemberExpr would access rules within the module
+			// For now, we return a placeholder type representing the module
+			return &ModuleType{Name: module.Name}
+
+		default:
+			line, col := token.FindLineAndCol(e.Object.Pos(), c.cu.Sources[mod.Name])
+			c.cu.AddError(mod.Name, line, col, fmt.Sprintf("expected a namespace, module, or package, but got %s", receiverType.String()))
 			return nil
 		}
-		importedNs := c.cu.Namespaces[nsType.Name]
-		if memberType, found := importedNs.Types[e.Member.Name]; found {
-			return memberType
-		}
-		line, col := token.FindLineAndCol(e.Member.Pos(), c.cu.Sources[ns.Name])
-		c.cu.AddError(ns.Name, line, col, fmt.Sprintf("undefined member '%s' in namespace '%s'", e.Member.Name, nsType.Name))
-		return nil
 	default:
 		return nil
 	}

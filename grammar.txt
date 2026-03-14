@@ -1,7 +1,9 @@
 Source = { declaration };
 
-declaration = binding | Rule | comment;
-binding     = ident "=" import_directive ";";
+declaration = binding | package_directive | Rule | comment;
+binding     = ident "=" directive ";";
+package_directive = "@package" "(" string ")";
+directive   = "@import" "(" string ")" | "@package" "(" string ")";
 Rule        = ident "=" production ";";
 comment     = "/" "/" /[^\n]*/ [ "\n" ];
 

@@ -22,7 +22,24 @@ type Decl interface {
 
 // File represents a grammar file.
 type File struct {
-	Decls  []Decl
+	Decls       []Decl
+	PackageName string // declared package name from @package directive
+	EndPos      token.Pos
+}
+
+// BindingKind represents the kind of binding (file import or package import)
+type BindingKind int
+
+const (
+	ImportFile    BindingKind = iota // @import("file.grammar") - file-based import
+	ImportPackage                    // @import("directory") - package-based import
+)
+
+// BindingDecl represents a binding declaration.
+type BindingDecl struct {
+	Name   *Ident
+	Kind   BindingKind // type of import
+	Path   *StringLit
 	EndPos token.Pos
 }
 
@@ -30,13 +47,6 @@ type File struct {
 type RuleDecl struct {
 	Name   *Ident
 	Body   []Expr // { production }
-	EndPos token.Pos
-}
-
-// BindingDecl represents a binding declaration.
-type BindingDecl struct {
-	Name   *Ident
-	Path   *StringLit
 	EndPos token.Pos
 }
 
@@ -238,6 +248,8 @@ func (*GroupExpr) exprNode() {}
 func (*TermExpr) exprNode() {}
 
 func (*DirectiveExpr) exprNode() {}
+
+func (*DirectiveExpr) declNode() {}
 
 func (*MemberExpr) exprNode() {}
 

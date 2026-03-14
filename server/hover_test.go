@@ -48,7 +48,7 @@ prod_c = b.rule_b;
 		{"regexp literal", aURI, server.Position{Line: 3, Character: 6}, "regexp", `/[a-z]/`},
 		{"external value", aURI, server.Position{Line: 4, Character: 7}, "external", `$foo`},
 		{"local production", aURI, server.Position{Line: 6, Character: 9}, "production", `"a";`},
-		{"binding", aURI, server.Position{Line: 1, Character: 0}, "namespace", "b.grammar"},
+		{"binding", aURI, server.Position{Line: 1, Character: 0}, "module", "b.grammar"},
 		{"imported member", aURI, server.Position{Line: 7, Character: 11}, "production", `"from b";`},
 	}
 

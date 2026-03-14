@@ -14,6 +14,34 @@ func (m *MockFileLoader) Load(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
+func (m *MockFileLoader) LoadDir(path string) ([]string, error) {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
+	}
+	var files []string
+	for _, e := range entries {
+		if !e.IsDir() && strings.HasSuffix(e.Name(), ".grammar") {
+			files = append(files, path+"/"+e.Name())
+		}
+	}
+	return files, nil
+}
+
+func (m *MockFileLoader) IsDir(path string) (bool, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	return info.IsDir(), nil
+}
+
+func (m *MockFileLoader) NormalizePath(path string) (string, error) {
+	return path, nil
+}
+
+func (m *MockFileLoader) SetWorkspaceRoot(path string) {}
+
 func setupTestChecker(t *testing.T) *Checker {
 	logger := log.NewStderrLogger()
 	fileLoader := &MockFileLoader{}
@@ -49,7 +77,6 @@ func TestCheckNonExistentImport(t *testing.T) {
 		t.Errorf("Expected error to contain 'could not load imported namespace', but got: %v", errList)
 	}
 }
-
 
 func TestCheckImportCycle(t *testing.T) {
 	checker := setupTestChecker(t)

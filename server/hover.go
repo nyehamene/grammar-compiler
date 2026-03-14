@@ -69,12 +69,26 @@ func (s *Server) handleHover(id int, rawMsg map[string]any) {
 	case *ast.Ident:
 		if memberExpr, isMember := parent.(*ast.MemberExpr); isMember && memberExpr.Member == n {
 			receiverType := s.checker.TypeOf(memberExpr.Object, ns)
-			if nsType, ok := receiverType.(*check.NamespaceType); ok {
-				if importedNs, found := s.checker.CompilationUnit().Namespaces[nsType.Name]; found {
+			// Handle NamespaceType (deprecated), ModuleType, or PackageType
+			switch rt := receiverType.(type) {
+			case *check.NamespaceType:
+				if importedNs, found := s.checker.CompilationUnit().Namespaces[rt.Name]; found {
 					if decl, found := importedNs.Members[n.Name]; found {
 						if ruleDecl, ok := decl.(*ast.RuleDecl); ok {
 							typ = "production"
-							importedSrc, srcFound := s.checker.Sources()[nsType.Name]
+							importedSrc, srcFound := s.checker.Sources()[rt.Name]
+							if srcFound {
+								value = sourceOf(ruleDecl.Body, importedSrc) + ";"
+							}
+						}
+					}
+				}
+			case *check.ModuleType:
+				if importedMod, found := s.checker.CompilationUnit().Modules[rt.Name]; found {
+					if decl, found := importedMod.Members[n.Name]; found {
+						if ruleDecl, ok := decl.(*ast.RuleDecl); ok {
+							typ = "production"
+							importedSrc, srcFound := s.checker.Sources()[rt.Name]
 							if srcFound {
 								value = sourceOf(ruleDecl.Body, importedSrc) + ";"
 							}
@@ -97,6 +111,22 @@ func (s *Server) handleHover(id int, rawMsg map[string]any) {
 					if decl, found := ns.Members[n.Name]; found {
 						if bindingDecl, ok := decl.(*ast.BindingDecl); ok {
 							typ = "namespace"
+							path := bindingDecl.Path.Value
+							value = path[1 : len(path)-1] // remove quotes
+						}
+					}
+				case *check.ModuleType:
+					if decl, found := ns.Members[n.Name]; found {
+						if bindingDecl, ok := decl.(*ast.BindingDecl); ok {
+							typ = "module"
+							path := bindingDecl.Path.Value
+							value = path[1 : len(path)-1] // remove quotes
+						}
+					}
+				case *check.PackageType:
+					if decl, found := ns.Members[n.Name]; found {
+						if bindingDecl, ok := decl.(*ast.BindingDecl); ok {
+							typ = "package"
 							path := bindingDecl.Path.Value
 							value = path[1 : len(path)-1] // remove quotes
 						}

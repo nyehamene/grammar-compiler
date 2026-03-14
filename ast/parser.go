@@ -50,6 +50,18 @@ func (p *Parser) parseDecl() (Decl, bool) {
 		return p.parseCommentGroup(), hadBlankLine
 	}
 
+	// Handle @package as standalone directive (not ident = @package(...))
+	if p.peek().Kind == token.AtDirective {
+		directive := p.parseDirective()
+		// Check if it's @package
+		if directive.Name != nil && directive.Name.Name == "package" {
+			p.expect(token.Semicolon)
+			return directive, hadBlankLine
+		}
+		// For other directives (@import), they should have ident = directive form
+		// This is an error, but we'll let the parser continue
+	}
+
 	if p.peek().Kind != token.Ident {
 		tok := p.next()
 		p.errorf(token.Pos(tok.Start), "expected IDENT, got %s", tok.Kind)
@@ -87,10 +99,20 @@ func (p *Parser) parseCommentGroup() *CommentGroup {
 }
 
 func (p *Parser) parseBinding(name token.Token) Decl {
-	directive := p.parseImportDirective()
+	directive := p.parseDirective()
 	semicolon := p.expect(token.Semicolon)
 
 	var path *StringLit
+	var kind BindingKind = ImportFile // default
+
+	if directive.Name != nil {
+		if directive.Name.Name == "package" {
+			kind = ImportPackage
+		} else if directive.Name.Name == "import" {
+			kind = ImportFile
+		}
+	}
+
 	if len(directive.Args) > 0 {
 		if strLit, ok := directive.Args[0].(*StringLit); ok {
 			path = strLit
@@ -99,6 +121,7 @@ func (p *Parser) parseBinding(name token.Token) Decl {
 
 	return &BindingDecl{
 		Name:   &Ident{NamePos: token.Pos(name.Start), Name: token.Literal(name, p.srcRunes)},
+		Kind:   kind,
 		Path:   path,
 		EndPos: token.Pos(semicolon.End),
 	}
@@ -156,7 +179,7 @@ func (p *Parser) parseBasic() Expr {
 	case token.String, token.Regex:
 		return p.parseTerminal()
 	case token.AtDirective:
-		return p.parseImportDirective()
+		return p.parseDirective()
 	case token.LBrack:
 		return p.parseOptional()
 	case token.LBrace:
@@ -172,15 +195,24 @@ func (p *Parser) parseBasic() Expr {
 	}
 }
 
-func (p *Parser) parseImportDirective() *DirectiveExpr {
+// parseDirective parses a directive (@package, @import, etc.)
+func (p *Parser) parseDirective() *DirectiveExpr {
 	at := p.expect(token.AtDirective)
+
+	// Extract directive name from the token literal
+	directiveName := ""
+	lit := token.Literal(at, p.srcRunes)
+	if len(lit) > 1 {
+		directiveName = lit[1:] // Remove the @ prefix
+	}
+
 	p.expect(token.LParen)
 	arg := p.expect(token.String)
 	rparen := p.expect(token.RParen)
 
 	return &DirectiveExpr{
 		AtPos:  token.Pos(at.Start),
-		Name:   &Ident{NamePos: token.Pos(at.Start) + 1, Name: "import"},
+		Name:   &Ident{NamePos: token.Pos(at.Start) + 1, Name: directiveName},
 		Args:   []Expr{&StringLit{ValuePos: token.Pos(arg.Start), Value: token.Literal(arg, p.srcRunes)}},
 		EndPos: token.Pos(rparen.End),
 	}

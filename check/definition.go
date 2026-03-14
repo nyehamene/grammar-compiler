@@ -5,7 +5,7 @@ import (
 )
 
 // FindDefinition finds the declaration of a given node.
-func (c *Checker) FindDefinition(ns *Namespace, node ast.Node, parent ast.Node) ast.Decl {
+func (c *Checker) FindDefinition(mod *Module, node ast.Node, parent ast.Node) ast.Decl {
 	if node == nil {
 		return nil
 	}
@@ -33,27 +33,47 @@ func (c *Checker) FindDefinition(ns *Namespace, node ast.Node, parent ast.Node) 
 
 	// Case 2: It's a member access like `b.rule_b`. We are on `rule_b`.
 	if memberExpr, isMember := parent.(*ast.MemberExpr); isMember && memberExpr.Member == ident {
-		receiverType := c.typeOf(memberExpr.Object, ns)
+		receiverType := c.typeOf(memberExpr.Object, mod)
 		if receiverType == nil {
 			return nil // Error already reported by checker
 		}
-		nsType, isNs := receiverType.(*NamespaceType)
-		if !isNs {
-			return nil
-		}
-		importedNs, found := c.cu.Namespaces[nsType.Name]
-		if !found {
-			return nil
-		}
-		// Look for the member in the imported namespace.
-		if def, found := importedNs.Members[ident.Name]; found {
-			return def
+
+		// Handle different receiver types: NamespaceType (deprecated), ModuleType, PackageType
+		switch rt := receiverType.(type) {
+		case *NamespaceType:
+			importedNs, found := c.cu.Namespaces[rt.Name]
+			if !found {
+				return nil
+			}
+			if def, found := importedNs.Members[ident.Name]; found {
+				return def
+			}
+		case *ModuleType:
+			importedMod, found := c.cu.Modules[rt.Name]
+			if !found {
+				return nil
+			}
+			if def, found := importedMod.Members[ident.Name]; found {
+				return def
+			}
+		case *PackageType:
+			pkg, found := c.cu.Packages[rt.Path]
+			if !found {
+				return nil
+			}
+			// First level: module access (pkg.Module)
+			mod, found := pkg.Modules[ident.Name]
+			if !found {
+				return nil
+			}
+			// Module found, return nil for now (would need another level of member access for rules)
+			_ = mod
 		}
 		return nil
 	}
 
 	// Case 3: It's a simple identifier used in an expression, like the `bar` in `foo = bar;`
-	if def, found := ns.Members[ident.Name]; found {
+	if def, found := mod.Members[ident.Name]; found {
 		return def
 	}
 

@@ -11,6 +11,8 @@ import (
 	"io"
 )
 
+const VERSION = "0.2.0"
+
 // Run executes the main command-line interface.
 func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
@@ -36,7 +38,7 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprint(stdout, command.GrammarUsage)
 		return 0
 	case "version":
-		_, _ = fmt.Fprintln(stdout, "0.1.0")
+		_, _ = fmt.Fprintln(stdout, VERSION)
 		return 0
 	default:
 		_, _ = fmt.Fprint(stdout, command.GrammarUsage)

@@ -102,8 +102,10 @@ func (s *Server) handleRename(id int, rawMsg map[string]any) {
 
 	// Group edits by file URI.
 	for _, refNode := range refNodes {
-		// Find the file/namespace this reference belongs to.
+		// Find the file/namespace/module this reference belongs to.
 		var foundURI string
+
+		// First check Namespaces (deprecated)
 		for path, ns := range s.checker.CompilationUnit().Namespaces {
 			var found bool
 			if ns.File != nil {
@@ -116,6 +118,24 @@ func (s *Server) handleRename(id int, rawMsg map[string]any) {
 			if found {
 				foundURI = path
 				break
+			}
+		}
+
+		// If not found in Namespaces, check Modules
+		if foundURI == "" {
+			for path, mod := range s.checker.CompilationUnit().Modules {
+				var found bool
+				if mod.File != nil {
+					ast.Walk(mod.File, func(n, p ast.Node) {
+						if n == refNode {
+							found = true
+						}
+					})
+				}
+				if found {
+					foundURI = path
+					break
+				}
 			}
 		}
 

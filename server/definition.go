@@ -36,8 +36,18 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 	srcRunes := []rune(content)
 	uriStr := params.TextDocument.URI.String()
 
-	ns, ok := s.checker.CompilationUnit().Namespaces[uriStr]
-	if !ok || ns == nil || ns.File == nil {
+	// First check Namespaces (deprecated), then Modules
+	ns, nsOk := s.checker.CompilationUnit().Namespaces[uriStr]
+	if !nsOk || ns == nil || ns.File == nil {
+		// Check Modules
+		if mod, modOk := s.checker.CompilationUnit().Modules[uriStr]; modOk && mod != nil && mod.File != nil {
+			// Use Module directly
+			ns = mod
+			nsOk = true
+		}
+	}
+
+	if !nsOk || ns == nil || ns.File == nil {
 		s.logger.Printf("handleDefinition: No AST available for %s.", uriStr)
 		s.sendResponse(id, method, nil, nil) // No AST available
 		return
@@ -56,8 +66,10 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 		return
 	}
 
-	// Find the namespace (and thus, the file) that contains the definition.
+	// Find the namespace/module (and thus, the file) that contains the definition.
 	var defNsURI string
+
+	// First check Namespaces (deprecated)
 	for path, ns := range s.checker.CompilationUnit().Namespaces {
 		for _, decl := range ns.File.Decls {
 			if decl == defDecl {
@@ -67,6 +79,23 @@ func (s *Server) handleDefinition(id int, msg map[string]any) {
 		}
 		if defNsURI != "" {
 			break
+		}
+	}
+
+	// If not found in Namespaces, check Modules
+	if defNsURI == "" {
+		for path, mod := range s.checker.CompilationUnit().Modules {
+			if mod.File != nil {
+				for _, decl := range mod.File.Decls {
+					if decl == defDecl {
+						defNsURI = path
+						break
+					}
+				}
+			}
+			if defNsURI != "" {
+				break
+			}
 		}
 	}
 
