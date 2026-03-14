@@ -162,6 +162,12 @@ func (l *JSONLogger) Log(level Level, msg string, fields Fields) {
 		fields = make(Fields)
 	}
 
+	for k, v := range fields {
+		if err, ok := v.(error); ok {
+			fields[k] = EncodeError(err)
+		}
+	}
+
 	fields[string(FieldTimestamp)] = time.Now().UTC().Format(time.RFC3339Nano)
 	fields[string(FieldLevel)] = level.String()
 	fields[string(FieldMessage)] = msg

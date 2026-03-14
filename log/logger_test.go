@@ -3,6 +3,7 @@ package log
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -208,5 +209,43 @@ func TestJSONLoggerPrettyPrint(t *testing.T) {
 
 	if parsed["message"] != "test message" {
 		t.Errorf("Expected message 'test message', got %v", parsed["message"])
+	}
+}
+
+func TestJSONLoggerErrorField(t *testing.T) {
+	buf := &bytes.Buffer{}
+	logger := NewJSONLogger(buf, DEBUG, false)
+
+	testErr := fmt.Errorf("test error message")
+	logger.Info("request failed", Fields{
+		"error": testErr,
+	})
+
+	output := strings.TrimSpace(buf.String())
+
+	if !strings.Contains(output, "test error message") {
+		t.Error("Expected error message in output")
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(output), &parsed); err != nil {
+		t.Fatalf("Failed to parse JSON: %v", err)
+	}
+
+	if parsed["error"] != "test error message" {
+		t.Errorf("Expected error field to be string, got %v", parsed["error"])
+	}
+}
+
+func TestEncodeError(t *testing.T) {
+	err := fmt.Errorf("test error")
+	result := EncodeError(err)
+	if result != "test error" {
+		t.Errorf("Expected 'test error', got %s", result)
+	}
+
+	nilErr := EncodeError(nil)
+	if nilErr != "" {
+		t.Errorf("Expected empty string for nil error, got %s", nilErr)
 	}
 }
