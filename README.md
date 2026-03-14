@@ -1,104 +1,204 @@
 # Grammar
 
-A language for describing programming language syntax.
+[![Go Version](https://img.shields.io/github/go-mod/go-version/better-tools/better-grammar)](https://golang.org/doc/install)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## Syntax
+A domain-specific language for describing programming language syntax.
 
-A grammar is composed of 3 kinds of declaration.
+## Overview
 
-1. Comment:
+Grammar is a tool and DSL for defining the syntax of programming languages. It provides:
 
-  A comment begins with 2 forward-slash (/) and is terminated by a newline.
+- **Checker** - Validate grammar files and report diagnostic errors
+- **Formatter** - Format grammar files with configurable style
+- **Diff** - Compare grammar files at token or AST level
+- **Print** - Output tokens or AST nodes for debugging
+- **Language Server** - IDE support via LSP (completion, hover, go-to-definition, etc.)
 
-2. Binding
+## Installation
 
-  A binding imports the content of a grammar file and binds it to an identifier
-  that can be used to reference declarations in the imported file.
+### From Source
 
-  A binding declaration is terminated by a semicolon.
-
-3. Rule
-
-  A rule is the main component of a grammar file. It is composed from 2 kinds of
-  values.
-
-  - Terminal
-
-    A terminal is one of the following:
-
-    1) A string literal. Any value surrounded by double quotes.
-    2) A regular expression. Any value surrounded  by forward slashes.
-
-  - Non-terminal
-
-    A non-terminal is one of the following:
-
-    1) An identify that reference a rule declared in the current file.
-    2) A member access on a binding variable that references a rule declared
-       in an imported file.
-
-  A rule declaration is terminated by a semicolon.
-
-See the content of ./grammar.txt for a description of the syntax the grammar.
-
-See files ./example directory for an example of a templating language
-written in this grammar.
-
-## Implementation
-
-The project will implement a command line tool that implements
-the following features.
-
-* A __checker__ for validating syntax and semantics
-* A __formatter__ for formatting grammar files
-* A __language server__ for the grammar language
-  (on hold until checker implementation is complete)
-
-See the content of ./command directory for the structure and format of
-the commandline arguments accepted by the tool.
-
-### Implementation - Phases
-
-The content of ./implementation directory will guide the implementation
-process and describes what deliverables for each stage. Stages are numbered
-in sequence starting from 1 to N.
-
-### Implementation - Language
-
-The program will be implemented in __Go Programming Langauge__.
-But produce a executable that functions as described in ./command/grammar.txt.
-
-The implementation should following the following project structure.
-
-```sh
-cmd/fmt/fmt.go
-cmd/check/check.go
-cmd/lsp/lsp.go
-cmd/diff/diff.go
-cmd/print/print.go
-cmd/cmd.go
-token/token.go
-token/tokenizer.go
-ast/ast.go
-ast/parser.go
-main.go
-go.mod
+```bash
+go install .
 ```
 
-### Stages
-- [x] Skeleton
-- [x] Version
-- [x] Help
-- [x] Tokenizer
-- [x] Print token
-- [x] Diff token
-- [x] Parser
-- [x] Print ast
-- [x] Diff ast
-- [x] Formatter
-- [x] Language server
-- [x] Treesitter
-- [ ] Print token (color)
-- [ ] Print tokens (serial number)
-- [x] Check
+### Build from Repository
 
+```bash
+git clone https://github.com/better-tools/better-grammar.git
+cd better-grammar
+go build -o grammar .
+```
+
+## Quick Start
+
+```bash
+# Check a grammar file
+grammar check mylang.grammar
+
+# Format a grammar file
+grammar fmt mylang.grammar
+
+# Start the language server
+grammar lsp
+
+# Compare two files
+grammar diff --ast file1.grammar file2.grammar
+```
+
+## Grammar Syntax
+
+A grammar file (`.grammar`) defines language syntax using rules and bindings.
+
+### Rules
+
+```grammar
+// A rule defines a named production
+greeting = "Hello" | "Hi";
+
+// Rules can reference other rules
+full_greeting = greeting " World";
+```
+
+### Bindings (Imports)
+
+```grammar
+// Import another grammar file
+mylang = @import("base.grammar");
+
+// Reference rules from imported files
+base_rule = mylang.identifier;
+```
+
+### Expressions
+
+```grammar
+// String literals
+str = "hello";
+
+// Regular expressions
+regex = /[a-z]+/;
+
+// Groups
+grouped = ( "a" "b" );
+
+// Repetition: zero more
+repeated = { "a" };
+
+// Optional
+optional = [ "b" ];
+```
+
+### Directives
+
+```grammar
+// Package declaration (for directory-as-package)
+@package("mypackage");
+
+// Import from package directory
+pkg = @import("mylib");
+```
+
+## Commands
+
+### `grammar check`
+
+Validate grammar files and report errors:
+
+```bash
+grammar check path/to/file.grammar
+grammar check path/to/directory/
+```
+
+### `grammar fmt`
+
+Format grammar files:
+
+```bash
+grammar fmt path/to/file.grammar     # Format in place
+grammar fmt --stdout file.grammar    # Output to stdout
+grammar fmt --stdin                  # Format from stdin
+```
+
+### `grammar diff`
+
+Compare grammar files:
+
+```bash
+grammar diff --tokens file1.grammar file2.grammar
+grammar diff --ast file1.grammar file2.grammar
+```
+
+### `grammar print`
+
+Print tokens or AST for debugging:
+
+```bash
+grammar print --token file.grammar
+grammar print --ast file.grammar
+```
+
+### `grammar lsp`
+
+Start the Language Server Protocol server for IDE integration:
+
+```bash
+grammar lsp                         # Default (no logging)
+grammar lsp --log server.log        # Log to file
+grammar lsp --log-format json       # JSON log format
+grammar lsp --log-level info        # Set log level
+```
+
+## Language Server Features
+
+The Grammar language server provides IDE support including:
+
+- **Completion** - Auto-complete rule names, imports, and package members
+- **Hover** - Show type information on hover
+- **Go to Definition** - Navigate to rule definitions
+- **Find References** - Find all usages of a rule
+- **Document Symbols** - Outline view of grammar file
+- **Diagnostics** - Real-time error checking
+- **Document Links** - Navigate between imported files
+- **Formatting** - Document formatting support
+
+## Project Structure
+
+```
+.
+├── cmd/             # CLI commands
+│   ├── check/       # Validation command
+│   ├── fmt/         # Formatter command
+│   ├── lsp/         # Language server
+│   ├── diff/        # Diff command
+│   └── print/       # Print command
+├── ast/             # Abstract Syntax Tree
+├── check/           # Semantic checking
+├── token/           # Tokenizer
+├── log/             # Logging utilities
+├── server/          # LSP implementation
+└── command/         # CLI help text
+```
+
+## Development
+
+### Running Tests
+
+```bash
+make test
+```
+
+### Building
+
+```bash
+make build
+```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request on the [GitHub repository](https://github.com/better-tools/better-grammar).
