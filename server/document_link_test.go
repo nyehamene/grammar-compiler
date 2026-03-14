@@ -101,3 +101,84 @@ func TestDocumentLinkResolveRequest(t *testing.T) {
 	}
 	assertNoUnhandledMessages(h, &logBuf)
 }
+
+func TestDocumentLinkPackage(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer func() { _ = h.clientConn.Close() }()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	testDir := t.TempDir()
+	pkgDir := testDir + "/pkg"
+	os.MkdirAll(pkgDir, 0755)
+
+	t.Run("document link for package import", func(t *testing.T) {
+		moduleContent := `@package("pkg");
+rule_m = "m";`
+		modulePath := pkgDir + "/module.grammar"
+		os.WriteFile(modulePath, []byte(moduleContent), 0644)
+
+		mainContent := `pkg = @import("pkg");`
+		mainPath := testDir + "/main.grammar"
+		os.WriteFile(mainPath, []byte(mainContent), 0644)
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+		consumeDiagnostics(h)
+
+		id := 1
+		var linkParams any = server.DocumentLinkParams{
+			TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+		}
+		h.send(newRequest(id, "textDocument/documentLink", &linkParams))
+
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, _ := json.Marshal(msg["result"])
+		var links []server.DocumentLink
+		json.Unmarshal(resultData, &links)
+
+		t.Logf("Found %d document links for package import", len(links))
+		for _, l := range links {
+			t.Logf("Link: target=%s, tooltip=%s", l.Target, l.Tooltip)
+		}
+	})
+
+	t.Run("document link for deprecated file import", func(t *testing.T) {
+		testDir2 := t.TempDir()
+		oldContent := `old_rule = "old";`
+		oldPath := testDir2 + "/old.grammar"
+		os.WriteFile(oldPath, []byte(oldContent), 0644)
+
+		mainContent := `old = @import("old.grammar");`
+		mainPath := testDir2 + "/main.grammar"
+		os.WriteFile(mainPath, []byte(mainContent), 0644)
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+		consumeDiagnostics(h)
+
+		id := 2
+		var linkParams any = server.DocumentLinkParams{
+			TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+		}
+		h.send(newRequest(id, "textDocument/documentLink", &linkParams))
+
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, _ := json.Marshal(msg["result"])
+		var links []server.DocumentLink
+		json.Unmarshal(resultData, &links)
+
+		t.Logf("Found %d document links for file import", len(links))
+		for _, l := range links {
+			t.Logf("Link: target=%s, tooltip=%s", l.Target, l.Tooltip)
+		}
+	})
+}

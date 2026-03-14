@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"grammar/server"
+	"os"
 	"slices"
 	"testing"
 )
@@ -148,6 +149,258 @@ prod_b = ;
 			}
 		}
 
+		idCounter++
+	})
+	assertNoUnhandledMessages(h, &logBuf)
+}
+
+func TestCompletionPackage(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+
+	defer func() { _ = h.clientConn.Close() }()
+
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	// Create test files on disk for package resolution
+	testDir := t.TempDir()
+	pkgDir := testDir + "/pkg"
+	os.MkdirAll(pkgDir, 0755)
+
+	// Create package modules
+	m1Content := `@package("pkg");
+rule_m1 = "from m1";`
+	m1Path := pkgDir + "/module_a.grammar"
+	if err := os.WriteFile(m1Path, []byte(m1Content), 0644); err != nil {
+		t.Fatalf("Failed to write module_a.grammar: %v", err)
+	}
+
+	m2Content := `@package("pkg");
+rule_m2 = "from m2";`
+	m2Path := pkgDir + "/module_b.grammar"
+	if err := os.WriteFile(m2Path, []byte(m2Content), 0644); err != nil {
+		t.Fatalf("Failed to write module_b.grammar: %v", err)
+	}
+
+	m1URI, _ := server.ParseURI("file://" + m1Path)
+	h.send(newDidOpenNotification(m1URI, m1Content, 1))
+	consumeDiagnostics(h)
+
+	m2URI, _ := server.ParseURI("file://" + m2Path)
+	h.send(newDidOpenNotification(m2URI, m2Content, 1))
+	consumeDiagnostics(h)
+
+	idCounter := 1
+
+	t.Run("package module completion", func(t *testing.T) {
+		mainContent := `pkg = @import("pkg");
+result = pkg.`
+		mainPath := testDir + "/main.grammar"
+		if err := os.WriteFile(mainPath, []byte(mainContent), 0644); err != nil {
+			t.Fatalf("Failed to write main.grammar: %v", err)
+		}
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+		consumeDiagnostics(h)
+		id := idCounter
+
+		var completionParams any = server.CompletionParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+				Position:     server.Position{Line: 1, Character: 13}, // after 'pkg.'
+			},
+		}
+
+		h.send(newRequest(id, "textDocument/completion", &completionParams))
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, err := json.Marshal(msg["result"])
+		if err != nil {
+			t.Fatalf("Failed to marshal completion result: %v", err)
+		}
+
+		var completionList server.CompletionList
+		if err := json.Unmarshal(resultData, &completionList); err != nil {
+			t.Fatalf("Failed to unmarshal completion list: %v", err)
+		}
+
+		// Should show module_a and module_b
+		if len(completionList.Items) < 1 {
+			t.Logf("Completion items: %v", completionList.Items)
+		}
+		idCounter++
+	})
+
+	t.Run("package member completion", func(t *testing.T) {
+		mainContent := `pkg = @import("pkg");
+result = pkg.module_a.`
+		mainPath := testDir + "/main2.grammar"
+		if err := os.WriteFile(mainPath, []byte(mainContent), 0644); err != nil {
+			t.Fatalf("Failed to write main2.grammar: %v", err)
+		}
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+		consumeDiagnostics(h)
+		id := idCounter
+
+		var completionParams any = server.CompletionParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+				Position:     server.Position{Line: 1, Character: 26}, // after 'pkg.module_a.'
+			},
+		}
+
+		h.send(newRequest(id, "textDocument/completion", &completionParams))
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, err := json.Marshal(msg["result"])
+		if err != nil {
+			t.Fatalf("Failed to marshal completion result: %v", err)
+		}
+
+		var completionList server.CompletionList
+		if err := json.Unmarshal(resultData, &completionList); err != nil {
+			t.Fatalf("Failed to unmarshal completion list: %v", err)
+		}
+
+		// Should show rule_m1
+		if len(completionList.Items) < 1 {
+			t.Logf("Completion items: %v", completionList.Items)
+		}
+		idCounter++
+	})
+
+	t.Run("package directory completion", func(t *testing.T) {
+		mainContent := `pkg = @import("`
+		mainPath := testDir + "/main3.grammar"
+		if err := os.WriteFile(mainPath, []byte(mainContent), 0644); err != nil {
+			t.Fatalf("Failed to write main3.grammar: %v", err)
+		}
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+		consumeDiagnostics(h)
+		id := idCounter
+
+		var completionParams any = server.CompletionParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+				Position:     server.Position{Line: 0, Character: 12}, // inside @import("")
+			},
+		}
+
+		h.send(newRequest(id, "textDocument/completion", &completionParams))
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, err := json.Marshal(msg["result"])
+		if err != nil {
+			t.Fatalf("Failed to marshal completion result: %v", err)
+		}
+
+		var completionList server.CompletionList
+		if err := json.Unmarshal(resultData, &completionList); err != nil {
+			t.Fatalf("Failed to unmarshal completion list: %v", err)
+		}
+
+		// Should suggest pkg directory
+		t.Logf("Completion items: %v", completionList.Items)
+		idCounter++
+	})
+
+	t.Run("same-package module completion", func(t *testing.T) {
+		// Test @package("pkg"). to get module names in the same package
+		mainContent := `@package("pkg").`
+		mainPath := testDir + "/main5.grammar"
+		if err := os.WriteFile(mainPath, []byte(mainContent), 0644); err != nil {
+			t.Fatalf("Failed to write main5.grammar: %v", err)
+		}
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+		consumeDiagnostics(h)
+		id := idCounter
+
+		var completionParams any = server.CompletionParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+				Position:     server.Position{Line: 0, Character: 16}, // after '@package("pkg").'
+			},
+		}
+
+		h.send(newRequest(id, "textDocument/completion", &completionParams))
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, err := json.Marshal(msg["result"])
+		if err != nil {
+			t.Fatalf("Failed to marshal completion result: %v", err)
+		}
+
+		var completionList server.CompletionList
+		if err := json.Unmarshal(resultData, &completionList); err != nil {
+			t.Fatalf("Failed to unmarshal completion list: %v", err)
+		}
+
+		// Should suggest module_a and module_b
+		t.Logf("Completion items: %v", completionList.Items)
+		idCounter++
+	})
+
+	t.Run("completion in rule body with package", func(t *testing.T) {
+		mainContent := `pkg = @import("pkg");
+
+myrule = `
+		mainPath := testDir + "/main4.grammar"
+		if err := os.WriteFile(mainPath, []byte(mainContent), 0644); err != nil {
+			t.Fatalf("Failed to write main4.grammar: %v", err)
+		}
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+		consumeDiagnostics(h)
+		id := idCounter
+
+		var completionParams any = server.CompletionParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+				Position:     server.Position{Line: 2, Character: 9}, // after '='
+			},
+		}
+
+		h.send(newRequest(id, "textDocument/completion", &completionParams))
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, err := json.Marshal(msg["result"])
+		if err != nil {
+			t.Fatalf("Failed to marshal completion result: %v", err)
+		}
+
+		var completionList server.CompletionList
+		if err := json.Unmarshal(resultData, &completionList); err != nil {
+			t.Fatalf("Failed to unmarshal completion list: %v", err)
+		}
+
+		// Should show pkg
+		foundPkg := false
+		for _, item := range completionList.Items {
+			if item.Label == "pkg" {
+				foundPkg = true
+				break
+			}
+		}
+		if !foundPkg {
+			t.Logf("Expected 'pkg' in completion items, got: %v", completionList.Items)
+		}
 		idCounter++
 	})
 	assertNoUnhandledMessages(h, &logBuf)

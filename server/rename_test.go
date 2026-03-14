@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"grammar/server"
+	"os"
 	"testing"
 )
 
@@ -81,5 +82,75 @@ func TestRename(t *testing.T) {
 	if userEdits[0].NewText != newName {
 		t.Errorf("Wrong new name in user.grammar: got %s, want %s", userEdits[0].NewText, newName)
 	}
+	assertNoUnhandledMessages(h, &logBuf)
+}
+
+func TestRenamePackage(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer func() { _ = h.clientConn.Close() }()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	testDir := t.TempDir()
+	pkgDir := testDir + "/pkg"
+	os.MkdirAll(pkgDir, 0755)
+
+	m1Content := `@package("pkg");
+rule_to_rename = "m1";`
+	m1Path := pkgDir + "/module_a.grammar"
+	os.WriteFile(m1Path, []byte(m1Content), 0644)
+
+	m1URI, _ := server.ParseURI("file://" + m1Path)
+	h.send(newDidOpenNotification(m1URI, m1Content, 1))
+	consumeDiagnostics(h)
+
+	t.Run("prepare rename on rule in package", func(t *testing.T) {
+		id := 1
+		var prepareParams any = server.PrepareRenameParams{
+			TextDocument: server.TextDocumentIdentifier{URI: m1URI},
+			Position:     server.Position{Line: 1, Character: 1},
+		}
+		h.send(newRequest(id, "textDocument/prepareRename", &prepareParams))
+		msg := h.read()
+		assertResponseID(h, msg, id)
+		t.Logf("PrepareRename result: %v", msg["result"])
+	})
+
+	t.Run("rename rule across packages", func(t *testing.T) {
+		libDir := testDir + "/lib"
+		os.MkdirAll(libDir, 0755)
+
+		libContent := `@package("lib");
+lib_rule = "lib";`
+		libPath := libDir + "/lib.grammar"
+		os.WriteFile(libPath, []byte(libContent), 0644)
+
+		libURI, _ := server.ParseURI("file://" + libPath)
+		h.send(newDidOpenNotification(libURI, libContent, 1))
+		consumeDiagnostics(h)
+
+		appContent := `lib_pkg = @import("../lib");
+use_rule = lib_pkg.lib.lib_rule;`
+		appPath := testDir + "/app.grammar"
+		os.WriteFile(appPath, []byte(appContent), 0644)
+
+		appURI, _ := server.ParseURI("file://" + appPath)
+		h.send(newDidOpenNotification(appURI, appContent, 1))
+		consumeDiagnostics(h)
+
+		id := 2
+		var prepareParams any = server.PrepareRenameParams{
+			TextDocument: server.TextDocumentIdentifier{URI: libURI},
+			Position:     server.Position{Line: 1, Character: 1},
+		}
+		h.send(newRequest(id, "textDocument/prepareRename", &prepareParams))
+		msg := h.read()
+		assertResponseID(h, msg, id)
+		t.Logf("PrepareRename result for lib_rule: %v", msg["result"])
+	})
 	assertNoUnhandledMessages(h, &logBuf)
 }

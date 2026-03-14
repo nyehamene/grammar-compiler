@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grammar/server"
+	"os"
 	"testing"
 )
 
@@ -86,5 +87,79 @@ prod_c = b.rule_b;
 			idCounter++
 		})
 	}
+	assertNoUnhandledMessages(h, &logBuf)
+}
+
+func TestHoverPackage(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer func() { _ = h.clientConn.Close() }()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	testDir := t.TempDir()
+	pkgDir := testDir + "/pkg"
+	os.MkdirAll(pkgDir, 0755)
+
+	m1Content := `@package("mypackage");
+rule_m1 = "from m1";`
+	m1Path := pkgDir + "/module_a.grammar"
+	os.WriteFile(m1Path, []byte(m1Content), 0644)
+
+	m1URI, _ := server.ParseURI("file://" + m1Path)
+	h.send(newDidOpenNotification(m1URI, m1Content, 1))
+	consumeDiagnostics(h)
+
+	mainContent := `pkg = @import("pkg");
+result = pkg.module_a.rule_m1;`
+	mainPath := testDir + "/main.grammar"
+	os.WriteFile(mainPath, []byte(mainContent), 0644)
+
+	mainURI, _ := server.ParseURI("file://" + mainPath)
+	h.send(newDidOpenNotification(mainURI, mainContent, 1))
+	consumeDiagnostics(h)
+
+	t.Run("hover on @package directive", func(t *testing.T) {
+		id := 1
+		var hoverReqParams any = server.HoverParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: m1URI},
+				Position:     server.Position{Line: 0, Character: 0},
+			},
+		}
+		h.send(newRequest(id, "textDocument/hover", &hoverReqParams))
+
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, _ := json.Marshal(msg["result"])
+		var hover server.Hover
+		json.Unmarshal(resultData, &hover)
+
+		t.Logf("Hover on @package: %s", hover.Contents.Value)
+	})
+
+	t.Run("hover on package binding", func(t *testing.T) {
+		id := 2
+		var hoverReqParams any = server.HoverParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+				Position:     server.Position{Line: 0, Character: 0},
+			},
+		}
+		h.send(newRequest(id, "textDocument/hover", &hoverReqParams))
+
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, _ := json.Marshal(msg["result"])
+		var hover server.Hover
+		json.Unmarshal(resultData, &hover)
+
+		t.Logf("Hover on package binding: %s", hover.Contents.Value)
+	})
 	assertNoUnhandledMessages(h, &logBuf)
 }

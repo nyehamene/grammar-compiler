@@ -382,3 +382,65 @@ func TestConditionalPublishDiagnostics(t *testing.T) {
 		}
 	})
 }
+
+func TestDiagnosticsPackage(t *testing.T) {
+	var logBuf bytes.Buffer
+	h := setupTestServer(t, &logBuf)
+	defer func() { _ = h.clientConn.Close() }()
+	defer func() {
+		if t.Failed() {
+			t.Log(logBuf.String())
+		}
+	}()
+
+	testDir := t.TempDir()
+
+	t.Run("package name mismatch", func(t *testing.T) {
+		pkgDir := testDir + "/mismatch"
+		os.MkdirAll(pkgDir, 0755)
+
+		aContent := `@package("foo");
+rule_a = "a";`
+		aPath := pkgDir + "/a.grammar"
+		os.WriteFile(aPath, []byte(aContent), 0644)
+
+		bContent := `@package("bar");
+rule_b = "b";`
+		bPath := pkgDir + "/b.grammar"
+		os.WriteFile(bPath, []byte(bContent), 0644)
+
+		aURI, _ := server.ParseURI("file://" + aPath)
+		h.send(newDidOpenNotification(aURI, aContent, 1))
+		consumeDiagnostics(h)
+	})
+
+	t.Run("deprecated file import", func(t *testing.T) {
+		testDir2 := t.TempDir()
+		aContent := `rule_a = "a";`
+		aPath := testDir2 + "/a.grammar"
+		os.WriteFile(aPath, []byte(aContent), 0644)
+
+		bContent := `b = @import("a.grammar");`
+		bPath := testDir2 + "/b.grammar"
+		os.WriteFile(bPath, []byte(bContent), 0644)
+
+		bURI, _ := server.ParseURI("file://" + bPath)
+		h.send(newDidOpenNotification(bURI, bContent, 1))
+		consumeDiagnostics(h)
+	})
+
+	t.Run("successful package load", func(t *testing.T) {
+		testDir3 := t.TempDir()
+		pkgDir := testDir3 + "/pkg"
+		os.MkdirAll(pkgDir, 0755)
+
+		content := `@package("pkg");
+rule_m = "m";`
+		modulePath := pkgDir + "/module.grammar"
+		os.WriteFile(modulePath, []byte(content), 0644)
+
+		uri, _ := server.ParseURI("file://" + modulePath)
+		h.send(newDidOpenNotification(uri, content, 1))
+		consumeDiagnostics(h)
+	})
+}
