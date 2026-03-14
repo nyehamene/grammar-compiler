@@ -27,3 +27,6 @@ go.work
 
 # Build output
 /grammar
+
+# log file
+*.log
