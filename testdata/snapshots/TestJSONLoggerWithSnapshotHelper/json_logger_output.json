@@ -1,0 +1,8 @@
+{
+  "document_uri": "file:///test.grammar",
+  "level": "info",
+  "message": "test request",
+  "method": "textDocument/definition",
+  "request_id": 1,
+  "timestamp": "2024-01-01T00:00:00Z"
+}

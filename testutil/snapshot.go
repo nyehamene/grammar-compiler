@@ -10,13 +10,22 @@ import (
 
 var updateFlag = os.Getenv("UPDATE_SNAPSHOTS") == "true"
 
-func UpdateSnapshots() bool {
-	return updateFlag
+func getModuleRoot() string {
+	cwd, _ := os.Getwd()
+	for {
+		if _, err := os.Stat(filepath.Join(cwd, "go.mod")); err == nil {
+			return cwd
+		}
+		parent := filepath.Dir(cwd)
+		if parent == cwd {
+			break
+		}
+		cwd = parent
+	}
+	return "."
 }
 
-func SetUpdateSnapshots(enabled bool) {
-	updateFlag = enabled
-}
+var moduleRoot = getModuleRoot()
 
 func SnapshotPath(t interface {
 	Fatalf(format string, args ...any)
@@ -32,7 +41,7 @@ func SnapshotPath(t interface {
 		testFile = callers[len(callers)-1]
 	}
 
-	snapshotDir := filepath.Join("testdata", "snapshots", testFile)
+	snapshotDir := filepath.Join(moduleRoot, "testdata", "snapshots", testFile)
 	snapshotFile := filepath.Join(snapshotDir, name+".json")
 
 	if updateFlag {
@@ -71,6 +80,7 @@ func SaveSnapshot(t interface {
 func AssertSnapshotJSON(t interface {
 	Fatalf(format string, args ...any)
 	Name() string
+	Logf(format string, args ...any)
 }, name string, got any) {
 	gotJSON, err := json.MarshalIndent(got, "", "  ")
 	if err != nil {
@@ -85,7 +95,8 @@ func AssertSnapshotJSON(t interface {
 		if err != nil {
 			t.Fatalf("failed to write snapshot: %v", err)
 		}
-		t.Fatalf("snapshot %s updated", name)
+		t.Logf("snapshot %s updated", snapshotFile)
+		return
 	}
 
 	expected, err := os.ReadFile(snapshotFile)
@@ -101,6 +112,7 @@ func AssertSnapshotJSON(t interface {
 func AssertSnapshotText(t interface {
 	Fatalf(format string, args ...any)
 	Name() string
+	Logf(format string, args ...any)
 }, name string, got string) {
 	snapshotFile := SnapshotPath(t, name)
 
@@ -110,7 +122,8 @@ func AssertSnapshotText(t interface {
 		if err != nil {
 			t.Fatalf("failed to write snapshot: %v", err)
 		}
-		t.Fatalf("snapshot %s updated", name)
+		t.Logf("snapshot %s updated", snapshotFile)
+		return
 	}
 
 	expected, err := os.ReadFile(snapshotFile)
