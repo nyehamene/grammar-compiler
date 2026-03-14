@@ -43,7 +43,7 @@ func TestLevelOrder(t *testing.T) {
 
 func TestJSONLoggerOutput(t *testing.T) {
 	buf := &bytes.Buffer{}
-	logger := NewJSONLogger(buf, DEBUG)
+	logger := NewJSONLogger(buf, DEBUG, false)
 
 	logger.Info("test message", Fields{
 		"method": "testMethod",
@@ -74,7 +74,7 @@ func TestJSONLoggerOutput(t *testing.T) {
 
 func TestJSONLoggerLevelFiltering(t *testing.T) {
 	buf := &bytes.Buffer{}
-	logger := NewJSONLogger(buf, WARN)
+	logger := NewJSONLogger(buf, WARN, false)
 
 	logger.Debug("debug message", nil)
 	logger.Info("info message", nil)
@@ -91,7 +91,7 @@ func TestJSONLoggerLevelFiltering(t *testing.T) {
 
 func TestJSONLoggerCustomFields(t *testing.T) {
 	buf := &bytes.Buffer{}
-	logger := NewJSONLogger(buf, DEBUG)
+	logger := NewJSONLogger(buf, DEBUG, false)
 
 	logger.Info("request", Fields{
 		"method":       "textDocument/definition",
@@ -148,7 +148,7 @@ func TestConsoleLoggerLevelFiltering(t *testing.T) {
 func TestMultiLogger(t *testing.T) {
 	buf1 := &bytes.Buffer{}
 	buf2 := &bytes.Buffer{}
-	logger1 := NewJSONLogger(buf1, DEBUG)
+	logger1 := NewJSONLogger(buf1, DEBUG, false)
 	logger2 := NewConsoleLogger(buf2, DEBUG)
 
 	multi := NewMultiLogger(logger1, logger2)
@@ -169,7 +169,7 @@ func TestMultiLoggerEmpty(t *testing.T) {
 
 func TestStructuredToBasic(t *testing.T) {
 	buf := &bytes.Buffer{}
-	structured := NewJSONLogger(buf, DEBUG)
+	structured := NewJSONLogger(buf, DEBUG, false)
 	basic := NewStructuredToBasic(structured)
 
 	basic.Print("test print")
@@ -180,5 +180,33 @@ func TestStructuredToBasic(t *testing.T) {
 
 	if len(lines) != 2 {
 		t.Errorf("Expected 2 lines, got %d", len(lines))
+	}
+}
+
+func TestJSONLoggerPrettyPrint(t *testing.T) {
+	buf := &bytes.Buffer{}
+	logger := NewJSONLogger(buf, DEBUG, true)
+
+	logger.Info("test message", Fields{
+		"method": "testMethod",
+	})
+
+	output := buf.String()
+
+	if !strings.Contains(output, "  ") {
+		t.Error("Expected indented output with pretty printing")
+	}
+
+	if !strings.Contains(output, "timestamp") {
+		t.Error("Expected timestamp field in output")
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(output), &parsed); err != nil {
+		t.Fatalf("Failed to parse JSON: %v", err)
+	}
+
+	if parsed["message"] != "test message" {
+		t.Errorf("Expected message 'test message', got %v", parsed["message"])
 	}
 }

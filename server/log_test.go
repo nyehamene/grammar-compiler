@@ -11,7 +11,7 @@ import (
 
 func TestServerLoggingJSON(t *testing.T) {
 	var logBuf bytes.Buffer
-	logger := log.NewJSONLogger(&logBuf, log.DEBUG)
+	logger := log.NewJSONLogger(&logBuf, log.DEBUG, false)
 	basicLogger := log.NewStructuredToBasic(logger)
 
 	srv := server.NewServer(strings.NewReader(""), &bytes.Buffer{}, basicLogger)

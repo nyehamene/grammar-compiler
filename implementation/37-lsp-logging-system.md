@@ -81,13 +81,47 @@ type StructuredLogger interface {
 }
 ```
 
+### 7. JSON Pretty Printing
+
+- [ ] Add `--pretty` flag for human-readable JSON output
+- [ ] When enabled, JSON output is formatted with indentation
+- [ ] Default: compact JSON (single line per entry)
+- [ ] Useful for debugging with tools like `jq` or when reading logs directly
+
+```bash
+# Compact JSON (default)
+grammar-lsp --log /tmp/lsp.log --pretty=false
+cat /tmp/lsp.log
+# {"timestamp":"...","level":"info","message":"..."}
+
+# Pretty-printed JSON
+grammar-lsp --log /tmp/lsp.log --pretty
+cat /tmp/lsp.log
+# {
+#   "timestamp": "...",
+#   "level": "info",
+#   "message": "..."
+# }
+```
+
+### 8. Combined Flag Options
+
+| Flag | Values | Default | Description |
+|------|--------|---------|-------------|
+| `--log` | filepath | (none) | Enable file logging |
+| `--log-format` | json, text | json* | Output format |
+| `--log-level` | debug, info, warn, error | debug* | Minimum log level |
+| `--pretty` | true, false | false | Pretty-print JSON |
+
+*Defaults apply when `--log` is specified
+
 ## File Changes
 
 | File                | Changes                                          |
 |---------------------|---------------------------------------------------
-| `log/logger.go`     | Add Level enum, StructuredLogger interface       |
+| `log/logger.go`     | Add Level enum, StructuredLogger interface, pretty option |
 | `log/structured.go` | New file: JSONLogger, ConsoleLogger, MultiLogger |
-| `cmd/lsp/lsp.go`    | Add --log, --log-format, --log-level flags       |
+| `cmd/lsp/lsp.go`    | Add --log, --log-format, --log-level, --pretty flags       |
 | `server/server.go`  | Update to use structured logger                  |
 | `server/log.go`     | Update to use structured logging                 |
 | `server/*.go`       | Update handlers to use structured logging        |
@@ -152,7 +186,13 @@ type StructuredLogger interface {
 - [ ] Test `--log-level error` sets ERROR level
 - [ ] Test `--log-level` with invalid value (should error)
 
-#### 2.4 Flag Combinations
+#### 2.4 Pretty Flag Tests
+- [ ] Test `--pretty` flag is recognized
+- [ ] Test `--pretty=true` enables pretty printing
+- [ ] Test `--pretty=false` disables pretty printing
+- [ ] Test default is false (compact JSON)
+
+#### 2.5 Flag Combinations
 - [ ] Test `--log --log-format json --log-level debug`
 - [ ] Test `--log` alone (defaults to json, debug)
 - [ ] Test without --log (uses stderr, text, info)
@@ -196,6 +236,12 @@ type StructuredLogger interface {
 - [ ] Test default behavior (no flags) uses stderr
 - [ ] Test default level is INFO
 - [ ] Test --log flag enables DEBUG level by default
+- [ ] Test --pretty defaults to false (compact JSON)
+
+#### 4.4 Pretty Print Tests
+- [ ] Test JSON output is compact by default
+- [ ] Test --pretty produces indented JSON
+- [ ] Test pretty output is valid JSON when parsed
 
 ---
 

@@ -17,6 +17,7 @@ func LspCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	var logFile string
 	var logFormat string
 	var logLevel string
+	var pretty bool
 
 	lspCmd.SetOutput(stderr)
 	lspCmd.BoolVar(&help, "h", false, "Print this message.")
@@ -24,6 +25,7 @@ func LspCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	lspCmd.StringVar(&logFile, "log", "", "Log file path. If not specified, no file logging.")
 	lspCmd.StringVar(&logFormat, "log-format", "json", "Log format: json or text (default: json when --log is specified)")
 	lspCmd.StringVar(&logLevel, "log-level", "debug", "Log level: debug, info, warn, error (default: debug)")
+	lspCmd.BoolVar(&pretty, "pretty", false, "Pretty-print JSON output (default: false)")
 
 	_ = lspCmd.Parse(args)
 
@@ -65,7 +67,7 @@ func LspCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		} else {
 			defer logWriter.Close()
 			if useJSON {
-				logger = log.NewJSONLogger(logWriter, level)
+				logger = log.NewJSONLogger(logWriter, level, pretty)
 			} else {
 				logger = log.NewConsoleLogger(logWriter, level)
 			}

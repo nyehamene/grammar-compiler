@@ -139,14 +139,17 @@ func (l *BaseStructuredLogger) Error(msg string, fields Fields) {
 // JSONLogger outputs structured logs in JSON format.
 type JSONLogger struct {
 	BaseStructuredLogger
-	out io.Writer
+	out    io.Writer
+	pretty bool
 }
 
 // NewJSONLogger creates a logger that outputs JSON to the given writer.
-func NewJSONLogger(out io.Writer, minLevel Level) StructuredLogger {
+// The pretty parameter controls whether JSON output is formatted with indentation.
+func NewJSONLogger(out io.Writer, minLevel Level, pretty bool) StructuredLogger {
 	return &JSONLogger{
 		BaseStructuredLogger: BaseStructuredLogger{minLevel: minLevel},
 		out:                  out,
+		pretty:               pretty,
 	}
 }
 
@@ -163,7 +166,11 @@ func (l *JSONLogger) Log(level Level, msg string, fields Fields) {
 	fields[string(FieldLevel)] = level.String()
 	fields[string(FieldMessage)] = msg
 
-	fmt.Fprintln(l.out, mustMarshalJSON(fields))
+	if l.pretty {
+		fmt.Fprintln(l.out, mustMarshalJSONPretty(fields))
+	} else {
+		fmt.Fprintln(l.out, mustMarshalJSON(fields))
+	}
 }
 
 func (l *JSONLogger) Debug(msg string, fields Fields) {
@@ -303,6 +310,15 @@ func NewStructuredToBasic(logger StructuredLogger) Logger {
 // mustMarshalJSON marshals fields to JSON. Panics on error.
 func mustMarshalJSON(v any) string {
 	bytes, err := json.Marshal(v)
+	if err != nil {
+		return "{}"
+	}
+	return string(bytes)
+}
+
+// mustMarshalJSONPretty marshals fields to indented JSON. Panics on error.
+func mustMarshalJSONPretty(v any) string {
+	bytes, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return "{}"
 	}
