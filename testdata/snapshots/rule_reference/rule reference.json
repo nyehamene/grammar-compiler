@@ -1,0 +1,32 @@
+{
+  "Decls": [
+    {
+      "Name": {
+        "NamePos": 1,
+        "Name": "foo"
+      },
+      "Body": [
+        {
+          "NamePos": 7,
+          "Name": "bar"
+        }
+      ],
+      "EndPos": 11
+    },
+    {
+      "Name": {
+        "NamePos": 12,
+        "Name": "bar"
+      },
+      "Body": [
+        {
+          "ValuePos": 18,
+          "Value": "\"b\""
+        }
+      ],
+      "EndPos": 22
+    }
+  ],
+  "PackageName": "",
+  "EndPos": 23
+}

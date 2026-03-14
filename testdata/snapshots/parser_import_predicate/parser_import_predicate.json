@@ -1,0 +1,18 @@
+{
+  "Decls": [
+    {
+      "Name": {
+        "NamePos": 1,
+        "Name": "foo"
+      },
+      "Kind": 0,
+      "Path": {
+        "ValuePos": 15,
+        "Value": "\"test.grammar\""
+      },
+      "EndPos": 31
+    }
+  ],
+  "PackageName": "",
+  "EndPos": 32
+}

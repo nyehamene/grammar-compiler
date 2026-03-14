@@ -1,0 +1,37 @@
+{
+  "Decls": [
+    {
+      "Name": {
+        "NamePos": 1,
+        "Name": "a"
+      },
+      "Kind": 0,
+      "Path": {
+        "ValuePos": 13,
+        "Value": "\"foo.grammar\""
+      },
+      "EndPos": 28
+    },
+    {
+      "Name": {
+        "NamePos": 29,
+        "Name": "b"
+      },
+      "Body": [
+        {
+          "Object": {
+            "NamePos": 33,
+            "Name": "a"
+          },
+          "Member": {
+            "NamePos": 35,
+            "Name": "rule"
+          }
+        }
+      ],
+      "EndPos": 40
+    }
+  ],
+  "PackageName": "",
+  "EndPos": 41
+}

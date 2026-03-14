@@ -1,0 +1,15 @@
+[
+  {
+    "newText": "prod_a = \"a\";\nprod_b = \"b\";\n",
+    "range": {
+      "end": {
+        "character": 29,
+        "line": 0
+      },
+      "start": {
+        "character": 0,
+        "line": 0
+      }
+    }
+  }
+]

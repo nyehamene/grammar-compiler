@@ -1,0 +1,13 @@
+{
+  "isIncomplete": false,
+  "items": [
+    {
+      "kind": 9,
+      "label": "b"
+    },
+    {
+      "kind": 3,
+      "label": "prod_a"
+    }
+  ]
+}

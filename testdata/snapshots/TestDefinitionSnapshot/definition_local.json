@@ -1,0 +1,13 @@
+{
+  "range": {
+    "end": {
+      "character": 6,
+      "line": 1
+    },
+    "start": {
+      "character": 0,
+      "line": 1
+    }
+  },
+  "uri": "file:///test_project/a.grammar"
+}

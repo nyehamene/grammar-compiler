@@ -1,0 +1,41 @@
+[
+  {
+    "range": {
+      "end": {
+        "character": 6,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    },
+    "uri": "file:///test_project/a.grammar"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 15,
+        "line": 2
+      },
+      "start": {
+        "character": 9,
+        "line": 2
+      }
+    },
+    "uri": "file:///test_project/a.grammar"
+  },
+  {
+    "range": {
+      "end": {
+        "character": 15,
+        "line": 3
+      },
+      "start": {
+        "character": 9,
+        "line": 3
+      }
+    },
+    "uri": "file:///test_project/a.grammar"
+  }
+]

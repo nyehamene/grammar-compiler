@@ -1,0 +1,64 @@
+{
+  "Decls": [
+    {
+      "Name": {
+        "NamePos": 1,
+        "Name": "foo"
+      },
+      "Body": [
+        {
+          "Lparen": 7,
+          "Expr": {
+            "Exprs": [
+              {
+                "ValuePos": 9,
+                "Value": "\"a\""
+              },
+              {
+                "ValuePos": 13,
+                "Value": "\"b\""
+              }
+            ]
+          },
+          "Rparen": 17
+        }
+      ],
+      "EndPos": 19
+    },
+    {
+      "Name": {
+        "NamePos": 20,
+        "Name": "bar"
+      },
+      "Body": [
+        {
+          "Exprs": [
+            {
+              "Lparen": 26,
+              "Expr": {
+                "Exprs": [
+                  {
+                    "ValuePos": 28,
+                    "Value": "\"x\""
+                  },
+                  {
+                    "ValuePos": 34,
+                    "Value": "\"y\""
+                  }
+                ]
+              },
+              "Rparen": 38
+            },
+            {
+              "ValuePos": 40,
+              "Value": "\"z\""
+            }
+          ]
+        }
+      ],
+      "EndPos": 44
+    }
+  ],
+  "PackageName": "",
+  "EndPos": 45
+}

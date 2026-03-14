@@ -1,0 +1,50 @@
+{
+  "diagnostics": [
+    {
+      "message": "undefined identifier: undefined_rule",
+      "range": {
+        "end": {
+          "character": 10,
+          "line": 2
+        },
+        "start": {
+          "character": 9,
+          "line": 2
+        }
+      },
+      "severity": 1,
+      "source": "checker"
+    },
+    {
+      "message": "unused symbol: prod_a",
+      "range": {
+        "end": {
+          "character": 1,
+          "line": 1
+        },
+        "start": {
+          "character": 0,
+          "line": 1
+        }
+      },
+      "severity": 2,
+      "source": "checker"
+    },
+    {
+      "message": "unused symbol: prod_b",
+      "range": {
+        "end": {
+          "character": 1,
+          "line": 2
+        },
+        "start": {
+          "character": 0,
+          "line": 2
+        }
+      },
+      "severity": 2,
+      "source": "checker"
+    }
+  ],
+  "uri": "file:///test_project/a.grammar"
+}

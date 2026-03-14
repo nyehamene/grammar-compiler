@@ -1,0 +1,74 @@
+[
+  {
+    "kind": 8,
+    "name": "prod_a",
+    "range": {
+      "end": {
+        "character": 13,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 1
+      },
+      "start": {
+        "character": 0,
+        "line": 1
+      }
+    }
+  },
+  {
+    "kind": 8,
+    "name": "prod_b",
+    "range": {
+      "end": {
+        "character": 13,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 2
+      },
+      "start": {
+        "character": 0,
+        "line": 2
+      }
+    }
+  },
+  {
+    "kind": 8,
+    "name": "prod_c",
+    "range": {
+      "end": {
+        "character": 25,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    },
+    "selectionRange": {
+      "end": {
+        "character": 6,
+        "line": 3
+      },
+      "start": {
+        "character": 0,
+        "line": 3
+      }
+    }
+  }
+]

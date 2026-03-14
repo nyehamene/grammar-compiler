@@ -32,35 +32,35 @@ Use Go's built-in testing approach or [github.com/hexdigest/gowrap](https://gith
 
 ### 1. LSP Responses
 
-| Test Area | Snapshot File | What to Capture |
-|-----------|---------------|------------------|
-| Completion responses | `testdata/snapshots/completion/*.json` | CompletionItem arrays |
-| Hover responses | `testdata/snapshots/hover/*.json` | Hover content |
-| Definition responses | `testdata/snapshots/definition/*.json` | Location/LocationLink |
-| References responses | `testdata/snapshots/references/*.json` | Location arrays |
-| Diagnostics | `testdata/snapshots/diagnostics/*.json` | Diagnostic arrays |
-| Document symbols | `testdata/snapshots/documentSymbol/*.json` | SymbolInformation arrays |
+| Test Area | Snapshot File | What to Capture | Current Status |
+|-----------|---------------|------------------|----------------|
+| Completion responses | `testdata/snapshots/completion/*.json` | CompletionItem arrays | ✅ COMPLETE |
+| Hover responses | `testdata/snapshots/hover/*.json` | Hover content | ✅ COMPLETE |
+| Definition responses | `testdata/snapshots/definition/*.json` | Location/LocationLink | ✅ COMPLETE |
+| References responses | `testdata/snapshots/references/*.json` | Location arrays | ✅ COMPLETE |
+| Diagnostics | `testdata/snapshots/diagnostics/*.json` | Diagnostic arrays | ✅ COMPLETE |
+| Document symbols | `testdata/snapshots/documentSymbol/*.json` | SymbolInformation arrays | ✅ COMPLETE |
 
 ### 2. Log Output
 
-| Test Area | Snapshot File | What to Capture |
-|-----------|---------------|------------------|
-| JSON Logger output | `testdata/snapshots/log/json_*.jsonl` | JSON log lines |
-| Console Logger output | `testdata/snapshots/log/console_*.txt` | Formatted log text |
+| Test Area | Snapshot File | What to Capture | Current Status |
+|-----------|---------------|------------------|----------------|
+| JSON Logger output | `testdata/snapshots/log/json_*.jsonl` | JSON log lines | ✅ COMPLETE |
+| Console Logger output | `testdata/snapshots/log/console_*.txt` | Formatted log text | ✅ COMPLETE |
 
 ### 3. Parsing & AST
 
-| Test Area | Snapshot File | What to Capture |
-|-----------|---------------|------------------|
-| Parser output | `testdata/snapshots/parser/*.txt` | AST representation |
-| Formatter output | `testdata/snapshots/formatter/*.grammar` | Formatted source |
+| Test Area | Snapshot File | What to Capture | Current Status |
+|-----------|---------------|------------------|----------------|
+| Parser output | `testdata/snapshots/parser/*.txt` | AST representation | ✅ COMPLETE |
+| Formatter output | `testdata/snapshots/formatter/*.grammar` | Formatted source | ✅ COMPLETE |
 
 ### 4. CLI Output
 
-| Test Area | Snapshot File | What to Capture |
-|-----------|---------------|------------------|
-| LSP help text | `testdata/snapshots/cli/help.txt` | Help output |
-| Error messages | `testdata/snapshots/cli/errors.txt` | Error output |
+| Test Area | Snapshot File | What to Capture | Current Status |
+|-----------|---------------|------------------|----------------|
+| LSP help text | `testdata/snapshots/cli/help.txt` | Help output | ✅ COMPLETE |
+| Error messages | `testdata/snapshots/cli/errors.txt` | Error output | ✅ COMPLETE |
 
 ## Implementation Plan
 
