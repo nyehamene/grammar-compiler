@@ -133,7 +133,11 @@ func (f *Formatter) formatDeclGroup(group []Decl) {
 			f.buffer.WriteString(n.Name.Name)
 			f.buffer.WriteString(strings.Repeat(" ", maxNameLen-len(n.Name.Name)))
 			f.buffer.WriteString(" = ")
-			f.buffer.WriteString("@import(")
+			if n.Kind == ImportPackage {
+				f.buffer.WriteString("@package(")
+			} else {
+				f.buffer.WriteString("@import(")
+			}
 			f.buffer.WriteString(n.Path.Value)
 			f.buffer.WriteString(");")
 		case *CommentGroup:
@@ -141,6 +145,9 @@ func (f *Formatter) formatDeclGroup(group []Decl) {
 			for _, comment := range n.List {
 				f.buffer.WriteString(comment.Text)
 			}
+		case *DirectiveExpr:
+			f.formatDirectiveExpr(n, 0, 0)
+			f.buffer.WriteString(";")
 		}
 		if !cmt {
 			f.buffer.WriteString("\n")

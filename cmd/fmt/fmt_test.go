@@ -20,7 +20,10 @@ longname = "b";
 
 c = "c" | "d";
 `
-	invalidContent = `a = ;`
+	invalidContent     = `a = ;`
+	unformattedPackage = `p=@package("foo");`
+	formattedPackage   = `p = @package("foo");
+`
 )
 
 func TestFmtCommand(t *testing.T) {
@@ -167,6 +170,48 @@ func TestFmtCommand(t *testing.T) {
 
 		if !strings.Contains(stderr.String(), "parsing error") {
 			t.Errorf("stderr should contain parsing error")
+		}
+	})
+
+	t.Run("PackageDirectiveFormatting", func(t *testing.T) {
+		stdin := strings.NewReader(unformattedPackage)
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		args := []string{"--stdin"}
+
+		exitCode := FmtCommand(args, stdin, stdout, stderr)
+
+		if exitCode != 0 {
+			t.Errorf("expected exit code 0, got %d. stderr: %s", exitCode, stderr.String())
+		}
+
+		if formattedPackage != stdout.String() {
+			t.Errorf("FmtCommand() mismatch want:\n%q\ngot:\n%q", formattedPackage, stdout.String())
+		}
+	})
+
+	t.Run("PackageDirectiveWithRule", func(t *testing.T) {
+		input := `@package("foo");
+rule_a = "a";
+rule_b = "b";
+`
+		expected := `@package("foo");
+rule_a = "a";
+rule_b = "b";
+`
+		stdin := strings.NewReader(input)
+		stdout := &bytes.Buffer{}
+		stderr := &bytes.Buffer{}
+		args := []string{"--stdin"}
+
+		exitCode := FmtCommand(args, stdin, stdout, stderr)
+
+		if exitCode != 0 {
+			t.Errorf("expected exit code 0, got %d. stderr: %s", exitCode, stderr.String())
+		}
+
+		if expected != stdout.String() {
+			t.Errorf("FmtCommand() mismatch want:\n%q\ngot:\n%q", expected, stdout.String())
 		}
 	})
 }
