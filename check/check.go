@@ -11,12 +11,12 @@ import (
 // Checker holds the state for the type-checking process.
 type Checker struct {
 	cu      *CompilationUnit
-	log     log.Logger
+	log     log.StructuredLogger
 	symbols map[string]*SymbolTable
 }
 
 // NewChecker creates a new Checker.
-func NewChecker(cu *CompilationUnit, logger log.Logger) *Checker {
+func NewChecker(cu *CompilationUnit, logger log.StructuredLogger) *Checker {
 	return &Checker{
 		cu:      cu,
 		log:     logger,
@@ -107,7 +107,7 @@ func (c *Checker) checkNode(node ast.Node, mod *Module) {
 	case *ast.File:
 		st, ok := c.symbols[mod.Name]
 		if !ok {
-			c.log.Printf("UNREACHABLE")
+			c.log.Debug("UNREACHABLE", nil)
 			return // Should not happen
 		}
 

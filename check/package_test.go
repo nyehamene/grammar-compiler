@@ -28,7 +28,7 @@ func TestPackageDirectiveParsing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cu := NewCompilationUnit(&MockFileLoader{}, log.NewStderrLogger())
+			cu := NewCompilationUnit(&MockFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 			mod := cu.LoadSource([]byte(tt.src), "test.grammar")
 
 			foundPackage := false
@@ -48,7 +48,7 @@ func TestPackageDirectiveParsing(t *testing.T) {
 
 func TestPackageNameValidation(t *testing.T) {
 	t.Run("same package name in same directory", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		_, err := cu.LoadPackage("../testdata/packages/basic")
 		if err != nil {
 			t.Fatalf("LoadPackage() error = %v", err)
@@ -61,7 +61,7 @@ func TestPackageNameValidation(t *testing.T) {
 	})
 
 	t.Run("different package names in same directory", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		_, err := cu.LoadPackage("../testdata/packages/mismatch")
 		if err != nil {
 			t.Fatalf("LoadPackage() error = %v", err)
@@ -85,7 +85,7 @@ func TestPackageNameValidation(t *testing.T) {
 
 func TestLoadPackage(t *testing.T) {
 	t.Run("load basic package", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		pkg, err := cu.LoadPackage("../testdata/packages/basic")
 		if err != nil {
 			t.Fatalf("LoadPackage() error = %v", err)
@@ -101,7 +101,7 @@ func TestLoadPackage(t *testing.T) {
 	})
 
 	t.Run("non-existent directory", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		_, err := cu.LoadPackage("../testdata/packages/nonexistent")
 		if err == nil {
 			t.Fatal("Expected error for non-existent directory")
@@ -109,7 +109,7 @@ func TestLoadPackage(t *testing.T) {
 	})
 
 	t.Run("empty directory", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		_, err := cu.LoadPackage("../testdata/packages/empty")
 		if err == nil {
 			t.Fatal("Expected error for empty directory")
@@ -120,7 +120,7 @@ func TestLoadPackage(t *testing.T) {
 	})
 
 	t.Run("package caching", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		pkg1, err := cu.LoadPackage("../testdata/packages/basic")
 		if err != nil {
 			t.Fatalf("LoadPackage() error = %v", err)
@@ -139,7 +139,7 @@ func TestLoadPackage(t *testing.T) {
 
 func TestPackageNameResolution(t *testing.T) {
 	t.Run("explicit package name", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		pkg, err := cu.LoadPackage("../testdata/packages/basic")
 		if err != nil {
 			t.Fatalf("LoadPackage() error = %v", err)
@@ -151,7 +151,7 @@ func TestPackageNameResolution(t *testing.T) {
 	})
 
 	t.Run("inferred from directory", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 
 		// First load the package which will also load the modules
 		dirPath := "../testdata/packages/nested/sub"
@@ -178,7 +178,7 @@ func TestPackageNameResolution(t *testing.T) {
 
 func TestFileBasedImport(t *testing.T) {
 	t.Run("file import creates ModuleType", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		mod := cu.LoadSource([]byte(`a = @import("b.grammar");`), "../testdata/check/success/a.grammar")
 
 		typ, ok := mod.Types["a"]
@@ -192,7 +192,7 @@ func TestFileBasedImport(t *testing.T) {
 	})
 
 	t.Run("deprecation warning for file import", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		cu.LoadSource([]byte(`a = @import("b.grammar");`), "../testdata/check/success/a.grammar")
 
 		errList, ok := cu.Errors["../testdata/check/success/a.grammar"]
@@ -216,7 +216,7 @@ func TestFileBasedImport(t *testing.T) {
 
 func TestPackageBasedImport(t *testing.T) {
 	t.Run("directory import creates PackageType", func(t *testing.T) {
-		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewStderrLogger())
+		cu := NewCompilationUnit(&FileSystemFileLoader{}, log.NewConsoleLogger(os.Stderr, log.INFO))
 		// First load the package
 		pkg, err := cu.LoadPackage("../testdata/packages/basic")
 		if err != nil {

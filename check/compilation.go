@@ -18,11 +18,11 @@ type CompilationUnit struct {
 	Errors     map[string]ErrorList
 	Sources    map[string][]rune
 	loading    map[string]bool
-	log        log.Logger
+	log        log.StructuredLogger
 }
 
 // NewCompilationUnit creates a new compilation unit with a file loader.
-func NewCompilationUnit(loader FileLoader, logger log.Logger) *CompilationUnit {
+func NewCompilationUnit(loader FileLoader, logger log.StructuredLogger) *CompilationUnit {
 	return &CompilationUnit{
 		loader:     loader,
 		log:        logger,
@@ -261,7 +261,10 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) *Module {
 				cu.AddError(path, line, col, e.Message)
 			}
 		} else {
-			cu.log.Printf("CheckSource: unexpected parser error type %T. (Error: %s)", parseErr, parseErr)
+			cu.log.Info("CheckSource: unexpected parser error type", log.Fields{
+				"type":  fmt.Sprintf("%T", parseErr),
+				"error": parseErr,
+			})
 		}
 	}
 

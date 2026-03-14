@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"grammar/log"
 	"grammar/server"
 	"io"
 	"strings"
@@ -46,7 +47,7 @@ func setupTestServer(t *testing.T, logOut io.Writer) *lspTestHarness {
 	serverRead, clientWrite := io.Pipe()
 	clientRead, serverWrite := io.Pipe()
 
-	logger := server.NewWriterLogger(logOut)
+	logger := log.NewConsoleLogger(logOut, log.DEBUG)
 
 	serv := server.NewServer(serverRead, serverWrite, logger)
 

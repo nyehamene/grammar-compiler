@@ -43,7 +43,7 @@ func (m *MockFileLoader) NormalizePath(path string) (string, error) {
 func (m *MockFileLoader) SetWorkspaceRoot(path string) {}
 
 func setupTestChecker(t *testing.T) *Checker {
-	logger := log.NewStderrLogger()
+	logger := log.NewConsoleLogger(os.Stderr, log.INFO)
 	fileLoader := &MockFileLoader{}
 	cu := NewCompilationUnit(fileLoader, logger)
 	return NewChecker(cu, logger)

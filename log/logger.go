@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"time"
 )
 
@@ -31,49 +30,6 @@ func (l Level) String() string {
 	default:
 		return "unknown"
 	}
-}
-
-// Logger defines an interface for logging.
-type Logger interface {
-	Print(v any)
-	Printf(format string, v ...any)
-}
-
-// --- Stderr Logger ---
-
-type stderrLogger struct {
-	out io.Writer
-}
-
-// NewStderrLogger creates a logger that writes to stderr.
-func NewStderrLogger() Logger {
-	return &stderrLogger{out: os.Stderr}
-}
-
-func (l *stderrLogger) Print(v any) {
-	if l.out == nil {
-		return
-	}
-	fmt.Fprintln(l.out, v)
-}
-
-func (l *stderrLogger) Printf(format string, v ...any) {
-	if l.out == nil {
-		return
-	}
-	fmt.Fprintf(l.out, format+"\n", v...)
-}
-
-// --- Silent Logger ---
-
-type silentLogger struct{}
-
-func (s *silentLogger) Print(v any)                    {}
-func (s *silentLogger) Printf(format string, v ...any) {}
-
-// NewSilentLogger creates a logger that discards all output.
-func NewSilentLogger() Logger {
-	return &silentLogger{}
 }
 
 // --- Structured Logger ---
@@ -292,6 +248,13 @@ func (l *MultiLogger) Error(msg string, fields Fields) {
 }
 
 // --- Compatibility Wrapper ---
+
+// Logger is an interface for basic logging (deprecated, use StructuredLogger).
+// Kept for backward compatibility with existing code.
+type Logger interface {
+	Print(v any)
+	Printf(format string, v ...any)
+}
 
 // StructuredToBasic wraps a StructuredLogger to also satisfy the basic Logger interface.
 type StructuredToBasic struct {

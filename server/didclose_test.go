@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"grammar/log"
 	"grammar/server"
 	"strings"
 	"testing"
@@ -60,7 +61,7 @@ func TestDidCloseNotification(t *testing.T) {
 		}
 	}()
 
-	srv := server.NewServer(&in, &out, server.NewWriterLogger(&logOut))
+	srv := server.NewServer(&in, &out, log.NewConsoleLogger(&logOut, log.DEBUG))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()

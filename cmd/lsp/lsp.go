@@ -77,13 +77,11 @@ func LspCommand(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		logger = log.NewConsoleLogger(stderr, log.INFO)
 	}
 
-	// Wrap logger to also satisfy basic Logger interface
-	basicLogger := log.NewStructuredToBasic(logger)
-
 	var bufin = bufio.NewReader(stdin)
 
 	// Create and start the LSP server
-	srv := server.NewServer(bufin, stdout, basicLogger)
+	// Pass StructuredLogger directly - server will wrap it for Print/Printf
+	srv := server.NewServer(bufin, stdout, logger)
 	srv.Start()
 
 	return 0

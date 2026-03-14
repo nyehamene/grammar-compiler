@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"grammar/log"
 	"grammar/server"
 	"strings"
 	"testing"
@@ -25,7 +26,7 @@ func TestInitializedNotification(t *testing.T) {
 	var out strings.Builder
 	var logOut bytes.Buffer
 
-	srv := server.NewServer(&in, &out, server.NewWriterLogger(&logOut))
+	srv := server.NewServer(&in, &out, log.NewConsoleLogger(&logOut, log.DEBUG))
 	defer func() {
 		if t.Failed() {
 			t.Log(logOut.String())

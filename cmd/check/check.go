@@ -35,7 +35,7 @@ func CheckCommand(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
-	logger := log.NewStderrLogger()
+	logger := log.NewConsoleLogger(os.Stderr, log.INFO)
 	fileLoader := &check.FileSystemFileLoader{}
 	cu := check.NewCompilationUnit(fileLoader, logger)
 	checker := check.NewChecker(cu, logger)

@@ -12,9 +12,8 @@ import (
 func TestServerLoggingJSON(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := log.NewJSONLogger(&logBuf, log.DEBUG, false)
-	basicLogger := log.NewStructuredToBasic(logger)
 
-	srv := server.NewServer(strings.NewReader(""), &bytes.Buffer{}, basicLogger)
+	srv := server.NewServer(strings.NewReader(""), &bytes.Buffer{}, logger)
 	_ = srv
 
 	logger.Info("test request", log.Fields{
@@ -41,9 +40,8 @@ func TestServerLoggingJSON(t *testing.T) {
 func TestServerLoggingConsole(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := log.NewConsoleLogger(&logBuf, log.DEBUG)
-	basicLogger := log.NewStructuredToBasic(logger)
 
-	srv := server.NewServer(strings.NewReader(""), &bytes.Buffer{}, basicLogger)
+	srv := server.NewServer(strings.NewReader(""), &bytes.Buffer{}, logger)
 	_ = srv
 
 	logger.Info("test message", log.Fields{

@@ -29,11 +29,11 @@ type document struct {
 	text []rune
 }
 
-func NewServer(in io.Reader, out io.Writer, logger grammar_log.Logger) *Server {
+func NewServer(in io.Reader, out io.Writer, logger grammar_log.StructuredLogger) *Server {
 	srv := &Server{
 		reader:       bufio.NewReader(in),
 		writer:       out,
-		logger:       logger,
+		logger:       grammar_log.NewStructuredToBasic(logger),
 		shutdown:     false,
 		documents:    make(map[DocumentUri]*document),
 		requestTimes: make(map[int]time.Time),
