@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"grammar/testutil"
 )
 
 // MockFileLoader implements the FileLoader interface for testing purposes.
@@ -51,16 +53,20 @@ func setupTestChecker(t *testing.T) *Checker {
 
 func TestCheckSuccess(t *testing.T) {
 	checker := setupTestChecker(t)
-	checker.Check("../testdata/check/success/a.grammar")
-	if err := checker.CompilationUnit().Err("../testdata/check/success/a.grammar"); err != nil {
+	src := testutil.Grammar(`Rule_a = "hello";`)
+	checker.CompilationUnit().LoadSource(src, "test.grammar")
+	checker.Check("test.grammar")
+	if err := checker.CompilationUnit().Err("test.grammar"); err != nil {
 		t.Fatalf("Expected no error, but got: %v", err)
 	}
 }
 
 func TestCheckNonExistentImport(t *testing.T) {
 	checker := setupTestChecker(t)
-	checker.Check("../testdata/check/nonexistent_import/a.grammar")
-	errList, ok := checker.CompilationUnit().Errors["../testdata/check/nonexistent_import/a.grammar"]
+	src := testutil.Grammar(`non = @import("nonexistent.grammar");`)
+	checker.CompilationUnit().LoadSource(src, "test.grammar")
+	checker.Check("test.grammar")
+	errList, ok := checker.CompilationUnit().Errors["test.grammar"]
 	if !ok || len(errList) == 0 {
 		t.Fatal("Expected errors, but got none.")
 	}
@@ -93,8 +99,13 @@ func TestCheckImportCycle(t *testing.T) {
 
 func TestCheckRedeclaration(t *testing.T) {
 	checker := setupTestChecker(t)
-	checker.Check("../testdata/check/redeclaration/a.grammar")
-	err := checker.CompilationUnit().Err("../testdata/check/redeclaration/a.grammar")
+	src := testutil.Grammar(`
+rule_a = "hello";
+rule_a = "world";
+`)
+	checker.CompilationUnit().LoadSource(src, "test.grammar")
+	checker.Check("test.grammar")
+	err := checker.CompilationUnit().Err("test.grammar")
 	if err == nil {
 		t.Fatal("Expected an error for redeclaration, but got none.")
 	}
