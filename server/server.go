@@ -106,6 +106,7 @@ func (s *Server) handleRequest(id int, rawMsg map[string]any) {
 	s.logger.Debug("received request", grammar_log.Fields{
 		"request_id": id,
 		"method":     method,
+		"data":       rawMsg,
 	})
 
 	if method == "unknown" {
@@ -161,10 +162,10 @@ func (s *Server) handleShutdown(id int, rawMsg map[string]any) {
 }
 
 func (s *Server) handleNotification(rawMsg map[string]any) {
-	s.logger.Debug("received notification", grammar_log.Fields{"message": fmt.Sprintf("%v", rawMsg)})
+	s.logger.Debug("received notification", grammar_log.Fields{"message": rawMsg})
 	method, ok := rawMsg["method"].(string)
 	if !ok {
-		s.logger.Warn("Notification method not found in raw message", grammar_log.Fields{"rawMsg": fmt.Sprintf("%v", rawMsg)})
+		s.logger.Warn("Notification method not found in raw message", grammar_log.Fields{"rawMsg": rawMsg})
 		return
 	}
 

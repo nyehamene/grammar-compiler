@@ -75,11 +75,6 @@ func handleInitializeRequest(s *Server, id int, rawMsg map[string]any) {
 		return
 	}
 
-	jsonBytes, _ := json.MarshalIndent(rawMsg, "", "    ")
-	s.logger.Debug(string(jsonBytes), nil)
-
-	s.logger.Debug("InitializeParams", log.Fields{"params": fmt.Sprintf("%+v", params)})
-
 	// Check if client supports pull diagnostics
 	if params.Capabilities.TextDocument != nil && params.Capabilities.TextDocument.Diagnostic != nil {
 		s.clientHasDiagnosticSupport = true

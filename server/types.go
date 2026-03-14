@@ -330,7 +330,7 @@ const (
 
 // WorkspaceDiagnosticParams represents the parameters of a `workspace/diagnostic` request.
 type WorkspaceDiagnosticParams struct {
-	Identifier    string                         `json:"identifier,omitempty"`
+	Identifier        string                              `json:"identifier,omitempty"`
 	PreviousResultIds []WorkspaceDocumentDiagnosticReport `json:"previousResultIds,omitempty"`
 }
 
@@ -342,11 +342,11 @@ type WorkspaceDiagnosticReport struct {
 // WorkspaceDocumentDiagnosticReport represents a diagnostic report for a single document
 // within a workspace diagnostic report.
 type WorkspaceDocumentDiagnosticReport struct {
-	URI        DocumentUri                `json:"uri"`
-	Version    *int                       `json:"version,omitempty"`
-	Kind       DocumentDiagnosticReportKind `json:"kind"` // "full" or "unchanged"
-	ResultID   string                     `json:"resultId,omitempty"`
-	Items      []Diagnostic               `json:"items,omitempty"`
+	URI      DocumentUri                  `json:"uri"`
+	Version  *int                         `json:"version,omitempty"`
+	Kind     DocumentDiagnosticReportKind `json:"kind"` // "full" or "unchanged"
+	ResultID string                       `json:"resultId,omitempty"`
+	Items    []Diagnostic                 `json:"items,omitempty"`
 }
 
 // ClientCapabilities represents the capabilities of the client.

@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"grammar/log"
 )
 
@@ -47,7 +46,7 @@ func (s *Server) generateDiagnosticsForURI(uri DocumentUri) []Diagnostic {
 		diagnostics = append(diagnostics, diagnostic)
 
 		// Log individual diagnostic here (new requirement)
-		s.logger.Debug(fmt.Sprintf("%v", &diagnostic), nil)
+		s.logger.Debug("diagnostic", log.Fields{"results": diagnostic})
 	}
 	return diagnostics
 }

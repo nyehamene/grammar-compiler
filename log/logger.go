@@ -35,7 +35,7 @@ func (l Level) String() string {
 // --- Structured Logger ---
 
 // FieldKey represents keys for structured log fields.
-type FieldKey string
+type FieldKey = string
 
 // Common field keys
 const (
