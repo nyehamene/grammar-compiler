@@ -181,18 +181,6 @@ func newRequest(id int, method string, params *any) server.RequestMessage {
 	}
 }
 
-func consumeDiagnostics(h *lspTestHarness) {
-	msg := h.read()
-	if msg["method"] != "textDocument/publishDiagnostics" {
-		h.t.Fatalf("Expected publishDiagnostics, got %v", msg)
-	}
-	params, _ := msg["params"].(map[string]any)
-	diags, _ := params["diagnostics"].([]any)
-	if len(diags) > 0 {
-		h.t.Logf("Consumed %d diagnostics", len(diags))
-	}
-}
-
 func assertResponseID(h *lspTestHarness, msg map[string]any, expectedID int) {
 	if msg["id"] == nil {
 		h.t.Fatalf("Response is missing ID, expected %d. Got: %v", expectedID, msg)

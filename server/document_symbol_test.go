@@ -6,6 +6,7 @@ import (
 	"grammar/server"
 	"os"
 	"testing"
+	"grammar/testutil"
 )
 
 func TestDocumentSymbol(t *testing.T) {
@@ -28,7 +29,10 @@ rule_a = "hello";
 `
 	uri, _ := server.ParseURI("file:///test.grammar")
 	h.send(newDidOpenNotification(uri, content, 1))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	// 2. Send request
 	id := 1
@@ -43,6 +47,8 @@ rule_a = "hello";
 
 	var symbols []server.DocumentSymbol
 	json.Unmarshal(mustMarshal(h, msg["result"]), &symbols)
+
+	testutil.AssertSnapshotJSON(t, "document_symbol/basic_symbols", symbols)
 
 	if len(symbols) != 2 {
 		t.Fatalf("Expected 2 document symbols, got %d", len(symbols))
@@ -91,7 +97,10 @@ rule_b = "b";`
 
 	uri, _ := server.ParseURI("file://" + modulePath)
 	h.send(newDidOpenNotification(uri, content, 1))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	id := 1
 	var symbolParams any = server.DocumentSymbolParams{
@@ -105,9 +114,37 @@ rule_b = "b";`
 	var symbols []server.DocumentSymbol
 	json.Unmarshal(mustMarshal(h, msg["result"]), &symbols)
 
-	t.Logf("Found %d symbols", len(symbols))
-	for _, s := range symbols {
-		t.Logf("Symbol: %s, Kind: %d", s.Name, s.Kind)
+	testutil.AssertSnapshotJSON(t, "document_symbol/package_symbols", symbols)
+
+	if len(symbols) != 3 { // @package, rule_a, rule_b
+		t.Fatalf("Expected 3 document symbols, got %d", len(symbols))
+	}
+
+	// Assert @package directive symbol
+	pkgSymbol := symbols[0]
+	if pkgSymbol.Name != "mypackage" {
+		t.Errorf("Expected first symbol name to be 'mypackage', got %s", pkgSymbol.Name)
+	}
+	if pkgSymbol.Kind != server.SymbolKindPackage { // Assuming SymbolKindPackage for @package
+		t.Errorf("Expected first symbol kind to be Package, got %d", pkgSymbol.Kind)
+	}
+
+	// Assert rule_a symbol
+	ruleASymbol := symbols[1]
+	if ruleASymbol.Name != "rule_a" {
+		t.Errorf("Expected second symbol name to be 'rule_a', got %s", ruleASymbol.Name)
+	}
+	if ruleASymbol.Kind != server.SymbolKindField { // Assuming SymbolKindField for rules
+		t.Errorf("Expected second symbol kind to be Field, got %d", ruleASymbol.Kind)
+	}
+
+	// Assert rule_b symbol
+	ruleBSymbol := symbols[2]
+	if ruleBSymbol.Name != "rule_b" {
+		t.Errorf("Expected third symbol name to be 'rule_b', got %s", ruleBSymbol.Name)
+	}
+	if ruleBSymbol.Kind != server.SymbolKindField { // Assuming SymbolKindField for rules
+		t.Errorf("Expected third symbol kind to be Field, got %d", ruleBSymbol.Kind)
 	}
 	assertNoUnhandledMessages(h, &logBuf)
 }

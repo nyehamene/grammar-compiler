@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"grammar/server"
 	"os"
+	"strings" // Added import
 	"testing"
+	"grammar/testutil"
 )
 
 func TestHover(t *testing.T) {
@@ -23,7 +25,10 @@ func TestHover(t *testing.T) {
 	bContent := "rule_b = \"from b\";"
 	bURI, _ := server.ParseURI("file:///b.grammar")
 	h.send(newDidOpenNotification(bURI, bContent, 1))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	aContent := `
 b = @import("b.grammar");
@@ -36,7 +41,10 @@ prod_c = b.rule_b;
 `
 	aURI, _ := server.ParseURI("file:///a.grammar")
 	h.send(newDidOpenNotification(aURI, aContent, 2))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	testCases := []struct {
 		name          string
@@ -75,6 +83,8 @@ prod_c = b.rule_b;
 			var hover server.Hover
 			json.Unmarshal(resultData, &hover)
 
+			testutil.AssertSnapshotJSON(t, "hover/"+tc.name, hover)
+
 			if hover.Contents.Kind != server.MarkupKindMarkdown {
 				t.Errorf("Expected hover kind to be Markdown, got %s", hover.Contents.Kind)
 			}
@@ -111,7 +121,10 @@ rule_m1 = "from m1";`
 
 	m1URI, _ := server.ParseURI("file://" + m1Path)
 	h.send(newDidOpenNotification(m1URI, m1Content, 1))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	mainContent := `pkg = @import("pkg");
 result = pkg.module_a.rule_m1;`
@@ -120,7 +133,10 @@ result = pkg.module_a.rule_m1;`
 
 	mainURI, _ := server.ParseURI("file://" + mainPath)
 	h.send(newDidOpenNotification(mainURI, mainContent, 1))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	t.Run("hover on @package directive", func(t *testing.T) {
 		id := 1
@@ -138,6 +154,8 @@ result = pkg.module_a.rule_m1;`
 		resultData, _ := json.Marshal(msg["result"])
 		var hover server.Hover
 		json.Unmarshal(resultData, &hover)
+
+		testutil.AssertSnapshotJSON(t, "hover/package_directive_hover", hover)
 
 		t.Logf("Hover on @package: %s", hover.Contents.Value)
 	})
@@ -159,7 +177,57 @@ result = pkg.module_a.rule_m1;`
 		var hover server.Hover
 		json.Unmarshal(resultData, &hover)
 
+		testutil.AssertSnapshotJSON(t, "hover/package_binding_hover", hover)
+
 		t.Logf("Hover on package binding: %s", hover.Contents.Value)
+	})
+
+	t.Run("hover on module access", func(t *testing.T) {
+		id := 3
+		var hoverReqParams any = server.HoverParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+				Position:     server.Position{Line: 1, Character: 13}, // on 'module_a' in 'pkg.module_a.rule_m1'
+			},
+		}
+		h.send(newRequest(id, "textDocument/hover", &hoverReqParams))
+
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, _ := json.Marshal(msg["result"])
+		var hover server.Hover
+		json.Unmarshal(resultData, &hover)
+
+		testutil.AssertSnapshotJSON(t, "hover/module_access_hover", hover)
+
+		if !strings.Contains(hover.Contents.Value, "(module)") || !strings.Contains(hover.Contents.Value, "module_a") {
+			t.Errorf("Expected hover to indicate 'module' type for module_a, got: %s", hover.Contents.Value)
+		}
+	})
+
+	t.Run("hover on rule in imported package", func(t *testing.T) {
+		id := 4
+		var hoverReqParams any = server.HoverParams{
+			TextDocumentPositionParams: server.TextDocumentPositionParams{
+				TextDocument: server.TextDocumentIdentifier{URI: mainURI},
+				Position:     server.Position{Line: 1, Character: 22}, // on 'rule_m1' in 'pkg.module_a.rule_m1'
+			},
+		}
+		h.send(newRequest(id, "textDocument/hover", &hoverReqParams))
+
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, _ := json.Marshal(msg["result"])
+		var hover server.Hover
+		json.Unmarshal(resultData, &hover)
+
+		testutil.AssertSnapshotJSON(t, "hover/rule_in_imported_package_hover", hover)
+
+		if !strings.Contains(hover.Contents.Value, "(production)") || !strings.Contains(hover.Contents.Value, `"from m1"`) {
+			t.Errorf("Expected hover to indicate 'production' type and value for rule_m1, got: %s", hover.Contents.Value)
+		}
 	})
 	assertNoUnhandledMessages(h, &logBuf)
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grammar/server"
+	"grammar/testutil"
 	"testing"
 )
 
@@ -26,7 +27,10 @@ ref2 = highlight_rule;
 `
 	uri, _ := server.ParseURI("file:///highlight.grammar")
 	h.send(newDidOpenNotification(uri, content, 1))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	// Positions to test (declaration, ref1, ref2)
 	testPositions := []server.Position{
@@ -54,6 +58,8 @@ ref2 = highlight_rule;
 			if err := json.Unmarshal(mustMarshal(h, msg["result"]), &highlights); err != nil {
 				t.Fatalf("Failed to unmarshal document highlights: %v", err)
 			}
+
+			testutil.AssertSnapshotJSON(t, "document_highlight/highlight_"+fmt.Sprintf("%d_%d", pos.Line, pos.Character), highlights)
 
 			if len(highlights) != 3 {
 				t.Fatalf("Expected 3 document highlights, got %d", len(highlights))

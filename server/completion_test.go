@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"testing"
+	"grammar/testutil"
 )
 
 func TestCompletion(t *testing.T) {
@@ -30,7 +31,10 @@ rule_c = "from c";
 
 	bURI, _ := server.ParseURI("file:///b.grammar")
 	h.send(newDidOpenNotification(bURI, bContent, 1))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	// Initial content for a.grammar (valid state)
 	initialAContent := `
@@ -42,7 +46,10 @@ prod_b = ""; // initially valid
 
 	aURI, _ := server.ParseURI("file:///a.grammar")
 	h.send(newDidOpenNotification(aURI, initialAContent, 1))
-	consumeDiagnostics(h)
+	msg = h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 	idCounter := 1 // Global ID counter for all sub-tests
 
 	t.Run("member completion", func(t *testing.T) {
@@ -55,7 +62,10 @@ prod_b = b.
 `
 
 		h.send(newDidChangeNotification(aURI, incompleteAContent, 2)) // version 2
-		consumeDiagnostics(h)                                         // Consume diagnostics for the incomplete state
+		msg = h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
 		id := idCounter
 
 		var completionParams any = server.CompletionParams{
@@ -66,7 +76,7 @@ prod_b = b.
 		}
 
 		h.send(newRequest(id, "textDocument/completion", &completionParams))
-		msg := h.read()
+		msg = h.read()
 		assertResponseID(h, msg, id)
 
 		resultData, err := json.Marshal(msg["result"])
@@ -78,6 +88,8 @@ prod_b = b.
 		if err := json.Unmarshal(resultData, &completionList); err != nil {
 			t.Fatalf("Failed to unmarshal completion list: %v", err)
 		}
+
+		testutil.AssertSnapshotJSON(t, "completion/member_completion", completionList)
 
 		if len(completionList.Items) != 2 {
 			t.Fatalf("Expected 2 completion items, got %d", len(completionList.Items))
@@ -107,7 +119,10 @@ prod_b = ;
 `
 
 		h.send(newDidChangeNotification(aURI, validAContent, 3)) // version 3
-		consumeDiagnostics(h)
+		msg = h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
 		id := idCounter
 
 		var completionParams any = server.CompletionParams{
@@ -118,7 +133,7 @@ prod_b = ;
 		}
 
 		h.send(newRequest(id, "textDocument/completion", &completionParams))
-		msg := h.read()
+		msg = h.read()
 		assertResponseID(h, msg, id)
 
 		resultData, err := json.Marshal(msg["result"])
@@ -128,14 +143,13 @@ prod_b = ;
 		}
 
 		var completionList server.CompletionList
-
 		if err := json.Unmarshal(resultData, &completionList); err != nil {
 			t.Fatalf("Failed to unmarshal completion list: %v", err)
-
 		}
 
-		// Expect 'b' and 'prod_a'
+		testutil.AssertSnapshotJSON(t, "completion/rule_body_completion", completionList)
 
+		// Expect 'b' and 'prod_a'
 		if len(completionList.Items) != 2 {
 			t.Fatalf("Expected 2 completion items, got %d", len(completionList.Items))
 		}
@@ -188,11 +202,17 @@ rule_m2 = "from m2";`
 
 	m1URI, _ := server.ParseURI("file://" + m1Path)
 	h.send(newDidOpenNotification(m1URI, m1Content, 1))
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	m2URI, _ := server.ParseURI("file://" + m2Path)
 	h.send(newDidOpenNotification(m2URI, m2Content, 1))
-	consumeDiagnostics(h)
+	msg = h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	idCounter := 1
 
@@ -206,7 +226,10 @@ result = pkg.`
 
 		mainURI, _ := server.ParseURI("file://" + mainPath)
 		h.send(newDidOpenNotification(mainURI, mainContent, 1))
-		consumeDiagnostics(h)
+		msg = h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
 		id := idCounter
 
 		var completionParams any = server.CompletionParams{
@@ -217,7 +240,7 @@ result = pkg.`
 		}
 
 		h.send(newRequest(id, "textDocument/completion", &completionParams))
-		msg := h.read()
+		msg = h.read()
 		assertResponseID(h, msg, id)
 
 		resultData, err := json.Marshal(msg["result"])
@@ -229,6 +252,8 @@ result = pkg.`
 		if err := json.Unmarshal(resultData, &completionList); err != nil {
 			t.Fatalf("Failed to unmarshal completion list: %v", err)
 		}
+
+		testutil.AssertSnapshotJSON(t, "completion/package_module_completion", completionList)
 
 		// Should show module_a and module_b
 		if len(completionList.Items) < 1 {
@@ -247,7 +272,10 @@ result = pkg.module_a.`
 
 		mainURI, _ := server.ParseURI("file://" + mainPath)
 		h.send(newDidOpenNotification(mainURI, mainContent, 1))
-		consumeDiagnostics(h)
+		msg = h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
 		id := idCounter
 
 		var completionParams any = server.CompletionParams{
@@ -258,7 +286,7 @@ result = pkg.module_a.`
 		}
 
 		h.send(newRequest(id, "textDocument/completion", &completionParams))
-		msg := h.read()
+		msg = h.read()
 		assertResponseID(h, msg, id)
 
 		resultData, err := json.Marshal(msg["result"])
@@ -270,6 +298,8 @@ result = pkg.module_a.`
 		if err := json.Unmarshal(resultData, &completionList); err != nil {
 			t.Fatalf("Failed to unmarshal completion list: %v", err)
 		}
+
+		testutil.AssertSnapshotJSON(t, "completion/package_member_completion", completionList)
 
 		// Should show rule_m1
 		if len(completionList.Items) < 1 {
@@ -287,7 +317,10 @@ result = pkg.module_a.`
 
 		mainURI, _ := server.ParseURI("file://" + mainPath)
 		h.send(newDidOpenNotification(mainURI, mainContent, 1))
-		consumeDiagnostics(h)
+		msg = h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
 		id := idCounter
 
 		var completionParams any = server.CompletionParams{
@@ -298,7 +331,7 @@ result = pkg.module_a.`
 		}
 
 		h.send(newRequest(id, "textDocument/completion", &completionParams))
-		msg := h.read()
+		msg = h.read()
 		assertResponseID(h, msg, id)
 
 		resultData, err := json.Marshal(msg["result"])
@@ -310,6 +343,8 @@ result = pkg.module_a.`
 		if err := json.Unmarshal(resultData, &completionList); err != nil {
 			t.Fatalf("Failed to unmarshal completion list: %v", err)
 		}
+
+		testutil.AssertSnapshotJSON(t, "completion/package_directory_completion", completionList)
 
 		// Should suggest pkg directory
 		t.Logf("Completion items: %v", completionList.Items)
@@ -326,7 +361,10 @@ result = pkg.module_a.`
 
 		mainURI, _ := server.ParseURI("file://" + mainPath)
 		h.send(newDidOpenNotification(mainURI, mainContent, 1))
-		consumeDiagnostics(h)
+		msg = h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
 		id := idCounter
 
 		var completionParams any = server.CompletionParams{
@@ -337,7 +375,7 @@ result = pkg.module_a.`
 		}
 
 		h.send(newRequest(id, "textDocument/completion", &completionParams))
-		msg := h.read()
+		msg = h.read()
 		assertResponseID(h, msg, id)
 
 		resultData, err := json.Marshal(msg["result"])
@@ -349,6 +387,8 @@ result = pkg.module_a.`
 		if err := json.Unmarshal(resultData, &completionList); err != nil {
 			t.Fatalf("Failed to unmarshal completion list: %v", err)
 		}
+
+		testutil.AssertSnapshotJSON(t, "completion/same_package_module_completion", completionList)
 
 		// Should suggest module_a and module_b
 		t.Logf("Completion items: %v", completionList.Items)
@@ -366,7 +406,10 @@ myrule = `
 
 		mainURI, _ := server.ParseURI("file://" + mainPath)
 		h.send(newDidOpenNotification(mainURI, mainContent, 1))
-		consumeDiagnostics(h)
+		msg = h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
 		id := idCounter
 
 		var completionParams any = server.CompletionParams{
@@ -377,7 +420,7 @@ myrule = `
 		}
 
 		h.send(newRequest(id, "textDocument/completion", &completionParams))
-		msg := h.read()
+		msg = h.read()
 		assertResponseID(h, msg, id)
 
 		resultData, err := json.Marshal(msg["result"])
@@ -389,6 +432,8 @@ myrule = `
 		if err := json.Unmarshal(resultData, &completionList); err != nil {
 			t.Fatalf("Failed to unmarshal completion list: %v", err)
 		}
+
+		testutil.AssertSnapshotJSON(t, "completion/rule_body_with_package_completion", completionList)
 
 		// Should show pkg
 		foundPkg := false

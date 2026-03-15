@@ -6,7 +6,9 @@ import (
 	"grammar/server"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"grammar/testutil"
 )
 
 func TestDocumentLinkResolveRequest(t *testing.T) {
@@ -39,7 +41,10 @@ func TestDocumentLinkResolveRequest(t *testing.T) {
 
 	// 1. Open a.grammar
 	h.send(newDidOpenNotification(aURI, aContent, 1))
-	consumeDiagnostics(h) // Consume initial diagnostics for a.grammar
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	// 2. Send documentLink request for a.grammar
 	id := 1
@@ -61,6 +66,8 @@ func TestDocumentLinkResolveRequest(t *testing.T) {
 	if err := json.Unmarshal(resultData, &links); err != nil {
 		t.Fatalf("Failed to unmarshal document links: %v", err)
 	}
+
+	testutil.AssertSnapshotJSON(t, "document_link/unresolved_links", links)
 
 	if len(links) != 1 {
 		t.Fatalf("Expected 1 document link, got %d", len(links))
@@ -92,6 +99,8 @@ func TestDocumentLinkResolveRequest(t *testing.T) {
 	if err := json.Unmarshal(resultData, &resolvedLink); err != nil {
 		t.Fatalf("Failed to unmarshal resolved document link: %v", err)
 	}
+
+	testutil.AssertSnapshotJSON(t, "document_link/resolved_link", resolvedLink)
 
 	if resolvedLink.Target != bURI {
 		t.Errorf("Expected resolved link target %v, got %v", bURI, resolvedLink.Target)
@@ -143,6 +152,8 @@ rule_m = "m";`
 		var links []server.DocumentLink
 		json.Unmarshal(resultData, &links)
 
+		testutil.AssertSnapshotJSON(t, "document_link/package_import_link", links)
+
 		t.Logf("Found %d document links for package import", len(links))
 		for _, l := range links {
 			t.Logf("Link: target=%s, tooltip=%s", l.Target, l.Tooltip)
@@ -155,14 +166,16 @@ rule_m = "m";`
 		oldPath := testDir2 + "/old.grammar"
 		os.WriteFile(oldPath, []byte(oldContent), 0644)
 
-		mainContent := `old = @import("old.grammar");`
-		mainPath := testDir2 + "/main.grammar"
-		os.WriteFile(mainPath, []byte(mainContent), 0644)
-
-		mainURI, _ := server.ParseURI("file://" + mainPath)
-		h.send(newDidOpenNotification(mainURI, mainContent, 1))
-		consumeDiagnostics(h)
-
+		        mainContent := `old = @import("old.grammar");`
+				mainPath := testDir2 + "/main.grammar"
+				os.WriteFile(mainPath, []byte(mainContent), 0644)
+		
+				mainURI, _ := server.ParseURI("file://" + mainPath)
+				h.send(newDidOpenNotification(mainURI, mainContent, 1))
+				msg := h.read()
+				if msg["method"] != "textDocument/publishDiagnostics" {
+					t.Fatalf("Expected publishDiagnostics, got %v", msg)
+				}
 		id := 2
 		var linkParams any = server.DocumentLinkParams{
 			TextDocument: server.TextDocumentIdentifier{URI: mainURI},
@@ -176,9 +189,56 @@ rule_m = "m";`
 		var links []server.DocumentLink
 		json.Unmarshal(resultData, &links)
 
+		testutil.AssertSnapshotJSON(t, "document_link/deprecated_file_import_link", links)
+
 		t.Logf("Found %d document links for file import", len(links))
 		for _, l := range links {
 			t.Logf("Link: target=%s, tooltip=%s", l.Target, l.Tooltip)
+		}
+	})
+
+	t.Run("document link for @package", func(t *testing.T) {
+		pkgDir := testDir + "/pkg_link"
+		os.MkdirAll(pkgDir, 0755)
+
+		moduleContent := `@package("pkg_link");
+rule_m = "m";`
+		modulePath := pkgDir + "/module.grammar"
+		os.WriteFile(modulePath, []byte(moduleContent), 0644)
+
+		moduleURI, _ := server.ParseURI("file://" + modulePath)
+		h.send(newDidOpenNotification(moduleURI, moduleContent, 1))
+		msg := h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
+
+		id := 3
+		var linkParams any = server.DocumentLinkParams{
+			TextDocument: server.TextDocumentIdentifier{URI: moduleURI},
+		}
+		h.send(newRequest(id, "textDocument/documentLink", &linkParams))
+
+		msg := h.read()
+		assertResponseID(h, msg, id)
+
+		resultData, _ := json.Marshal(msg["result"])
+		var links []server.DocumentLink
+		json.Unmarshal(resultData, &links)
+
+		testutil.AssertSnapshotJSON(t, "document_link/package_directive_link", links)
+
+		if len(links) != 1 {
+			t.Fatalf("Expected 1 document link for @package, got %d", len(links))
+		}
+
+		link := links[0]
+		expectedTarget, _ := server.ParseURI("file://" + pkgDir)
+		if link.Target != expectedTarget {
+			t.Errorf("Expected link target %s, got %s", expectedTarget, link.Target)
+		}
+		if !strings.Contains(link.Tooltip, pkgDir) {
+			t.Errorf("Expected tooltip to contain package directory, got %s", link.Tooltip)
 		}
 	})
 }

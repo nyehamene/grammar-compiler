@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"grammar/testutil"
 )
 
 func TestDidOpenPublishDiagnostics(t *testing.T) {
@@ -73,6 +74,8 @@ func TestDidOpenPublishDiagnostics(t *testing.T) {
 		t.Fatalf("Failed to unmarshal PublishDiagnosticsParams: %v", err)
 	}
 
+	testutil.AssertSnapshotJSON(t, "diagnostics/did_open_publish_diagnostics", diagParams)
+
 	if diagParams.URI != textDocumentId {
 		t.Errorf("Expected diagnostics for URI 'file:///test.grammar', but got: %s", diagParams.URI)
 	}
@@ -130,6 +133,9 @@ func TestImportedNamespaceLoading(t *testing.T) {
 	params, _ := msg["params"].(map[string]any)
 	diags, _ := params["diagnostics"].([]any)
 
+	// Snapshot the raw diagnostics output
+	testutil.AssertSnapshotJSON(t, "diagnostics/imported_namespace_loading", diags)
+
 	// File-based imports are now deprecated, so we expect a warning
 	// Allow 0 or 1 diagnostic (the deprecation warning)
 	if len(diags) > 1 {
@@ -155,7 +161,10 @@ func TestDocumentDiagnosticRequest(t *testing.T) {
 	h.send(newDidOpenNotification(uri, content, 1))
 
 	// 2. Consume the initial push diagnostic
-	consumeDiagnostics(h)
+	msg := h.read()
+	if msg["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msg)
+	}
 
 	// 3. Send a pull diagnostic request
 	id := 1
@@ -177,6 +186,8 @@ func TestDocumentDiagnosticRequest(t *testing.T) {
 	if err := json.Unmarshal(resultData, &report); err != nil {
 		t.Fatalf("Failed to unmarshal diagnostic report: %v", err)
 	}
+
+	testutil.AssertSnapshotJSON(t, "diagnostics/document_diagnostic_report", report)
 
 	if report.Kind != server.DocumentDiagnosticReportKindFull {
 		t.Errorf("Expected report kind to be 'full', got '%s'", report.Kind)
@@ -225,10 +236,16 @@ func TestWorkspaceDiagnosticRequest(t *testing.T) {
 
 	// 1. Open both documents
 	h.send(newDidOpenNotification(aURI, aContent, 1))
-	consumeDiagnostics(h) // Consume initial diagnostics for a.grammar
+	msgA := h.read()
+	if msgA["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msgA)
+	}
 
 	h.send(newDidOpenNotification(bURI, bContent, 1))
-	consumeDiagnostics(h) // Consume initial diagnostics for b.grammar
+	msgB := h.read()
+	if msgB["method"] != "textDocument/publishDiagnostics" {
+		t.Fatalf("Expected publishDiagnostics, got %v", msgB)
+	}
 
 	// 2. Send workspace/diagnostic request
 	id := 1
@@ -248,6 +265,8 @@ func TestWorkspaceDiagnosticRequest(t *testing.T) {
 	if err := json.Unmarshal(resultData, &report); err != nil {
 		t.Fatalf("Failed to unmarshal workspace diagnostic report: %v", err)
 	}
+
+	testutil.AssertSnapshotJSON(t, "diagnostics/workspace_diagnostic_report", report)
 
 	if len(report.Items) != 2 {
 		t.Fatalf("Expected 2 document reports, got %d", len(report.Items))
@@ -410,8 +429,25 @@ rule_b = "b";`
 		os.WriteFile(bPath, []byte(bContent), 0644)
 
 		aURI, _ := server.ParseURI("file://" + aPath)
-		h.send(newDidOpenNotification(aURI, aContent, 1))
-		consumeDiagnostics(h)
+		msg := h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
+
+		// Send a request for diagnostics to trigger pull diagnostics after open
+		id := 1
+		var diagnosticParams any = server.DocumentDiagnosticParams{
+			TextDocument: server.TextDocumentIdentifier{URI: aURI},
+		}
+		h.send(newRequest(id, "textDocument/diagnostic", &diagnosticParams))
+		msg := h.read()
+		assertResponseID(h, msg, id)
+		resultData, _ := json.Marshal(msg["result"])
+		var report server.RelatedFullDocumentDiagnosticReport
+		json.Unmarshal(resultData, &report)
+
+		testutil.AssertSnapshotJSON(t, "diagnostics/package_name_mismatch", report.Items)
+
 	})
 
 	t.Run("deprecated file import", func(t *testing.T) {
@@ -426,7 +462,17 @@ rule_b = "b";`
 
 		bURI, _ := server.ParseURI("file://" + bPath)
 		h.send(newDidOpenNotification(bURI, bContent, 1))
-		consumeDiagnostics(h)
+		
+		msg := h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
+		paramsData, _ := json.Marshal(msg["params"])
+		var diagParams server.PublishDiagnosticsParams
+		json.Unmarshal(paramsData, &diagParams)
+		diags := diagParams.Diagnostics
+
+		testutil.AssertSnapshotJSON(t, "diagnostics/deprecated_file_import", diags)
 	})
 
 	t.Run("successful package load", func(t *testing.T) {
@@ -441,6 +487,106 @@ rule_m = "m";`
 
 		uri, _ := server.ParseURI("file://" + modulePath)
 		h.send(newDidOpenNotification(uri, content, 1))
-		consumeDiagnostics(h)
+		
+		msg := h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
+		paramsData, _ := json.Marshal(msg["params"])
+		var diagParams server.PublishDiagnosticsParams
+		json.Unmarshal(paramsData, &diagParams)
+		diags := diagParams.Diagnostics
+
+		testutil.AssertSnapshotJSON(t, "diagnostics/successful_package_load", diags)
+	})
+
+	t.Run("missing package", func(t *testing.T) {
+		testDir4 := t.TempDir()
+		mainPath := filepath.Join(testDir4, "main.grammar")
+		mainContent := `imp = @import("nonexistent_pkg");`
+		os.WriteFile(mainPath, []byte(mainContent), 0644)
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+
+		msg := h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
+		paramsData, _ := json.Marshal(msg["params"])
+		var diagParams server.PublishDiagnosticsParams
+		json.Unmarshal(paramsData, &diagParams)
+		diags := diagParams.Diagnostics
+
+		testutil.AssertSnapshotJSON(t, "diagnostics/missing_package", diags)
+		if len(diags) != 1 {
+			t.Fatalf("Expected 1 diagnostic, got %d", len(diags))
+		}
+		if !strings.Contains(diags[0].Message, "cannot load package 'nonexistent_pkg'") {
+			t.Errorf("Expected 'cannot load package' error, got: %s", diags[0].Message)
+		}
+	})
+
+	t.Run("invalid module access", func(t *testing.T) {
+		testDir5 := t.TempDir()
+		pkgDir := filepath.Join(testDir5, "mypackage")
+		os.MkdirAll(pkgDir, 0755)
+		os.WriteFile(filepath.Join(pkgDir, "module_a.grammar"), []byte(`@package("mypackage"); rule_a = "a";`), 0644)
+
+		mainPath := filepath.Join(testDir5, "main.grammar")
+		mainContent := `pkg = @import("mypackage"); result = pkg.NonExistentModule.rule_a;`
+		os.WriteFile(mainPath, []byte(mainContent), 0644)
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+
+		msg := h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
+		paramsData, _ := json.Marshal(msg["params"])
+		var diagParams server.PublishDiagnosticsParams
+		json.Unmarshal(paramsData, &diagParams)
+		diags := diagParams.Diagnostics
+
+		testutil.AssertSnapshotJSON(t, "diagnostics/invalid_module_access", diags)
+		if len(diags) != 1 {
+			t.Fatalf("Expected 1 diagnostic, got %d", len(diags))
+		}
+		if !strings.Contains(diags[0].Message, "module 'NonExistentModule' not found in package 'mypackage'") {
+			t.Errorf("Expected 'module not found' error, got: %s", diags[0].Message)
+		}
+	})
+
+	t.Run("invalid rule access", func(t *testing.T) {
+		testDir6 := t.TempDir()
+		pkgDir := filepath.Join(testDir6, "mypackage")
+		os.MkdirAll(pkgDir, 0755)
+		os.WriteFile(filepath.Join(pkgDir, "module_a.grammar"), []byte(`@package("mypackage"); rule_a = "a";`), 0644)
+
+		mainPath := filepath.Join(testDir6, "main.grammar")
+		mainContent := `pkg = @import("mypackage"); result = pkg.module_a.nonExistentRule;`
+		os.WriteFile(mainPath, []byte(mainContent), 0644)
+
+		mainURI, _ := server.ParseURI("file://" + mainPath)
+		h.send(newDidOpenNotification(mainURI, mainContent, 1))
+
+		msg := h.read()
+		if msg["method"] != "textDocument/publishDiagnostics" {
+			t.Fatalf("Expected publishDiagnostics, got %v", msg)
+		}
+		paramsData, _ := json.Marshal(msg["params"])
+		var diagParams server.PublishDiagnosticsParams
+		json.Unmarshal(paramsData, &diagParams)
+		diags := diagParams.Diagnostics
+
+		testutil.AssertSnapshotJSON(t, "diagnostics/invalid_rule_access", diags)
+		if len(diags) != 1 {
+			t.Fatalf("Expected 1 diagnostic, got %d", len(diags))
+		}
+		if !strings.Contains(diags[0].Message, "rule 'nonExistentRule' not found in module 'module_a'") {
+			t.Errorf("Expected 'rule not found' error, got: %s", diags[0].Message)
+		}
 	})
 }
+
