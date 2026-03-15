@@ -41,13 +41,34 @@ func (c *Checker) Sources() map[string][]rune {
 
 // Check initiates the checking process for a given path.
 func (c *Checker) Check(path string) {
-	mod, _ := c.cu.LoadFile(path)
-	if mod != nil {
-		c.symbols[path] = NewSymbolTable(path)
-		c.collectSymbols(mod.File, c.symbols[path])
-		// Use the Namespaces map for backward compatibility
-		if modLegacy, ok := c.cu.Namespaces[path]; ok {
-			c.checkNode(mod.File, modLegacy)
+	isDir, err := c.cu.loader.IsDir(path)
+	if err != nil {
+		c.cu.AddError(path, 0, 0, fmt.Sprintf("invalid path: %v", err))
+		return
+	}
+
+	if isDir {
+		pkg, err := c.cu.LoadPackage(path)
+		if err != nil {
+			c.cu.AddError(path, 0, 0, fmt.Sprintf("could not load package '%s': %v", path, err))
+			return
+		}
+		for _, mod := range pkg.Modules {
+			c.symbols[mod.Name] = NewSymbolTable(mod.Name)
+			c.collectSymbols(mod.File, c.symbols[mod.Name])
+		}
+		for _, mod := range pkg.Modules {
+			c.checkNode(mod.File, mod)
+		}
+	} else {
+		mod, _ := c.cu.LoadFile(path)
+		if mod != nil {
+			c.symbols[path] = NewSymbolTable(path)
+			c.collectSymbols(mod.File, c.symbols[path])
+			// Use the Namespaces map for backward compatibility
+			if modLegacy, ok := c.cu.Namespaces[path]; ok {
+				c.checkNode(mod.File, modLegacy)
+			}
 		}
 	}
 }

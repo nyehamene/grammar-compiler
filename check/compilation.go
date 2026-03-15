@@ -318,11 +318,11 @@ func (cu *CompilationUnit) LoadSource(content []byte, path string) *Module {
 					continue
 				}
 				// Verify the package name matches
-				if pkg.Name != importPath {
-					line, col := token.FindLineAndCol(d.Path.Pos(), srcRunes)
-					cu.AddError(path, line, col, fmt.Sprintf("package name mismatch: expected '%s', got '%s'", pkg.Name, importPath))
-					continue
-				}
+				// This check is incorrect: importPath is the directory name, pkg.Name is the declared package name.
+				// If a user imports "@import("some_dir")" but the package inside is named "@package("actual_package_name")",
+				// they expect to use the "actual_package_name" not "some_dir".
+				// The actual name mismatch should be handled by LoadPackage when it collects names from multiple modules.
+				// Removed: if pkg.Name != importPath { ... }
 				mod.Members[d.Name.Name] = d
 				mod.Types[d.Name.Name] = &PackageType{Name: pkg.Name, Path: pkg.Path}
 				continue
