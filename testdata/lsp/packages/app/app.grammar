@@ -1,3 +1,1 @@
-@package("app");
-lib_pkg = @import("../lib");
-use_lib = lib_pkg.utils.helper;
+@package("app"); lib = @import("../lib"); use_lib = lib.utils.helper;

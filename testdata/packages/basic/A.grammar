@@ -1,2 +1,1 @@
-@package("basic");
-rule_a = "a";
+@package("basic"); rule_a = "a";

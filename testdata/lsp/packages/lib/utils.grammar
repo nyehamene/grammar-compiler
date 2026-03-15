@@ -1,2 +1,1 @@
-@package("lib");
-helper = "helper";
+@package("lib"); helper = "helper";
