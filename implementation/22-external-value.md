@@ -5,6 +5,9 @@
     *   **Action**: Add a new token `Kind` named `External` to represent the `$ident` syntax.
     *   **File**: `token/tokenizer.go`
     *   **Action**: Update the tokenizer to recognize sequences starting with `$` followed by an identifier, and emit them as `External` tokens.
+    *   **Test**: Add tests in `token/tokenizer_test.go`:
+        - Test scanning external value `$foo`
+        - Test scanning multiple external values
 
 2.  **Abstract Syntax Tree (`ast/`)**:
     *   **File**: `ast/ast.go`
@@ -15,6 +18,9 @@
 3.  **Parser (`ast/`)**:
     *   **File**: `ast/parser.go`
     *   **Action**: Modify the `parseBasic` method to handle the new `External` token, parsing it into an `ExternalValue` AST node.
+    *   **Test**: Add tests in `ast/parser_test.go`:
+        - Test parsing external value in rule body
+        - Test parsing multiple external values
 
 4.  **Tree-sitter Grammar (`treesitter/`)**:
     *   **File**: `treesitter/grammar.js`
@@ -23,6 +29,8 @@
 5.  **Formatter (`ast/`)**:
     *   **File**: `ast/formatter.go`
     *   **Action**: Update the formatter's AST traversal logic to recognize and correctly format `ExternalValue` nodes, printing them back as `$name`.
+    *   **Test**: Add tests in `ast/formatter_test.go`:
+        - Test formatting external value
 
 6.  **Token Printer (`cmd/print/`)**:
     *   **File**: `cmd/print/print.go`
@@ -31,3 +39,5 @@
 7.  **Checker (`check/`)**:
     *   **File**: `check/check.go`
     *   **Action**: Add logic to the semantic checker to handle `ExternalValue` nodes. This will likely involve adding a new case in the checker's AST traversal, completing the integration of the new type.
+    *   **Test**: Add tests in `server/hover_test.go`:
+        - Test hover on external value shows "external" type

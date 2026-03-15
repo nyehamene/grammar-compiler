@@ -44,7 +44,7 @@ To implement a flexible, structured, and configurable logging system for the LSP
 -   The logger should be injected into components (Server, Checker, CompilationUnit) via their constructors or setter methods to maintain dependency inversion.
 -   Consider how to differentiate between general internal logging and specific LSP message logging in the API design (e.g., `logger.LogRequest(id, method)` vs `logger.LogInfo("message")`).
 
-## Todos
+## Implementation Plan
 
 - [ ] **Part 1: Define Logger Abstraction (`log/logger.go`)**
     - [ ] Create `log/` directory.

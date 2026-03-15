@@ -14,7 +14,7 @@ The new diagnostic rules are:
 2.  A `Warning` should be generated for any binding that is not used within the same file.
 3.  A `Warning` should be generated if a file declares more than one public rule.
 
-### Todos
+### Implementation Plan
 
 -   [x] **1. Enhance the Checker for Symbol Analysis**
     -   [x] In `check/check.go`, augment the `Check` function to track declarations and usages.

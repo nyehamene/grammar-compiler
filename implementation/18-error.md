@@ -37,3 +37,13 @@ To verify the new functionality, new test cases should be added.
   - `unterminated_regex.grammar`: `rule = /this regex never ends;`
 - Add a new test function, `TestParseInvalidToken`, to `ast/parser_test.go` (or create the test file if it doesn't exist).
 - This test should parse the new invalid files and assert that the `parser.ParseFile()` function returns an error and that the error message contains the expected text (e.g., "unterminated string literal").
+
+### 5. Tests Verification
+**Status**: ✅ IMPLEMENTED
+
+- Tests added in `ast/parser_test.go`: `TestParseInvalidToken`
+- Test data in `testdata/parser/invalid_token/`:
+  - `unterminated_string.grammar`
+  - `unterminated_regex.grammar`
+  - `invalid_regex_escape.grammar`
+  - `invalid_string_escape.grammar`

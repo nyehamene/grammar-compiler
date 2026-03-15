@@ -83,7 +83,7 @@ The LSP server should respond with:
   "foo";
   ```
 
-## Todos
+## Implementation Plan
 
 ### Implementation Plan
 

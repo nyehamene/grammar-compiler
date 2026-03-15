@@ -119,7 +119,7 @@ A member access expression has a receiver and an object: `receiver.object`.
   ident = "foo"; // error: "field ident redeclared in this namespace. (see other declaration at <INSERT LINE:COLUMN HERE>)"
   ```
 
-## Todos
+## Implementation Plan
 
 - [ ] **1. Foundational Data Structures**
     - [ ] Create `check/types.go` to define the type system (e.g., `Type` interface, `StringType`, `RegexpType`, `ProductionType`, `NamespaceType`).
@@ -161,18 +161,37 @@ A member access expression has a receiver and an object: `receiver.object`.
     - [ ] When a document is opened or changed (`didOpen`, `didChange`), call this checker function.
     - [ ] Convert the checker's errors into LSP `Diagnostic` messages and send them to the client via a `textDocument/publishDiagnostics` notification.
 
-## Todos (Phase 2)
+## Implementation Plan (Phase 2)
 
 - [ ] **1. Advanced Type System & Rule Validation**
     - [ ] **Composite Types**: Define and infer types for composite expressions like `SequenceExpr` and `AlternativeExpr`. This will allow the type checker to understand the structure of a rule's body, not just its individual parts.
     - [ ] **Unused Rule Detection**: Implement a pass to traverse the `CompilationUnit` and identify any `RuleDecl` that is not referenced by any other rule, reporting it as a warning.
+        - **Test**: Add unit tests in `check/unused_test.go`:
+            - Test unused private rule detection
+            - Test unused binding detection
+            - Test used private rule (no warning)
+            - Test unused public rule (no warning)
     - [ ] **Left-Recursion Detection**: Implement an algorithm to detect direct and indirect left-recursion within rule definitions (e.g., `a = a "x";`), which is a common source of errors in parser generation.
+        - **Test**: Add tests in `check/check_test.go`:
+            - Test direct left-recursion detection
+            - Test indirect left-recursion detection
 
 - [ ] **2. Comment Processing for Documentation**
     - [ ] **AST Enhancement**: Modify the `RuleDecl` and `BindingDecl` AST nodes to store any immediately preceding comment groups.
     - [ ] **Parser Update**: Update the parser to correctly identify and associate leading comment blocks with the declarations they belong to.
+        - **Test**: Add tests in `ast/parser_test.go`:
+            - Test comment association with rule declarations
+            - Test comment association with binding declarations
     - [ ] **API for Comments**: Expose a method to retrieve the documentation (comment) for a given symbol, which will be essential for providing rich hover information in the LSP.
+        - **Test**: Add integration tests in `server/hover_test.go`:
+            - Test hover shows documentation comments
 
 - [ ] **3. Linter for Style and Conventions**
     - [ ] **Naming Conventions**: Add a linter check to enforce a consistent naming convention (e.g., `snake_case`) for all rule and binding identifiers, reporting style warnings.
+        - **Test**: Add tests in `check/check_test.go`:
+            - Test snake_case naming convention enforcement
+            - Test PascalCase naming convention enforcement
     - [ ] **Rule Complexity Analysis**: Implement a check to measure and warn about overly complex rules, such as those with an excessive number of alternatives or a deeply nested structure, to improve grammar readability and maintainability.
+        - **Test**: Add tests in `check/check_test.go`:
+            - Test rule complexity threshold detection
+            - Test nested expression complexity detection

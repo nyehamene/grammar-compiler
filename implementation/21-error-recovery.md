@@ -35,3 +35,12 @@ The user has specified `;` and `comment` as synchronization points.
     -   The AST returned by the parser correctly contains the valid declarations that were parsed after recovering from errors.
 
 This ensures the recovery logic not only reports errors correctly but also successfully resumes parsing.
+
+### Tests Verification
+**Status**: ✅ IMPLEMENTED
+
+- Test added in `ast/parser_test.go`: `TestParseRecovery`
+- Test data in `testdata/parser/recovery.grammar`
+- Test verifies:
+  - Parser reports correct number of errors (not a cascade)
+  - AST correctly contains valid declarations after recovering

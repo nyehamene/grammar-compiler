@@ -88,6 +88,9 @@ repeated = { "a" };
 
 // Optional
 optional = [ "b" ];
+
+// External rule
+external = $external | <external>;
 ```
 
 ### Directives
